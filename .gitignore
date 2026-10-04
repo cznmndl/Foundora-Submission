@@ -1,0 +1,15 @@
+target/
+
+# Firebase service account key: never commit this.
+firebase-service-account.json
+*service-account*.json
+
+# Local environment / secrets
+.env
+.env.*
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store

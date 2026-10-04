@@ -1,0 +1,13 @@
+# Keep build context small and secrets out of the image.
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+.DS_Store
+target
+.env
+.env.*
+**/firebase-service-account*.json
+**/*service-account*.json
+README.md

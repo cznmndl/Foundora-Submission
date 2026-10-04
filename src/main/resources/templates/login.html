@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Foundora</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <main class="bg-white rounded-lg shadow p-8 w-full max-w-sm text-center">
+        <h1 class="text-2xl font-bold text-blue-600">Foundora</h1>
+        <p class="text-gray-600 mt-2">
+            Sign in with your <span th:text="'@' + ${allowedDomain}">@dlsl.edu.ph</span> Google account.
+        </p>
+        <p th:if="${param.logout}" class="mt-4 text-green-600">You have been signed out.</p>
+        <p id="login-error" class="mt-4 text-red-600 hidden" role="alert"></p>
+        <button id="google-sign-in" type="button" class="mt-6 w-full bg-blue-600 text-white px-4 py-2 rounded-lg">
+            Sign in with Google
+        </button>
+    </main>
+
+    <div id="firebase-config" hidden
+         th:data-api-key="${firebase.apiKey}"
+         th:data-auth-domain="${firebase.authDomain}"
+         th:data-project-id="${firebase.projectId}"
+         th:data-app-id="${firebase.appId}"
+         th:data-hosted-domain="${allowedDomain}"></div>
+
+    <script type="module">
+        // Only the app and auth modules are loaded; Firebase Analytics is intentionally not used.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import {
+            getAuth, GoogleAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signOut
+        } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+        const cfg = document.getElementById("firebase-config").dataset;
+        const app = initializeApp({
+            apiKey: cfg.apiKey,
+            authDomain: cfg.authDomain,
+            projectId: cfg.projectId,
+            appId: cfg.appId
+        });
+        const auth = getAuth(app);
+        // The server session is the source of truth, so don't keep a Firebase session in the browser.
+        await setPersistence(auth, inMemoryPersistence);
+
+        const provider = new GoogleAuthProvider();
+        // "hd" only pre-filters Google's account picker; the server enforces the domain.
+        provider.setCustomParameters({ hd: cfg.hostedDomain, prompt: "select_account" });
+
+        const button = document.getElementById("google-sign-in");
+        const errorBox = document.getElementById("login-error");
+        const csrfToken = document.querySelector("meta[name=_csrf]").content;
+        const csrfHeader = document.querySelector("meta[name=_csrf_header]").content;
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove("hidden");
+        }
+
+        button.addEventListener("click", async () => {
+            errorBox.classList.add("hidden");
+            button.disabled = true;
+            button.textContent = "Signing in…";
+            try {
+                const credential = await signInWithPopup(auth, provider);
+                const idToken = await credential.user.getIdToken();
+                await signOut(auth);
+
+                const response = await fetch("/auth/session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", [csrfHeader]: csrfToken },
+                    body: JSON.stringify({ idToken })
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(body.error || "Sign-in failed. Please try again.");
+                }
+                window.location.assign(body.redirect);
+            } catch (error) {
+                if (error.code !== "auth/popup-closed-by-user" && error.code !== "auth/cancelled-popup-request") {
+                    showError(error.message);
+                }
+                button.disabled = false;
+                button.textContent = "Sign in with Google";
+            }
+        });
+    </script>
+</body>
+</html>

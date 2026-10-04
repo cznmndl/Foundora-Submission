@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundora - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="flex">
+        <aside class="w-64 bg-white shadow-md">
+            <div class="p-4">
+                <h2 class="text-xl font-bold">Admin Panel</h2>
+                <nav class="mt-4">
+                    <ul>
+                        <li><a href="#" class="block py-2 px-4 text-gray-700 hover:bg-gray-200">Dashboard</a></li>
+                        <li><a href="#" class="block py-2 px-4 text-gray-700 hover:bg-gray-200">Pending Reports</a></li>
+                        <li><a href="#" class="block py-2 px-4 text-gray-700 hover:bg-gray-200">Approved Items</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        <main class="flex-1 p-6">
+            <header class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold">Pending Reports</h1>
+                <div class="flex items-center">
+                    <span th:if="${currentUser}" class="text-gray-600 mr-4" th:text="${currentUser.email}"></span>
+                    <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded">Refresh</a>
+                    <form th:action="@{/logout}" method="post" class="ml-4">
+                        <button type="submit" class="text-gray-700 hover:underline">Sign out</button>
+                    </form>
+                </div>
+            </header>
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="py-2 px-4 text-left">Title</th>
+                            <th class="py-2 px-4 text-left">Status</th>
+                            <th class="py-2 px-4 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-2 px-4">Lost Umbrella</td>
+                            <td class="py-2 px-4"><span class="bg-yellow-500 text-white px-2 py-1 rounded">Pending</span></td>
+                            <td class="py-2 px-4">
+                                <a href="#" class="text-green-500 hover:underline">Approve</a>
+                                <a href="#" class="text-red-500 hover:underline ml-4">Reject</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4">Found ID Card</td>
+                            <td class="py-2 px-4"><span class="bg-yellow-500 text-white px-2 py-1 rounded">Pending</span></td>
+                            <td class="py-2 px-4">
+                                <a href="#" class="text-green-500 hover:underline">Approve</a>
+                                <a href="#" class="text-red-500 hover:underline ml-4">Reject</a>
+                            </td>
+                        </tr>
+                        <!-- More rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
