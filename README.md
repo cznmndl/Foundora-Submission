@@ -1,33 +1,51 @@
 # Foundora - Lost and Found Management System
 
 ## Project Overview
-Foundora is a web-based Lost and Found Management System designed specifically for school communities. The application allows students to report lost or found items, view items in a marketplace-style layout, and provides an admin panel for moderation.
+Foundora is the lost and found board for the De La Salle Lipa community (Group 6, DSA class project). Students and staff report lost or found items, admins review every report before it appears, and approved reports show up in a social-style feed. Items are still turned in and claimed at the SDFO office.
 
 ## Tech Stack
-- **Backend**: Java 17+ with Spring Boot 3.x
-- **Frontend**: Thymeleaf + Tailwind CSS
+- **Backend**: Java 17 with Spring Boot 4
+- **Frontend**: Thymeleaf templates, one hand-written stylesheet (`static/css/app.css`) and a small script (`static/js/app.js`). Every page works without JavaScript.
 - **Database**: Supabase Postgres via Spring Data JPA (Session pooler), schema managed by Flyway
 - **Authentication**: Firebase Authentication (Google sign-in), verified on the server
-- **Storage**: Supabase Storage public bucket `item-images`, uploaded from the server with the secret key
+- **Storage**: private Supabase Storage bucket `item-images`; the app serves each photo after checking who is asking
 
-## Sign-in Rules
-- Only `@dlsl.edu.ph` Google accounts can sign in.
-- `first_last@dlsl.edu.ph` (underscore) is a **student** and lands on `/`.
-- `first.last@dlsl.edu.ph` (dot) is an **admin** and lands on `/admin`, but only if listed in `foundora.auth.admin-emails`. Dot emails not on the list are refused.
-- The browser sends the Firebase ID token to `POST /auth/session`; the server verifies it with the Firebase Admin SDK and starts a session. Students get a 403 on `/admin`.
+## Roles
+Only `@dlsl.edu.ph` Google accounts can sign in; the server checks this after verifying the Firebase ID token.
+
+| Email | Role | Can do |
+| --- | --- | --- |
+| On `FOUNDORA_ADMIN_EMAILS` (any @dlsl.edu.ph address, including office accounts) | Admin | Everything below, plus moderation; lands on `/admin` |
+| `first_last@dlsl.edu.ph` (underscore) | Student | Browse the feed, report lost/found items, My Reports |
+| `first.last@dlsl.edu.ph` (dot) or an office account such as `sdfo@dlsl.edu.ph` | Staff | Same as students |
+| Both a dot and an underscore, or any other domain | Refused | |
+
+Students and staff never receive admin pages or controls; `/admin/**` requires the ADMIN role on the server. A role is decided at sign-in, so allowlist changes apply at the person's next sign-in.
 
 ## Features
-1. **Student Reporting Module**: 
-   - Students can submit reports for lost or found items with details including title, description, category, location, date, status, contact info, and image upload.
-   
-2. **Marketplace Dashboard**: 
-   - A user-friendly interface displaying items in a grid layout with filtering options by status and category. Each item can be viewed in detail through a modal.
+- **Feed** (`/`): approved reports as posts, newest first, 10 at a time with "Load more" (and loading as you scroll). Search (item name, description, location, with prefix matching), All / Lost / Found tabs, category filter, date range, newest/oldest order and "Hide claimed items". Claimed posts stay visible, greyed out. Public pages never show reporter emails.
+- **Reporting**: a composer at the top of the feed opens the report form (a dialog on desktop, a full page on phones). Validation messages per field, photo preview, location suggestions, and a confirmation page. Found reports remind the finder to bring the item to the SDFO office.
+- **Post page** (`/posts/{id}`): one report with a shareable link. Someone else's Pending or Rejected report is a 404.
+- **My Reports** (`/my-reports`): your reports in every status, with the admin's reason for rejections.
+- **Admin**: overview counts, a pending queue (oldest first, each previewed exactly as its feed post), All Reports with search and filters, Mark as Claimed / Remove, and an activity log of every action. Every action has a confirmation step.
+- **Photos**: re-encoded on the server as JPEG of at most 1600 px (which also strips EXIF data such as GPS location), up to 5 MB, JPEG/PNG/WebP. Deleted from storage when a report is rejected or removed.
 
-3. **Admin Moderation Module**: 
-   - Admins can view pending submissions and take actions such as approve, reject, or delete items.
+## Report statuses
+`PENDING` → `APPROVED` or `REJECTED` (reason required); `APPROVED` → `CLAIMED` or `REMOVED`; `CLAIMED` → `REMOVED`. Only Approved and Claimed reports appear on the feed. Remove hides a report rather than deleting it, so the activity log stays complete.
 
-4. **Dynamic Filtering and Sorting**: 
-   - The application utilizes Java Streams and Collections for efficient data handling and presentation.
+## Data structures and algorithms
+The classes in `com.foundora.dsa` do real work in the app; each one's comments explain its structure and running time.
+
+| Class | Structure / algorithm | Used for | Complexity |
+| --- | --- | --- | --- |
+| `CategoryIndex` | `EnumMap` from category to posts | Category filter | O(1) lookup, O(k) to read k posts |
+| `DateMergeSort` | Merge sort (hand-written, stable) | Ordering posts when the feed index is rebuilt | O(n log n) time, O(n) space |
+| `SortedInsert` | Binary search + insert | Adding one approved post | O(log n) search + O(n) shift |
+| `InvertedIndex` | `HashMap` word → post IDs, smallest-first intersection | Search bar | O(k · m) for k words, smallest match set m |
+| `PrefixTrie` | Trie | Search-as-you-type and location suggestions | O(L + r) for an L-letter prefix, r results |
+| `PendingQueue` | `ArrayDeque` FIFO queue | Admin pending queue | O(1) enqueue / next |
+
+`feed/FeedIndex` combines them into an in-memory read model of the feed. It's built at startup, updated right after each admin action commits, and rebuilt every 5 minutes (`foundora.feed.rebuild-interval`). The database remains the source of truth; admin pages query it directly.
 
 ## Getting Started
 ### Prerequisites
@@ -56,7 +74,21 @@ Foundora is a web-based Lost and Found Management System designed specifically f
    | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
    | `SUPABASE_SECRET_KEY` | Project Settings → API Keys → secret key (`sb_secret_...`). Server-only; never put it in a template or browser code. |
 
-   On first start, Flyway runs `src/main/resources/db/migration`: it creates the `items` table with Row Level Security enabled and no policies (so Supabase's public Data API can't read or write it), and creates the public `item-images` bucket. Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema.
+   **Use a separate Supabase project for development** (the team uses `foundora-dev`), never the live one: running a branch locally applies its migrations to whatever database `.env` points at.
+
+   On start, Flyway runs `src/main/resources/db/migration`:
+
+   | Migration | What it does |
+   | --- | --- |
+   | V1 | `items` table with Row Level Security on and no policies, so Supabase's public Data API can't read or write it |
+   | V2 | `item-images` bucket |
+   | V3 | Report model: type, fixed categories, statuses, review fields, photo path |
+   | V4 | `activity_log` table (RLS on, no policies) |
+   | V5 | Makes the `item-images` bucket private (JPEG only, 5 MB) |
+
+   Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema. Never edit a migration that has already run; add a new one.
+
+   Optional settings in `application.properties`: `foundora.sdfo.room` and `foundora.sdfo.hours` (SDFO office details; shown as marked placeholders while blank) and `foundora.campus-locations` (location suggestions; currently a placeholder list to replace with real DLSL places).
 
 4. Build the project (tests use an in-memory H2 database, not Supabase):
    ```
@@ -80,7 +112,7 @@ The repository includes a `Dockerfile`, so Render can build and run it directly.
    | Variable | Value |
    | --- | --- |
    | `FIREBASE_CREDENTIALS_PATH` | `/etc/secrets/firebase-service-account.json` |
-   | `FOUNDORA_ADMIN_EMAILS` | Comma-separated `first.last@dlsl.edu.ph` admin addresses |
+   | `FOUNDORA_ADMIN_EMAILS` | Comma-separated @dlsl.edu.ph admin addresses (office accounts allowed) |
    | `SUPABASE_DB_URL` | Session pooler JDBC URL (see Installation step 3) |
    | `SUPABASE_DB_USER` | `postgres.<project-ref>` |
    | `SUPABASE_DB_PASSWORD` | Database password |
@@ -102,40 +134,21 @@ The `prod` profile requires HTTPS for the session cookie, so sign-in over plain 
 
 ## Directory Structure
 ```
-Foundora
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com
-│   │   │       └── foundora
-│   │   │           ├── FoundoraApplication.java
-│   │   │           ├── config
-│   │   │           │   └── FirebaseConfig.java
-│   │   │           ├── controller
-│   │   │           │   ├── AdminController.java
-│   │   │           │   ├── MarketplaceController.java
-│   │   │           │   └── ReportController.java
-│   │   │           ├── model
-│   │   │           │   └── Item.java
-│   │   │           ├── service
-│   │   │           │   ├── FirebaseService.java
-│   │   │           │   ├── ItemFilterService.java
-│   │   │           │   └── StorageService.java
-│   │   │           └── startup
-│   │   │               └── DataInitializer.java
-│   │   └── resources
-│   │       ├── templates
-│   │       │   ├── admin.html
-│   │       │   ├── index.html
-│   │       │   └── report.html
-│   │       └── application.properties
-│   └── test
-│       └── java
-│           └── com
-│               └── foundora
-│                   └── FoundoraApplicationTests.java
-├── pom.xml
-└── README.md
+src/main/java/com/foundora
+├── auth/         Firebase sign-in, roles (EmailRoleResolver, UserRole, FoundoraUser)
+├── config/       Security, Firebase, Supabase, clock/time zone, template helpers
+├── controller/   Feed, posts, reports, My Reports, photos, suggestions, admin
+├── dsa/          The data structures and algorithms listed above
+├── feed/         FeedIndex (in-memory feed read model) and its records
+├── model/        Item, ActivityLogEntry and enums (ReportType, ReportStatus, Category, ActivityAction)
+├── repository/   Spring Data repositories
+└── service/      Reporting, moderation, admin search, image processing, storage
+src/main/resources
+├── db/migration/ Flyway migrations V1–V5
+├── static/       app.css, app.js, favicon.svg
+└── templates/    fragments/ (layout, post card, report form, icons), feed, post, report,
+                  my-reports, admin/, error/ (403, 404, 500), login
+src/test/java     MockMvc tests on H2 (Firebase and Storage mocked) and unit tests for dsa/ and services
 ```
 
 ## Contributing

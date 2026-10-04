@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Not found · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <section class="card empty">
+        <p class="error-code">404</p>
+        <h1>We couldn't find that</h1>
+        <p class="muted">The page or report may have been removed, or it isn't visible to you.</p>
+        <a class="btn btn-primary" th:href="@{/}">Back to the feed</a>
+    </section>
+</div>
+</body>
+</html>

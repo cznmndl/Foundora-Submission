@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}. */-->
+<form th:fragment="form" class="report-form" th:action="@{/report}" method="post" enctype="multipart/form-data"
+      th:object="${reportForm}" data-loading data-report-form>
+
+    <div class="alert alert-error" role="alert" th:if="${#fields.hasAnyErrors() or photoError != null}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <span>Please fix the highlighted fields below.</span>
+    </div>
+
+    <fieldset>
+        <legend>Did you lose or find something?</legend>
+        <div class="segmented">
+            <input type="radio" id="type-lost" th:field="*{type}" value="LOST" required
+                   th:attr="aria-describedby=${#fields.hasErrors('type')} ? 'type-error' : null">
+            <label for="type-lost">I lost something</label>
+            <input type="radio" id="type-found" th:field="*{type}" value="FOUND">
+            <label for="type-found">I found something</label>
+        </div>
+        <p class="field-error" id="type-error" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></p>
+    </fieldset>
+
+    <p class="sdfo-note sdfo-reminder" role="note">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <span>Please bring the item to the SDFO office.</span>
+    </p>
+
+    <div class="field">
+        <label for="itemName">Item name <span class="hint">For example: Blue umbrella, Hydro Flask, Calculator</span></label>
+        <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" required autocomplete="off"
+               th:attr="aria-invalid=${#fields.hasErrors('itemName')} ? 'true' : null,
+                        aria-describedby=${#fields.hasErrors('itemName')} ? 'itemName-error' : null">
+        <p class="field-error" id="itemName-error" th:if="${#fields.hasErrors('itemName')}" th:errors="*{itemName}"></p>
+    </div>
+
+    <div class="field">
+        <label for="description">Description <span class="hint">Color, brand, stickers, what was inside: anything that helps the owner recognise it.</span></label>
+        <textarea id="description" th:field="*{description}" maxlength="1000" required rows="4"
+                  th:attr="aria-invalid=${#fields.hasErrors('description')} ? 'true' : null,
+                           aria-describedby=${#fields.hasErrors('description')} ? 'description-error' : null"></textarea>
+        <p class="field-error" id="description-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></p>
+    </div>
+
+    <div class="field">
+        <label for="category">Category</label>
+        <select id="category" th:field="*{category}" required
+                th:attr="aria-invalid=${#fields.hasErrors('category')} ? 'true' : null,
+                         aria-describedby=${#fields.hasErrors('category')} ? 'category-error' : null">
+            <option value="">Choose a category</option>
+            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label()}">Electronics</option>
+        </select>
+        <p class="field-error" id="category-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
+    </div>
+
+    <div class="field">
+        <label for="location">Where? <span class="hint">Start typing for common campus places.</span></label>
+        <input type="text" id="location" th:field="*{location}" maxlength="120" required autocomplete="off"
+               list="location-options" data-suggest-locations
+               th:attr="aria-invalid=${#fields.hasErrors('location')} ? 'true' : null,
+                        aria-describedby=${#fields.hasErrors('location')} ? 'location-error' : null">
+        <datalist id="location-options"></datalist>
+        <p class="field-error" id="location-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></p>
+    </div>
+
+    <div class="field">
+        <label for="dateLostFound">When? <span class="hint">The date you lost or found it.</span></label>
+        <input type="date" id="dateLostFound" th:field="*{dateLostFound}" required th:max="${today}"
+               th:attr="aria-invalid=${#fields.hasErrors('dateLostFound')} ? 'true' : null,
+                        aria-describedby=${#fields.hasErrors('dateLostFound')} ? 'dateLostFound-error' : null">
+        <p class="field-error" id="dateLostFound-error" th:if="${#fields.hasErrors('dateLostFound')}" th:errors="*{dateLostFound}"></p>
+    </div>
+
+    <div class="field">
+        <span class="label" id="photo-label">Photo <span class="hint">Optional. JPEG, PNG or WebP, up to 5 MB.</span></span>
+        <div class="photo-picker">
+            <div class="photo-preview" data-photo-preview>
+                <img alt="Preview of the chosen photo">
+            </div>
+            <div class="action-row">
+                <label class="btn btn-secondary btn-small" for="photo">
+                    <th:block th:replace="~{fragments/icons :: icon('camera')}"></th:block>
+                    <span data-photo-button>Choose a photo</span>
+                </label>
+                <button type="button" class="btn btn-ghost btn-small" data-photo-clear hidden>Remove photo</button>
+            </div>
+            <input type="file" id="photo" name="photo" class="visually-hidden" accept="image/jpeg,image/png,image/webp"
+                   aria-labelledby="photo-label" data-photo-input
+                   th:attr="aria-invalid=${photoError != null} ? 'true' : null,
+                            aria-describedby=${photoError != null} ? 'photo-error' : null">
+            <p class="field-error" id="photo-error" data-photo-error th:text="${photoError}"
+               th:hidden="${photoError == null}"></p>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Send report</button>
+        <a class="btn btn-ghost" th:href="@{/}" data-close-dialog>Cancel</a>
+    </div>
+    <p class="muted small">Your name is shown on the post. Your email is never shown publicly. An admin reviews every report before it appears on the feed.</p>
+</form>
+</body>
+</html>

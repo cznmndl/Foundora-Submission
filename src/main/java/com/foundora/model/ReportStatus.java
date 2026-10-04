@@ -1,0 +1,54 @@
+package com.foundora.model;
+
+import java.util.EnumSet;
+import java.util.Set;
+
+/**
+ * Where a report is in its lifecycle. Only admins move a report between statuses:
+ * PENDING -> APPROVED or REJECTED; APPROVED -> CLAIMED or REMOVED; CLAIMED -> REMOVED.
+ */
+public enum ReportStatus {
+    PENDING("Pending"),
+    APPROVED("Approved"),
+    REJECTED("Rejected"),
+    CLAIMED("Claimed / Returned"),
+    REMOVED("Removed");
+
+    /** Statuses that appear on the public feed. */
+    public static final Set<ReportStatus> ON_FEED = EnumSet.of(APPROVED, CLAIMED);
+
+    private final String label;
+
+    ReportStatus(String label) {
+        this.label = label;
+    }
+
+    public String label() {
+        return label;
+    }
+
+    public String slug() {
+        return name().toLowerCase();
+    }
+
+    public boolean canMoveTo(ReportStatus next) {
+        return switch (this) {
+            case PENDING -> next == APPROVED || next == REJECTED;
+            case APPROVED -> next == CLAIMED || next == REMOVED;
+            case CLAIMED -> next == REMOVED;
+            case REJECTED, REMOVED -> false;
+        };
+    }
+
+    public static ReportStatus fromSlug(String slug) {
+        if (slug == null) {
+            return null;
+        }
+        for (ReportStatus status : values()) {
+            if (status.slug().equalsIgnoreCase(slug.trim())) {
+                return status;
+            }
+        }
+        return null;
+    }
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{::#aside}, ~{})}">
+<head><title th:text="|${post.itemName()} · Foundora|">Item · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <p><a th:href="@{/}">← Back to the feed</a></p>
+
+    <!--/* Reporter or admin looking at a report that isn't on the feed: say where it stands. */-->
+    <div class="alert alert-info" role="status" th:if="${!post.status().name().equals('APPROVED') and !post.claimed()}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <div>
+            <strong th:text="|Status: ${post.status().label()}|">Status: Pending</strong>
+            <p th:if="${post.status().name() == 'PENDING'}" class="small" style="margin:0">Only you and the admins can see this report until it's approved.</p>
+            <p th:if="${post.status().name() == 'REJECTED' and item.reviewReason != null}" class="small" style="margin:0"
+               th:text="|Reason: ${item.reviewReason}|">Reason</p>
+            <p th:if="${post.status().name() == 'REMOVED'}" class="small" style="margin:0">Removed from the feed by an admin.</p>
+        </div>
+    </div>
+
+    <div class="post-detail">
+        <article th:replace="~{fragments/posts :: card(${post}, ${currentUser.isAdmin()}, |/posts/${post.id()}|, false)}"></article>
+    </div>
+
+    <section class="card" th:if="${currentUser.isAdmin()}">
+        <h2>Admin details</h2>
+        <div class="reporter-box" style="margin-top:0">
+            <dl>
+                <dt>Reporter</dt><dd th:text="${item.reporterName}">Name</dd>
+                <dt>Email</dt><dd th:text="${item.reporterEmail}">email</dd>
+                <dt>Submitted</dt><dd th:text="${@fmt.dateTime(item.createdAt)}">date</dd>
+                <dt th:if="${item.reviewedByName != null}">Reviewed by</dt>
+                <dd th:if="${item.reviewedByName != null}" th:text="|${item.reviewedByName}, ${@fmt.dateTime(item.reviewedAt)}|">admin</dd>
+            </dl>
+        </div>
+        <div style="margin-top:1rem" th:if="${post.status().name() == 'PENDING'}">
+            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|)}"></div>
+        </div>
+        <h3 style="margin-top:1rem">History</h3>
+        <ol class="timeline">
+            <li th:each="e : ${history}">
+                <div>
+                    <strong th:text="${e.action.label()}">Approved</strong>
+                    <span th:text="|by ${e.actorName}|">by Admin</span>
+                    <div class="when" th:text="${@fmt.dateTime(e.createdAt)}">time</div>
+                    <div class="small" th:if="${e.reason != null}" th:text="|Reason: ${e.reason}|">reason</div>
+                </div>
+            </li>
+        </ol>
+    </section>
+</div>
+<aside id="aside" class="rightpanel" aria-label="SDFO office">
+    <section th:replace="~{fragments/office :: card}"></section>
+</aside>
+</body>
+</html>

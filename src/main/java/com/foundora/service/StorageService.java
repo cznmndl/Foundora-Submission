@@ -1,33 +1,37 @@
 package com.foundora.service;
 
 import com.foundora.config.SupabaseProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
-/** Uploads item photos to the public Supabase Storage bucket from the server, using the secret key. */
+/**
+ * Stores item photos in the private Supabase Storage bucket, using the server-only secret key.
+ * Photos are never linked directly; {@code PhotoController} serves them after checking who is asking.
+ */
 @Service
 @EnableConfigurationProperties(SupabaseProperties.class)
 public class StorageService {
 
-    // The stored content type and extension come from this list, never from the client's filename,
-    // so a file can't be served from the public bucket as anything other than an image.
-    private static final Map<String, String> ALLOWED_TYPES = Map.of(
-            "image/jpeg", "jpg",
-            "image/png", "png",
-            "image/webp", "webp",
-            "image/gif", "gif");
+    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
+
+    /** Photo paths look like items/&lt;file&gt;; anything else is refused before it reaches Supabase. */
+    private static final Pattern PATH = Pattern.compile("items/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
 
     private final RestClient restClient;
     private final SupabaseProperties supabase;
+
+    public record StoredPhoto(byte[] bytes, MediaType contentType) {
+    }
 
     public StorageService(RestClient.Builder restClientBuilder, SupabaseProperties supabase) {
         this.supabase = supabase;
@@ -38,33 +42,61 @@ public class StorageService {
                 .build();
     }
 
-    /** Returns the public URL of the uploaded image, or null if no file was chosen. */
-    public String uploadImage(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            return null;
-        }
-        String contentType = file.getContentType();
-        String extension = contentType == null ? null : ALLOWED_TYPES.get(contentType.toLowerCase());
-        if (extension == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo must be a JPEG, PNG, WebP or GIF image.");
-        }
-
-        String fileName = UUID.randomUUID() + "." + extension;
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read the uploaded photo.", e);
-        }
-
+    /** Uploads JPEG bytes under a new random name and returns the object path to save on the report. */
+    public String storePhoto(byte[] jpeg) {
+        String fileName = UUID.randomUUID() + ".jpg";
         restClient.post()
                 .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName)
-                .contentType(MediaType.parseMediaType(contentType))
+                .contentType(MediaType.IMAGE_JPEG)
                 .header("x-upsert", "false")
-                .body(bytes)
+                .body(jpeg)
                 .retrieve()
                 .toBodilessEntity();
+        return "items/" + fileName;
+    }
 
-        return supabase.url() + "/storage/v1/object/public/" + supabase.bucket() + "/items/" + fileName;
+    public StoredPhoto downloadPhoto(String path) {
+        ResponseEntity<byte[]> response = restClient.get()
+                .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName(path))
+                .retrieve()
+                .toEntity(byte[].class);
+        MediaType type = response.getHeaders().getContentType();
+        return new StoredPhoto(response.getBody(), type != null ? type : MediaType.IMAGE_JPEG);
+    }
+
+    /** Deletes a photo. A photo that is already gone counts as deleted. */
+    public void deletePhoto(String path) {
+        try {
+            restClient.delete()
+                    .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName(path))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException e) {
+            if (!isNotFound(e.getStatusCode(), e.getResponseBodyAsString())) {
+                throw e;
+            }
+        }
+    }
+
+    /** Best-effort delete for cleanup paths; failures are logged with the path so it can be removed by hand. */
+    public void deletePhotoQuietly(String path) {
+        try {
+            deletePhoto(path);
+        } catch (RuntimeException e) {
+            log.error("Could not delete photo {} from bucket {}; delete it manually", path, supabase.bucket(), e);
+        }
+    }
+
+    private static String fileName(String path) {
+        var matcher = PATH.matcher(path == null ? "" : path);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Not a photo path: " + path);
+        }
+        return matcher.group(1);
+    }
+
+    // Supabase Storage has answered a missing object with 404, and with 400 + "not_found" in the body.
+    private static boolean isNotFound(HttpStatusCode status, String body) {
+        return status.value() == 404 || (status.value() == 400 && body != null && body.contains("not_found"));
     }
 }

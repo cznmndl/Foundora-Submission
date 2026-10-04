@@ -11,7 +11,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EmailRoleResolverTest {
 
-    private final EmailRoleResolver resolver = new EmailRoleResolver(List.of(" Ana.Cruz@DLSL.edu.ph "));
+    private final EmailRoleResolver resolver =
+            new EmailRoleResolver(List.of(" Ana.Cruz@DLSL.edu.ph ", "sdfo@dlsl.edu.ph"));
 
     @Test
     void underscoreEmailIsStudent() {
@@ -25,10 +26,20 @@ class EmailRoleResolverTest {
     }
 
     @Test
-    void dotEmailNotOnAllowlistIsRejected() {
-        assertThatThrownBy(() -> resolver.resolve("ben.santos@dlsl.edu.ph"))
-                .isInstanceOf(LoginRejectedException.class)
-                .hasMessageContaining("allowlist");
+    void dotEmailNotOnAllowlistIsStaff() {
+        assertThat(resolver.resolve("ben.santos@dlsl.edu.ph")).isEqualTo(UserRole.STAFF);
+    }
+
+    @Test
+    void officeAccountIsStaffUnlessAllowlisted() {
+        assertThat(resolver.resolve("registrar@dlsl.edu.ph")).isEqualTo(UserRole.STAFF);
+        assertThat(resolver.resolve("SDFO@dlsl.edu.ph")).isEqualTo(UserRole.ADMIN);
+    }
+
+    @Test
+    void allowlistWinsOverEmailFormat() {
+        EmailRoleResolver withStudentAdmin = new EmailRoleResolver(List.of("juan_delacruz@dlsl.edu.ph"));
+        assertThat(withStudentAdmin.resolve("juan_delacruz@dlsl.edu.ph")).isEqualTo(UserRole.ADMIN);
     }
 
     @ParameterizedTest
@@ -48,8 +59,8 @@ class EmailRoleResolverTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"juandelacruz@dlsl.edu.ph", "juan_dela.cruz@dlsl.edu.ph"})
-    void ambiguousSchoolEmailsAreRejected(String email) {
+    @ValueSource(strings = {"juan_dela.cruz@dlsl.edu.ph", "a.b_c@dlsl.edu.ph"})
+    void emailsWithBothDotAndUnderscoreAreRejected(String email) {
         assertThatThrownBy(() -> resolver.resolve(email))
                 .isInstanceOf(LoginRejectedException.class)
                 .hasMessageContaining("not recognized");
@@ -61,8 +72,8 @@ class EmailRoleResolverTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"juan_delacruz@dlsl.edu.ph", "ana.cruz@gmail.com"})
-    void allowlistRejectsEntriesThatCanNeverBeAdmins(String entry) {
+    @ValueSource(strings = {"ana.cruz@gmail.com", "sdfo@student.dlsl.edu.ph", "not-an-email"})
+    void allowlistRejectsEntriesOutsideTheSchoolDomain(String entry) {
         assertThatThrownBy(() -> new EmailRoleResolver(List.of(entry)))
                 .isInstanceOf(IllegalStateException.class);
     }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Pending reports · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <div class="page-head">
+        <h1>Pending reports</h1>
+        <a class="btn btn-primary btn-small" href="#next" th:if="${next != null}">Review next</a>
+    </div>
+    <p class="lead" th:if="${queueSize > 0}"
+       th:text="${queueSize == 1} ? '1 report is waiting. Oldest first, so nobody waits behind newer reports.'
+                                  : |${queueSize} reports are waiting. Oldest first, so nobody waits behind newer reports.|">3 waiting</p>
+
+    <section class="card empty" th:if="${next == null}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('check')}"></div>
+        <h2>All caught up</h2>
+        <p class="muted">There are no reports waiting for review.</p>
+        <a class="btn btn-secondary" th:href="@{/admin/reports}">See all reports</a>
+    </section>
+
+    <section id="next" th:if="${next != null}" aria-labelledby="next-heading">
+        <h2 id="next-heading" class="next-label">Next up · waiting longest</h2>
+        <div th:replace="~{admin/pending :: review(${next})}"></div>
+    </section>
+
+    <section th:if="${!waiting.isEmpty()}" style="margin-top:1.5rem" aria-labelledby="waiting-heading">
+        <h2 id="waiting-heading">Waiting after it</h2>
+        <div class="stack">
+            <th:block th:each="r : ${waiting}"><div th:replace="~{admin/pending :: review(${r})}"></div></th:block>
+        </div>
+    </section>
+</div>
+
+<!--/* One submission, previewed exactly as its feed post will look, plus what only admins see. */-->
+<div th:fragment="review(r)" class="review-card card" style="padding:0">
+    <article th:replace="~{fragments/posts :: card(${r.post()}, false, '/admin/pending', false)}"></article>
+    <div class="post-foot">
+        <div class="reporter-box" style="margin-top:0">
+            <dl>
+                <dt>Reporter</dt><dd th:text="${r.item().reporterName}">Name</dd>
+                <dt>Email</dt><dd th:text="${r.item().reporterEmail}">email</dd>
+                <dt>Submitted</dt>
+                <dd><span th:text="${@fmt.dateTime(r.item().createdAt)}">date</span>
+                    (<span th:text="${@fmt.ago(r.item().createdAt)}">2 hours ago</span>)</dd>
+            </dl>
+        </div>
+        <div style="margin-top:.75rem"
+             th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending')}"></div>
+    </div>
+</div>
+</body>
+</html>

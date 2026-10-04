@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/*
+  One feed post. Rendered from a FeedPost, which has no reporter email, so the card can't leak it.
+  controls: show admin Mark as claimed / Remove; returnTo: where admin actions come back to;
+  clamp: shorten long descriptions (the detail page shows them in full).
+*/-->
+<article th:fragment="card(post, controls, returnTo, clamp)" class="card post"
+         th:classappend="${post.claimed()} ? 'is-claimed'" th:id="|post-${post.id()}|"
+         th:attr="aria-labelledby=|title-${post.id()}|">
+    <div class="claimed-banner" th:if="${post.claimed()}">
+        <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block> Claimed / Returned ✓
+    </div>
+    <div class="post-body">
+        <header class="post-head">
+            <span class="avatar" aria-hidden="true" th:text="${post.reporterInitial()}">J</span>
+            <div class="post-who">
+                <span class="post-author" th:text="${post.reporterName()}">Juan Dela Cruz</span>
+                <a class="post-time" th:href="@{/posts/{id}(id=${post.id()})}">
+                    <time th:datetime="${@fmt.iso(post.createdAt())}" th:title="${@fmt.dateTime(post.createdAt())}"
+                          th:text="${@fmt.ago(post.createdAt())}">2 hours ago</time>
+                </a>
+            </div>
+            <span class="badge" th:classappend="${post.found()} ? 'badge-found' : 'badge-lost'"
+                  th:text="${post.type().label()}">Lost</span>
+        </header>
+        <span class="chip chip-quiet" th:text="${post.category().label()}">Umbrellas</span>
+        <h2 class="post-title" th:id="|title-${post.id()}|">
+            <a th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Blue umbrella</a>
+        </h2>
+        <p class="post-desc" th:classappend="${clamp} ? 'clamp'" th:text="${post.description()}">Description</p>
+    </div>
+    <a th:if="${post.hasPhoto()}" class="post-photo" th:href="@{/photos/{id}(id=${post.id()})}" data-lightbox
+       th:attr="data-caption=${post.itemName()}">
+        <img th:src="@{/photos/{id}(id=${post.id()})}" th:alt="|Photo of ${post.itemName()}|"
+             loading="lazy" decoding="async">
+        <span class="visually-hidden">(opens full size)</span>
+    </a>
+    <div class="post-body" style="padding-top: .25rem">
+        <dl class="post-meta">
+            <div>
+                <th:block th:replace="~{fragments/icons :: icon('pin')}"></th:block>
+                <dt class="visually-hidden">Location</dt>
+                <dd th:text="${post.location()}">Library</dd>
+            </div>
+            <div>
+                <th:block th:replace="~{fragments/icons :: icon('calendar')}"></th:block>
+                <dt th:text="${post.found()} ? 'Found' : 'Lost'">Lost</dt>
+                <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}"
+                          th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd>
+            </div>
+        </dl>
+        <p class="sdfo-note" th:classappend="${!post.found()} ? 'is-lost'">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span th:text="${post.found()} ? 'Claim this item at the SDFO office.' : 'Found this? Bring it to the SDFO office.'">Note</span>
+        </p>
+    </div>
+    <div class="post-foot" th:if="${controls and !post.status().name().equals('PENDING')}">
+        <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo})}"></div>
+    </div>
+</article>
+
+<!--/* Admin buttons for an item, each with a confirmation step (a <details> panel: no JavaScript needed). */-->
+<div th:fragment="adminActions(id, name, status, returnTo)" class="action-row">
+    <th:block th:if="${status == 'PENDING'}">
+        <details class="confirm">
+            <summary class="btn btn-primary btn-small">Approve</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/approve(id=${id})}" data-loading>
+                <p th:text="|Approve “${name}”? It will appear on the feed.|">Approve?</p>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-primary btn-small" type="submit">Yes, approve</button>
+            </form>
+        </details>
+        <details class="confirm">
+            <summary class="btn btn-secondary btn-small">Reject</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/reject(id=${id})}" data-loading>
+                <div class="field">
+                    <label th:for="|reason-reject-${id}|">Reason for rejecting <span class="hint">The reporter sees this on My Reports.</span></label>
+                    <textarea th:id="|reason-reject-${id}|" name="reason" required maxlength="500" rows="3"></textarea>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-danger btn-small" type="submit">Reject report</button>
+            </form>
+        </details>
+    </th:block>
+    <details class="confirm" th:if="${status == 'APPROVED'}">
+        <summary class="btn btn-secondary btn-small">Mark as claimed</summary>
+        <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/claim(id=${id})}" data-loading>
+            <p th:text="|Mark “${name}” as claimed or returned? It stays on the feed, greyed out.|">Mark?</p>
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <button class="btn btn-primary btn-small" type="submit">Yes, mark as claimed</button>
+        </form>
+    </details>
+    <details class="confirm" th:if="${status == 'APPROVED' or status == 'CLAIMED'}">
+        <summary class="btn btn-ghost btn-small">Remove</summary>
+        <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/remove(id=${id})}" data-loading>
+            <p th:text="|Remove “${name}” from the feed? Its photo will be deleted.|">Remove?</p>
+            <div class="field">
+                <label th:for="|reason-remove-${id}|">Reason <span class="hint">Optional. Saved in the activity log.</span></label>
+                <textarea th:id="|reason-remove-${id}|" name="reason" maxlength="500" rows="2"></textarea>
+            </div>
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <button class="btn btn-danger btn-small" type="submit">Remove report</button>
+        </form>
+    </details>
+</div>
+
+<!--/* A page of feed posts plus the "Load more" control. Also returned alone by /feed/posts. */-->
+<th:block th:fragment="page">
+    <th:block th:each="post : ${feedPage.posts()}">
+        <article th:replace="~{fragments/posts :: card(${post}, ${currentUser.isAdmin()}, ${filters.pageUrl(0)}, true)}"></article>
+    </th:block>
+    <div th:if="${feedPage.hasMore()}" class="load-more" data-load-more
+         th:attr="data-next=${filters.moreUrl(feedPage.page() + 1)}">
+        <a class="btn btn-secondary" th:href="${filters.pageUrl(feedPage.page() + 1)}">Load more posts</a>
+    </div>
+    <p th:if="${!feedPage.hasMore() and feedPage.page() > 0}"
+       class="end-of-feed">You're all caught up.</p>
+</th:block>
+
+</body>
+</html>

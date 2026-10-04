@@ -9,9 +9,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Maps a school email to a role:
- * first_last@dlsl.edu.ph is a student; first.last@dlsl.edu.ph is an admin only if allowlisted.
- * Everything else is rejected.
+ * Maps a school email to a role. Only @dlsl.edu.ph addresses get in.
+ * <ul>
+ *   <li>Any address on the admin allowlist is an admin, including office accounts such as sdfo@dlsl.edu.ph.</li>
+ *   <li>first_last (underscore, no dot) is a student.</li>
+ *   <li>first.last (dot, no underscore) or an office account (neither) is staff.</li>
+ *   <li>A local part with both a dot and an underscore matches no known account format and is rejected.</li>
+ * </ul>
  */
 @Component
 public class EmailRoleResolver {
@@ -27,8 +31,8 @@ public class EmailRoleResolver {
                 .collect(Collectors.toUnmodifiableSet());
 
         for (String email : this.adminEmails) {
-            if (!isAdminFormat(email)) {
-                throw new IllegalStateException("foundora.auth.admin-emails entry is not a first.last@"
+            if (schoolLocalPart(email) == null) {
+                throw new IllegalStateException("foundora.auth.admin-emails entry is not an @"
                         + ALLOWED_DOMAIN + " address: " + email);
             }
         }
@@ -41,23 +45,16 @@ public class EmailRoleResolver {
             throw new LoginRejectedException("Please sign in with your @" + ALLOWED_DOMAIN + " Google account.");
         }
 
+        if (adminEmails.contains(normalized)) {
+            return UserRole.ADMIN;
+        }
+
         boolean hasUnderscore = localPart.contains("_");
         boolean hasDot = localPart.contains(".");
-        if (hasUnderscore && !hasDot) {
-            return UserRole.STUDENT;
+        if (hasUnderscore && hasDot) {
+            throw new LoginRejectedException("This account is not recognized as a student or staff account.");
         }
-        if (hasDot && !hasUnderscore) {
-            if (adminEmails.contains(normalized)) {
-                return UserRole.ADMIN;
-            }
-            throw new LoginRejectedException("This account is not on the Foundora admin allowlist.");
-        }
-        throw new LoginRejectedException("This account is not recognized as a student or admin account.");
-    }
-
-    private static boolean isAdminFormat(String email) {
-        String localPart = schoolLocalPart(email);
-        return localPart != null && localPart.contains(".") && !localPart.contains("_");
+        return hasUnderscore ? UserRole.STUDENT : UserRole.STAFF;
     }
 
     /** Returns the part before {@code @dlsl.edu.ph}, or null if the address is not exactly on that domain. */

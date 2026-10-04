@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Activity log · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <div class="page-head"><h1>Activity log</h1></div>
+    <p class="lead">Who did what to which report, newest first.</p>
+
+    <nav class="chip-row" aria-label="Filter by action">
+        <a class="chip" th:href="@{/admin/activity}" th:attr="aria-current=${action == null} ? 'true' : null">Everything</a>
+        <a class="chip" th:each="a : ${actions}" th:href="@{/admin/activity(action=${a.slug()})}" th:text="${a.label()}"
+           th:attr="aria-current=${action == a} ? 'true' : null">Approved</a>
+    </nav>
+
+    <section class="card">
+        <p class="muted" th:if="${entries.totalElements == 0}">No activity yet.</p>
+        <ol class="timeline" th:if="${entries.totalElements > 0}">
+            <th:block th:each="e : ${entries.content}"><li th:replace="~{admin/activity :: entry(${e})}"></li></th:block>
+        </ol>
+        <nav class="pager" aria-label="Pages" th:if="${entries.totalPages > 1}">
+            <a class="btn btn-secondary btn-small" th:if="${entries.hasPrevious()}"
+               th:href="${newerUrl}">← Newer</a>
+            <span class="muted small" th:text="|Page ${entries.number + 1} of ${entries.totalPages}|">Page 1</span>
+            <a class="btn btn-secondary btn-small" th:if="${entries.hasNext()}"
+               th:href="${olderUrl}">Older →</a>
+        </nav>
+    </section>
+</div>
+
+<li th:fragment="entry(e)">
+    <span class="status" th:classappend="${e.action.name() == 'REJECTED'} ? 'status-rejected'
+            : (${e.action.name() == 'APPROVED'} ? 'status-approved'
+            : (${e.action.name() == 'SUBMITTED'} ? 'status-pending' : 'status-claimed'))"
+          th:text="${e.action.label()}">Approved</span>
+    <div>
+        <div>
+            <strong th:text="${e.actorName}">Admin</strong>
+            <span class="muted small" th:text="|(${e.actorEmail})|">email</span>
+            <span th:text="${e.action.name() == 'SUBMITTED'} ? ' submitted' : ''"></span>
+            <a th:if="${e.itemId != null}" th:href="@{/posts/{id}(id=${e.itemId})}" th:text="|“${e.itemName}”|">“Item”</a>
+            <span th:unless="${e.itemId != null}" th:text="|“${e.itemName}”|">“Item”</span>
+        </div>
+        <div class="small" th:if="${e.reason != null}" th:text="|Reason: ${e.reason}|">Reason</div>
+        <time class="when" th:datetime="${@fmt.iso(e.createdAt)}" th:text="${@fmt.dateTime(e.createdAt)}">time</time>
+    </div>
+</li>
+</body>
+</html>

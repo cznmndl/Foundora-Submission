@@ -2,45 +2,91 @@ package com.foundora.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** A reported lost or found item. The table is created by db/migration/V1__create_items.sql. */
+/**
+ * A lost or found report. The table is created by V1__create_items.sql and reshaped by V3__report_model.sql.
+ * The reporter fields always come from the signed-in account, never from the form.
+ */
 @Entity
 @Table(name = "items")
 public class Item {
+
+    public static final int MAX_NAME = 80;
+    public static final int MAX_DESCRIPTION = 1000;
+    public static final int MAX_LOCATION = 120;
+    public static final int MAX_REASON = 500;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String title;
+    private ReportType reportType;
+
+    @Column(nullable = false)
+    private String itemName;
+
     @Column(nullable = false)
     private String description;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String category;
+    private Category category;
+
     @Column(nullable = false)
     private String location;
+
     @Column(nullable = false)
     private LocalDate dateLostFound;
+
+    /** Object path inside the private item-images bucket, e.g. {@code items/<uuid>.jpg}; null when there is no photo. */
+    private String imagePath;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // LOST or FOUND
-    @Column(nullable = false)
-    private String approvalStatus; // PENDING, APPROVED, or REJECTED
+    private ReportStatus status;
+
+    private String reporterUid;
+
     @Column(nullable = false)
     private String reporterName;
+
     @Column(nullable = false)
     private String reporterEmail;
-    private String imageUrl;
+
+    private String reviewedByEmail;
+    private String reviewedByName;
+    private Instant reviewedAt;
+    private String reviewReason;
+    private Instant claimedAt;
+
     @Column(nullable = false)
     private Instant createdAt;
 
-    // Getters and Setters
+    @Column(nullable = false)
+    private Instant updatedAt;
+
+    /** Optimistic lock: two admins acting on the same report at once can't silently overwrite each other. */
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    public boolean hasPhoto() {
+        return imagePath != null;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -49,12 +95,20 @@ public class Item {
         this.id = id;
     }
 
-    public String getTitle() {
-        return title;
+    public ReportType getReportType() {
+        return reportType;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setReportType(ReportType reportType) {
+        this.reportType = reportType;
+    }
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
     }
 
     public String getDescription() {
@@ -65,11 +119,11 @@ public class Item {
         this.description = description;
     }
 
-    public String getCategory() {
+    public Category getCategory() {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(Category category) {
         this.category = category;
     }
 
@@ -89,20 +143,28 @@ public class Item {
         this.dateLostFound = dateLostFound;
     }
 
-    public String getStatus() {
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
+
+    public ReportStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ReportStatus status) {
         this.status = status;
     }
 
-    public String getApprovalStatus() {
-        return approvalStatus;
+    public String getReporterUid() {
+        return reporterUid;
     }
 
-    public void setApprovalStatus(String approvalStatus) {
-        this.approvalStatus = approvalStatus;
+    public void setReporterUid(String reporterUid) {
+        this.reporterUid = reporterUid;
     }
 
     public String getReporterName() {
@@ -121,12 +183,44 @@ public class Item {
         this.reporterEmail = reporterEmail;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getReviewedByEmail() {
+        return reviewedByEmail;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setReviewedByEmail(String reviewedByEmail) {
+        this.reviewedByEmail = reviewedByEmail;
+    }
+
+    public String getReviewedByName() {
+        return reviewedByName;
+    }
+
+    public void setReviewedByName(String reviewedByName) {
+        this.reviewedByName = reviewedByName;
+    }
+
+    public Instant getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(Instant reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public String getReviewReason() {
+        return reviewReason;
+    }
+
+    public void setReviewReason(String reviewReason) {
+        this.reviewReason = reviewReason;
+    }
+
+    public Instant getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void setClaimedAt(Instant claimedAt) {
+        this.claimedAt = claimedAt;
     }
 
     public Instant getCreatedAt() {
@@ -135,5 +229,17 @@ public class Item {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public long getVersion() {
+        return version;
     }
 }

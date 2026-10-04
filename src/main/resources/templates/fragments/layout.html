@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--/* The one layout every signed-in page uses: header, navigation, content, optional right panel, footer. */-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content, aside, extraNav)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">Foundora</title>
+    <meta name="theme-color" content="#0b6b3a">
+    <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" th:href="@{/}">
+            <span class="brand-mark" th:insert="~{fragments/icons :: icon('search')}"></span>
+            <span>Foundora <small>DLSL Lost &amp; Found</small></span>
+        </a>
+        <div class="user-chip" th:if="${currentUser != null}">
+            <span class="visually-hidden"
+                  th:text="|Signed in as ${currentUser.name}, ${currentUser.role.label()}|">Signed in</span>
+            <div class="user-text" aria-hidden="true">
+                <div class="user-name" th:text="${currentUser.name}">Name</div>
+                <span class="role-tag" th:classappend="${currentUser.isAdmin()} ? 'is-admin'"
+                      th:text="${currentUser.role.label()}">Student</span>
+            </div>
+            <span class="avatar avatar-sm" aria-hidden="true" th:text="${currentUser.initial()}">J</span>
+            <form th:action="@{/logout}" method="post">
+                <button class="btn btn-ghost btn-small" type="submit">
+                    <th:block th:replace="~{fragments/icons :: icon('logout')}"></th:block>
+                    <span class="signout-label">Sign out</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<div class="shell">
+    <nav class="sidenav" aria-label="Main" th:if="${currentUser != null}">
+        <div class="nav-section">
+            <ul class="nav-list">
+                <li><a th:href="@{/}" th:attr="aria-current=${nav == 'feed'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('home')}"></th:block>Feed</a></li>
+                <li><a th:href="@{/report}" th:attr="aria-current=${nav == 'report'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('plus')}"></th:block>Report an item</a></li>
+                <li><a th:href="@{/my-reports}" th:attr="aria-current=${nav == 'mine'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>My Reports</a></li>
+            </ul>
+        </div>
+        <div class="nav-section" th:if="${currentUser.isAdmin()}">
+            <p class="nav-heading" id="admin-nav-heading">Admin</p>
+            <ul class="nav-list" aria-labelledby="admin-nav-heading">
+                <li><a th:href="@{/admin}" th:attr="aria-current=${adminNav == 'overview'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('grid')}"></th:block>Overview</a></li>
+                <li><a th:href="@{/admin/pending}" th:attr="aria-current=${adminNav == 'pending'} ? 'page' : null"
+                       th:with="waiting=${@navCounts.pending()}">
+                    <th:block th:replace="~{fragments/icons :: icon('inbox')}"></th:block>Pending
+                    <span class="nav-count" th:if="${waiting > 0}" th:text="${waiting}">0</span>
+                    <span class="visually-hidden" th:if="${waiting > 0}"> reports waiting</span></a></li>
+                <li><a th:href="@{/admin/reports}" th:attr="aria-current=${adminNav == 'reports'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>All reports</a></li>
+                <li><a th:href="@{/admin/activity}" th:attr="aria-current=${adminNav == 'activity'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('activity')}"></th:block>Activity log</a></li>
+            </ul>
+        </div>
+        <th:block th:replace="${extraNav}"></th:block>
+    </nav>
+
+    <main id="main" class="content" tabindex="-1">
+        <div th:if="${flashSuccess}" class="alert alert-success" role="status">
+            <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block>
+            <span th:text="${flashSuccess}">Done.</span>
+        </div>
+        <div th:if="${flashError}" class="alert alert-error" role="alert">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span th:text="${flashError}">Something went wrong.</span>
+        </div>
+        <th:block th:replace="${content}"></th:block>
+    </main>
+
+    <th:block th:replace="${aside}"></th:block>
+</div>
+
+<footer class="footer">
+    <p>Foundora · Lost and Found for the De La Salle Lipa community. Items are turned in and claimed at the SDFO office.</p>
+</footer>
+
+<nav class="tabbar" aria-label="Main" th:if="${currentUser != null}">
+    <a th:href="@{/}" th:attr="aria-current=${nav == 'feed'} ? 'page' : null">
+        <th:block th:replace="~{fragments/icons :: icon('home')}"></th:block>Feed</a>
+    <a class="tab-report" th:href="@{/report}" th:attr="aria-current=${nav == 'report'} ? 'page' : null">
+        <span class="tab-plus" th:insert="~{fragments/icons :: icon('plus')}"></span>Report</a>
+    <a th:href="@{/my-reports}" th:attr="aria-current=${nav == 'mine'} ? 'page' : null">
+        <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>My Reports</a>
+    <a th:if="${currentUser.isAdmin()}" th:href="@{/admin}" th:attr="aria-current=${nav == 'admin'} ? 'page' : null">
+        <th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>Admin</a>
+</nav>
+</body>
+</html>

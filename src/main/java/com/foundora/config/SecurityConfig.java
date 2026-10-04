@@ -15,9 +15,11 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/auth/session", "/error").permitAll()
+                        .requestMatchers("/login", "/auth/session", "/error", "/css/**", "/js/**", "/img/**",
+                                "/favicon.svg").permitAll()
                         .requestMatchers("/admin/**").hasRole(UserRole.ADMIN.name())
-                        .anyRequest().hasAnyRole(UserRole.STUDENT.name(), UserRole.ADMIN.name()))
+                        .anyRequest().hasAnyRole(UserRole.STUDENT.name(), UserRole.STAFF.name(),
+                                UserRole.ADMIN.name()))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
                 .formLogin(AbstractHttpConfigurer::disable)

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Admin overview · Foundora</title></head>
+<body>
+<div id="content">
+    <div class="page-head">
+        <h1>Admin overview</h1>
+        <a class="btn btn-primary btn-small" th:href="@{/admin/pending}" th:if="${overview.pending() > 0}">Review pending</a>
+    </div>
+
+    <div class="stat-tiles">
+        <a class="stat-tile" th:classappend="${overview.pending() > 0} ? 'is-alert'" th:href="@{/admin/pending}">
+            <span class="num" th:text="${overview.pending()}">0</span><span class="what">Pending review</span></a>
+        <a class="stat-tile" th:href="@{/admin/reports(status='approved', type='lost')}">
+            <span class="num" th:text="${overview.approvedLost()}">0</span><span class="what">Approved lost</span></a>
+        <a class="stat-tile" th:href="@{/admin/reports(status='approved', type='found')}">
+            <span class="num" th:text="${overview.approvedFound()}">0</span><span class="what">Approved found</span></a>
+        <a class="stat-tile" th:href="@{/admin/reports(status='claimed')}">
+            <span class="num" th:text="${overview.claimed()}">0</span><span class="what">Claimed / returned</span></a>
+        <a class="stat-tile" th:href="@{/admin/reports(status='rejected')}">
+            <span class="num" th:text="${overview.rejected()}">0</span><span class="what">Rejected</span></a>
+    </div>
+
+    <section class="card" style="margin-top:1.25rem">
+        <div class="page-head" style="margin-bottom:.25rem">
+            <h2 style="margin:0">Recent activity</h2>
+            <a class="btn btn-ghost btn-small" th:href="@{/admin/activity}">Full activity log</a>
+        </div>
+        <p class="muted" th:if="${recent.isEmpty()}">Nothing has happened yet.</p>
+        <ol class="timeline" th:unless="${recent.isEmpty()}">
+            <th:block th:each="e : ${recent}"><li th:replace="~{admin/activity :: entry(${e})}"></li></th:block>
+        </ol>
+    </section>
+</div>
+</body>
+</html>

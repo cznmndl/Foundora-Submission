@@ -50,7 +50,8 @@ class AuthFlowTest {
 
         mvc.perform(get("/").session(session)).andExpect(status().isOk());
         mvc.perform(get("/admin").session(session)).andExpect(status().isForbidden());
-        mvc.perform(post("/admin/approve/1").session(session).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(post("/admin/reports/" + java.util.UUID.randomUUID() + "/approve").session(session).with(csrf()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -61,8 +62,17 @@ class AuthFlowTest {
     }
 
     @Test
+    void staffAccountsGoHomeAndAreBlockedFromAdmin() throws Exception {
+        MockHttpSession dotStaff = signIn("staff-token", token("ben.santos@dlsl.edu.ph", true, "google.com"), "/");
+        mvc.perform(get("/").session(dotStaff)).andExpect(status().isOk());
+        mvc.perform(get("/admin").session(dotStaff)).andExpect(status().isForbidden());
+
+        MockHttpSession office = signIn("office-token", token("registrar@dlsl.edu.ph", true, "google.com"), "/");
+        mvc.perform(get("/admin/pending").session(office)).andExpect(status().isForbidden());
+    }
+
+    @Test
     void rejectsDisallowedAccounts() throws Exception {
-        assertRejected(token("ben.santos@dlsl.edu.ph", true, "google.com"));   // dot email, not allowlisted
         assertRejected(token("juan_delacruz@gmail.com", true, "google.com"));  // wrong domain
         assertRejected(token("juan_delacruz@dlsl.edu.ph", false, "google.com")); // unverified email
         assertRejected(token("juan_delacruz@dlsl.edu.ph", true, "password"));  // not Google sign-in

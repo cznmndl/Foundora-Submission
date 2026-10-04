@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{::#aside}, ~{::#extra-nav})}">
+<head><title>Feed · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <h1 class="visually-hidden">Lost and found feed</h1>
+
+    <section class="card" aria-label="Report an item">
+        <div class="composer">
+            <span class="avatar" aria-hidden="true" th:text="${currentUser.initial()}">J</span>
+            <a class="composer-prompt" th:href="@{/report}" data-open-dialog="report-dialog">Lost or found something? Report it here</a>
+        </div>
+        <div class="composer-actions">
+            <a class="btn btn-secondary btn-small" th:href="@{/report(type='lost')}" data-open-dialog="report-dialog" data-type="LOST">I lost something</a>
+            <a class="btn btn-secondary btn-small" th:href="@{/report(type='found')}" data-open-dialog="report-dialog" data-type="FOUND">I found something</a>
+        </div>
+    </section>
+
+    <section class="feed-tools" aria-label="Search and filters">
+        <form method="get" th:action="@{/}" role="search">
+            <input type="hidden" name="type" th:if="${filters.type() != null}" th:value="${filters.type().slug()}">
+            <input type="hidden" name="category" th:if="${filters.category() != null}" th:value="${filters.category().slug()}">
+            <div class="search-row">
+                <div class="search-field">
+                    <th:block th:replace="~{fragments/icons :: icon('search')}"></th:block>
+                    <label for="q" class="visually-hidden">Search item name, description or place</label>
+                    <input id="q" type="search" name="q" th:value="${filters.text()}" maxlength="100"
+                           placeholder="Search item, description or place" list="search-suggestions"
+                           autocomplete="off" data-suggest-search>
+                    <datalist id="search-suggestions"></datalist>
+                </div>
+                <button class="btn btn-primary" type="submit">Search</button>
+            </div>
+            <details class="more-filters"
+                     th:open="${filters.from() != null or filters.to() != null or filters.hideClaimed() or filters.oldestFirst()}">
+                <summary><th:block th:replace="~{fragments/icons :: icon('filter')}"></th:block>More filters</summary>
+                <div class="filter-grid">
+                    <div class="field">
+                        <label for="from">Lost/found from</label>
+                        <input id="from" type="date" name="from" th:value="${filters.from()}" th:max="${today}" data-range-from>
+                    </div>
+                    <div class="field">
+                        <label for="to">to</label>
+                        <input id="to" type="date" name="to" th:value="${filters.to()}" th:max="${today}" data-range-to>
+                    </div>
+                    <div class="field">
+                        <label for="sort">Order</label>
+                        <select id="sort" name="sort">
+                            <option value="newest">Newest first</option>
+                            <option value="oldest" th:selected="${filters.oldestFirst()}">Oldest first</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <span class="label" aria-hidden="true">&nbsp;</span>
+                        <label class="checkbox"><input type="checkbox" name="hideClaimed" value="on"
+                                                       th:checked="${filters.hideClaimed()}"> Hide claimed items</label>
+                    </div>
+                    <div class="span-2 action-row">
+                        <button class="btn btn-secondary btn-small" type="submit">Apply filters</button>
+                        <a class="btn btn-ghost btn-small" th:if="${filters.isFiltered()}" th:href="@{/}">Clear all</a>
+                    </div>
+                </div>
+            </details>
+        </form>
+
+        <nav class="tabs" aria-label="Show lost or found">
+            <a th:href="${filters.typeUrl('all')}" th:attr="aria-current=${filters.type() == null} ? 'true' : null">All</a>
+            <a th:href="${filters.typeUrl('lost')}" th:attr="aria-current=${filters.type() != null and filters.type().name() == 'LOST'} ? 'true' : null">Lost</a>
+            <a th:href="${filters.typeUrl('found')}" th:attr="aria-current=${filters.type() != null and filters.type().name() == 'FOUND'} ? 'true' : null">Found</a>
+        </nav>
+
+        <nav class="chip-row mobile-only" aria-label="Categories">
+            <a class="chip" th:href="${filters.categoryUrl(null)}"
+               th:attr="aria-current=${filters.category() == null} ? 'true' : null">All categories</a>
+            <a class="chip" th:each="c : ${categories}" th:href="${filters.categoryUrl(c.slug())}" th:text="${c.label()}"
+               th:attr="aria-current=${filters.category() == c} ? 'true' : null">Electronics</a>
+        </nav>
+    </section>
+
+    <p class="result-line muted small" role="status" th:if="${feedPage.totalMatches() > 0}"
+       th:text="${feedPage.totalMatches() == 1} ? '1 post' : |${feedPage.totalMatches()} posts|">12 posts</p>
+
+    <div id="feed" class="stack" th:if="${feedPage.totalMatches() > 0}" data-feed>
+        <th:block th:replace="~{fragments/posts :: page}"></th:block>
+    </div>
+
+    <section class="card empty" th:if="${feedPage.totalMatches() == 0}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('inbox')}"></div>
+        <th:block th:if="${filters.isFiltered()}">
+            <h2 th:text="|No ${filters.describe()} yet|">No found items yet</h2>
+            <p class="muted">Try different words, another category, or a wider date range.</p>
+            <a class="btn btn-secondary" th:href="@{/}">Clear filters</a>
+        </th:block>
+        <th:block th:unless="${filters.isFiltered()}">
+            <h2>No posts yet</h2>
+            <p class="muted">When an admin approves a lost or found report, it shows up here.</p>
+            <a class="btn btn-primary" th:href="@{/report}">Report an item</a>
+        </th:block>
+    </section>
+
+    <dialog id="report-dialog" aria-labelledby="report-dialog-title">
+        <div class="dialog-head">
+            <h2 id="report-dialog-title">Report an item</h2>
+            <button class="btn btn-ghost btn-small" type="button" data-close-dialog aria-label="Close">
+                <th:block th:replace="~{fragments/icons :: icon('x')}"></th:block>
+            </button>
+        </div>
+        <div class="dialog-body">
+            <form th:replace="~{fragments/report-form :: form}"></form>
+        </div>
+    </dialog>
+</div>
+
+<div id="extra-nav" class="nav-section">
+    <p class="nav-heading" id="category-heading">Categories</p>
+    <ul class="nav-list" aria-labelledby="category-heading">
+        <li><a th:href="${filters.categoryUrl(null)}"
+               th:attr="aria-current=${filters.category() == null} ? 'true' : null">All categories</a></li>
+        <li th:each="c : ${categories}"><a th:href="${filters.categoryUrl(c.slug())}" th:text="${c.label()}"
+               th:attr="aria-current=${filters.category() == c} ? 'true' : null">Electronics</a></li>
+    </ul>
+</div>
+
+<aside id="aside" class="rightpanel" aria-label="Quick stats and SDFO office">
+    <section class="card">
+        <h2>This week</h2>
+        <ul class="stat-list">
+            <li><strong th:text="${stats.foundThisWeek()}">0</strong> found items reported</li>
+            <li><strong th:text="${stats.lostThisWeek()}">0</strong> lost items reported</li>
+            <li><strong th:text="${stats.onFeed()}">0</strong> posts on the feed in total</li>
+        </ul>
+    </section>
+    <section class="card office" th:replace="~{fragments/office :: card}"></section>
+</aside>
+</body>
+</html>

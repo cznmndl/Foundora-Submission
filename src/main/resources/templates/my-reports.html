@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>My Reports · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <div class="page-head">
+        <h1>My Reports</h1>
+        <a class="btn btn-primary btn-small" th:href="@{/report}">Report an item</a>
+    </div>
+    <p class="lead">Everything you've reported, with where it stands. Check back here for updates.</p>
+
+    <section class="card empty" th:if="${reports.isEmpty()}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('list')}"></div>
+        <h2>You haven't reported anything yet</h2>
+        <p class="muted">Lost something, or found something that isn't yours? Report it and the SDFO can help.</p>
+        <a class="btn btn-primary" th:href="@{/report}">Report an item</a>
+    </section>
+
+    <div class="stack" th:unless="${reports.isEmpty()}">
+        <article class="card report-row" th:each="r : ${reports}">
+            <img th:if="${r.hasPhoto()}" class="thumb" th:src="@{/photos/{id}(id=${r.id})}" alt="" loading="lazy">
+            <div class="grow">
+                <div class="action-row">
+                    <span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
+                          th:text="${r.reportType.label()}">Lost</span>
+                    <span class="status" th:classappend="|status-${r.status.slug()}|" th:text="${r.status.label()}">Pending</span>
+                </div>
+                <h2>
+                    <a th:if="${r.status.name() != 'REMOVED'}" th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
+                    <span th:if="${r.status.name() == 'REMOVED'}" th:text="${r.itemName}">Item</span>
+                </h2>
+                <p class="muted small" style="margin:0">
+                    <span th:text="${r.category.label()}">Category</span> ·
+                    <span th:text="${r.location}">Location</span> ·
+                    <span th:text="|Sent ${@fmt.ago(r.createdAt)}|">Sent 2 hours ago</span>
+                </p>
+                <p class="small" style="margin:.4rem 0 0" th:switch="${r.status.name()}">
+                    <span th:case="'PENDING'">Waiting for an admin to review it.</span>
+                    <span th:case="'APPROVED'">On the feed now.</span>
+                    <span th:case="'CLAIMED'">Claimed or returned. Thanks for helping!</span>
+                    <span th:case="'REMOVED'">Removed from the feed by an admin.</span>
+                </p>
+                <div class="reason" th:if="${r.status.name() == 'REJECTED'}">
+                    <strong>Not approved.</strong> <span th:text="${r.reviewReason}">Reason</span>
+                </div>
+                <p class="sdfo-note" th:if="${r.reportType.name() == 'FOUND' and r.status.name() == 'PENDING'}">
+                    <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+                    <span>Please bring the item to the SDFO office.</span>
+                </p>
+            </div>
+        </article>
+    </div>
+</div>
+</body>
+</html>

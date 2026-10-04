@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>All reports · Foundora</title></head>
+<body>
+<div id="content">
+    <div class="page-head"><h1>All reports</h1></div>
+
+    <form class="card" method="get" th:action="@{/admin/reports}" role="search" aria-label="Filter reports">
+        <div class="filter-grid">
+            <div class="field span-2">
+                <label for="q">Search <span class="hint">Item, description, place, reporter name or email</span></label>
+                <input id="q" type="search" name="q" maxlength="100" th:value="${filter.text()}">
+            </div>
+            <div class="field">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="">Any status</option>
+                    <option th:each="s : ${statuses}" th:value="${s.slug()}" th:text="${s.label()}"
+                            th:selected="${filter.status() == s}">Pending</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="type">Type</label>
+                <select id="type" name="type">
+                    <option value="">Lost and found</option>
+                    <option th:each="t : ${types}" th:value="${t.slug()}" th:text="${t.label()}"
+                            th:selected="${filter.type() == t}">Lost</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">Any category</option>
+                    <option th:each="c : ${categories}" th:value="${c.slug()}" th:text="${c.label()}"
+                            th:selected="${filter.category() == c}">Electronics</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="from">Lost/found from</label>
+                <input id="from" type="date" name="from" th:value="${filter.from()}" data-range-from>
+            </div>
+            <div class="field">
+                <label for="to">to</label>
+                <input id="to" type="date" name="to" th:value="${filter.to()}" data-range-to>
+            </div>
+            <div class="span-2 action-row">
+                <button class="btn btn-primary btn-small" type="submit">Apply</button>
+                <a class="btn btn-ghost btn-small" th:href="@{/admin/reports}">Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <p class="muted small" role="status" style="margin-top:1rem"
+       th:text="${results.totalElements == 1} ? '1 report' : |${results.totalElements} reports|">0 reports</p>
+
+    <section class="card empty" th:if="${results.totalElements == 0}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('search')}"></div>
+        <h2>No reports match</h2>
+        <p class="muted">Try a different search or clear the filters.</p>
+    </section>
+
+    <div class="card table-wrap" th:if="${results.totalElements > 0}">
+        <table class="data">
+            <caption class="visually-hidden">Reports, newest first</caption>
+            <thead>
+            <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Status</th>
+                <th scope="col">Reporter</th><th scope="col">Lost/found</th><th scope="col">Actions</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${results.content}">
+                <td data-label="Item">
+                    <a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
+                    <div class="muted small" th:text="|${r.category.label()} · ${r.location}|">Category · place</div>
+                </td>
+                <td data-label="Type"><span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
+                                            th:text="${r.reportType.label()}">Lost</span></td>
+                <td data-label="Status"><span class="status" th:classappend="|status-${r.status.slug()}|"
+                                              th:text="${r.status.label()}">Pending</span></td>
+                <td data-label="Reporter"><span th:text="${r.reporterName}">Name</span>
+                    <div class="muted small" th:text="${r.reporterEmail}">email</div></td>
+                <td data-label="Lost/found" th:text="${@fmt.date(r.dateLostFound)}">date</td>
+                <td data-label="Actions">
+                    <a class="btn btn-secondary btn-small" th:if="${r.status.name() == 'PENDING'}"
+                       th:href="@{/admin/pending}">Review</a>
+                    <div th:unless="${r.status.name() == 'PENDING'}"
+                         th:replace="~{fragments/posts :: adminActions(${r.id}, ${r.itemName}, ${r.status.name()}, ${currentUrl})}"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <nav class="pager" aria-label="Pages" th:if="${results.totalPages > 1}">
+            <a class="btn btn-secondary btn-small" th:if="${results.hasPrevious()}"
+               th:href="${newerUrl}">← Newer</a>
+            <span class="muted small" th:text="|Page ${results.number + 1} of ${results.totalPages}|">Page 1 of 2</span>
+            <a class="btn btn-secondary btn-small" th:if="${results.hasNext()}"
+               th:href="${olderUrl}">Older →</a>
+        </nav>
+    </div>
+</div>
+</body>
+</html>

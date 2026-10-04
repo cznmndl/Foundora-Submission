@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Something went wrong · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <section class="card empty">
+        <p class="error-code">500</p>
+        <h1>Something went wrong on our side</h1>
+        <p class="muted">Please try again in a moment. If it keeps happening, let the SDFO office know.</p>
+        <a class="btn btn-primary" th:href="@{/}">Back to the feed</a>
+    </section>
+</div>
+</body>
+</html>
