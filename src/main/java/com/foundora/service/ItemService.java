@@ -1,52 +1,49 @@
 package com.foundora.service;
 
 import com.foundora.model.Item;
+import com.foundora.repository.ItemRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Temporary in-memory item store; items are lost when the app restarts.
- * TODO: back this with Supabase.
- */
+/** Reported items, stored in the Supabase Postgres {@code items} table. */
 @Service
 public class ItemService {
 
-    private final Map<String, Item> items = new ConcurrentHashMap<>();
+    private final ItemRepository itemRepository;
 
-    public void addItem(Item item) {
-        item.setId(UUID.randomUUID().toString());
+    public ItemService(ItemRepository itemRepository) {
+        this.itemRepository = itemRepository;
+    }
+
+    public Item addItem(Item item) {
+        item.setId(null);
         item.setApprovalStatus("PENDING");
-        item.setCreatedAt(LocalDateTime.now());
-        items.put(item.getId(), item);
+        item.setCreatedAt(Instant.now());
+        return itemRepository.save(item);
     }
 
     public List<Item> getPendingItems() {
-        return withApprovalStatus("PENDING");
+        return itemRepository.findByApprovalStatusOrderByCreatedAtDesc("PENDING");
     }
 
     public List<Item> getApprovedItems() {
-        return withApprovalStatus("APPROVED");
+        return itemRepository.findByApprovalStatusOrderByCreatedAtDesc("APPROVED");
     }
 
-    public void updateItemStatus(String itemId, String status) {
-        Item item = items.get(itemId);
-        if (item != null) {
-            item.setApprovalStatus(status);
-        }
+    @Transactional
+    public void updateItemStatus(UUID itemId, String status) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+        item.setApprovalStatus(status);
     }
 
-    public void deleteItem(String itemId) {
-        items.remove(itemId);
-    }
-
-    private List<Item> withApprovalStatus(String approvalStatus) {
-        return items.values().stream()
-                .filter(item -> approvalStatus.equals(item.getApprovalStatus()))
-                .toList();
+    public void deleteItem(UUID itemId) {
+        itemRepository.deleteById(itemId);
     }
 }

@@ -45,7 +45,7 @@ public class ReportController {
         item.setDescription(description);
         item.setCategory(category);
         item.setLocation(location);
-        item.setDateLostFound(dateLostFound.atStartOfDay());
+        item.setDateLostFound(dateLostFound);
         item.setStatus(status);
         // The reporter is whoever is signed in, not whatever the form claims.
         item.setReporterName(user.name());

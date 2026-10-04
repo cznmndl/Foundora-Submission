@@ -1,27 +1,51 @@
 package com.foundora.model;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+/** A reported lost or found item. The table is created by db/migration/V1__create_items.sql. */
+@Entity
+@Table(name = "items")
 public class Item {
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    @Column(nullable = false)
     private String title;
+    @Column(nullable = false)
     private String description;
+    @Column(nullable = false)
     private String category;
+    @Column(nullable = false)
     private String location;
-    private LocalDateTime dateLostFound;
+    @Column(nullable = false)
+    private LocalDate dateLostFound;
+    @Column(nullable = false)
     private String status; // LOST or FOUND
+    @Column(nullable = false)
     private String approvalStatus; // PENDING, APPROVED, or REJECTED
+    @Column(nullable = false)
     private String reporterName;
+    @Column(nullable = false)
     private String reporterEmail;
     private String imageUrl;
-    private LocalDateTime createdAt;
+    @Column(nullable = false)
+    private Instant createdAt;
 
     // Getters and Setters
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -57,11 +81,11 @@ public class Item {
         this.location = location;
     }
 
-    public LocalDateTime getDateLostFound() {
+    public LocalDate getDateLostFound() {
         return dateLostFound;
     }
 
-    public void setDateLostFound(LocalDateTime dateLostFound) {
+    public void setDateLostFound(LocalDate dateLostFound) {
         this.dateLostFound = dateLostFound;
     }
 
@@ -105,11 +129,11 @@ public class Item {
         this.imageUrl = imageUrl;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 }

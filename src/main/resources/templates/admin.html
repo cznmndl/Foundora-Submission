@@ -25,7 +25,7 @@
                 <h1 class="text-2xl font-bold">Pending Reports</h1>
                 <div class="flex items-center">
                     <span th:if="${currentUser}" class="text-gray-600 mr-4" th:text="${currentUser.email}"></span>
-                    <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded">Refresh</a>
+                    <a th:href="@{/admin}" class="bg-blue-500 text-white px-4 py-2 rounded">Refresh</a>
                     <form th:action="@{/logout}" method="post" class="ml-4">
                         <button type="submit" class="text-gray-700 hover:underline">Sign out</button>
                     </form>
@@ -41,23 +41,34 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="py-2 px-4">Lost Umbrella</td>
+                        <tr th:each="item : ${pendingItems}" class="border-t">
+                            <td class="py-2 px-4">
+                                <div class="flex items-center">
+                                    <img th:if="${item.imageUrl}" th:src="${item.imageUrl}" alt="Item photo" class="w-12 h-12 object-cover rounded mr-3">
+                                    <div>
+                                        <div class="font-semibold" th:text="${item.title}"></div>
+                                        <div class="text-sm text-gray-600" th:text="${item.description}"></div>
+                                        <div class="text-xs text-gray-500"
+                                             th:text="|${item.status} · ${item.category} · ${item.location} · ${item.dateLostFound}|"></div>
+                                        <div class="text-xs text-gray-500" th:text="|Reported by ${item.reporterName} (${item.reporterEmail})|"></div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="py-2 px-4"><span class="bg-yellow-500 text-white px-2 py-1 rounded">Pending</span></td>
                             <td class="py-2 px-4">
-                                <a href="#" class="text-green-500 hover:underline">Approve</a>
-                                <a href="#" class="text-red-500 hover:underline ml-4">Reject</a>
+                                <div class="flex">
+                                    <form th:action="@{/admin/approve/{id}(id=${item.id})}" method="post">
+                                        <button type="submit" class="text-green-500 hover:underline">Approve</button>
+                                    </form>
+                                    <form th:action="@{/admin/reject/{id}(id=${item.id})}" method="post" class="ml-4">
+                                        <button type="submit" class="text-red-500 hover:underline">Reject</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
-                        <tr>
-                            <td class="py-2 px-4">Found ID Card</td>
-                            <td class="py-2 px-4"><span class="bg-yellow-500 text-white px-2 py-1 rounded">Pending</span></td>
-                            <td class="py-2 px-4">
-                                <a href="#" class="text-green-500 hover:underline">Approve</a>
-                                <a href="#" class="text-red-500 hover:underline ml-4">Reject</a>
-                            </td>
+                        <tr th:if="${#lists.isEmpty(pendingItems)}">
+                            <td colspan="3" class="py-4 px-4 text-center text-gray-500">No pending reports.</td>
                         </tr>
-                        <!-- More rows as needed -->
                     </tbody>
                 </table>
             </div>

@@ -6,9 +6,9 @@ Foundora is a web-based Lost and Found Management System designed specifically f
 ## Tech Stack
 - **Backend**: Java 17+ with Spring Boot 3.x
 - **Frontend**: Thymeleaf + Tailwind CSS
-- **Database**: Supabase (not yet connected; items are kept in memory for now)
+- **Database**: Supabase Postgres via Spring Data JPA (Session pooler), schema managed by Flyway
 - **Authentication**: Firebase Authentication (Google sign-in), verified on the server
-- **Storage**: Supabase Storage for images (not yet connected)
+- **Storage**: Supabase Storage public bucket `item-images`, uploaded from the server with the secret key
 
 ## Sign-in Rules
 - Only `@dlsl.edu.ph` Google accounts can sign in.
@@ -46,17 +46,29 @@ Foundora is a web-based Lost and Found Management System designed specifically f
 
    Admin emails come from the `FOUNDORA_ADMIN_EMAILS` environment variable (comma-separated). If it is unset, the default in `application.properties` is used.
 
-3. Build the project:
+3. Copy `.env.example` to `.env` and fill in your Supabase values. `.env` is git-ignored and Docker-ignored; the app reads it at startup, and real environment variables take precedence over it.
+
+   | Variable | Where to find it |
+   | --- | --- |
+   | `SUPABASE_DB_URL` | Dashboard → Connect → **Session pooler**, as a JDBC URL without credentials (`jdbc:postgresql://<region>.pooler.supabase.com:5432/postgres`) |
+   | `SUPABASE_DB_USER` | Session pooler user, `postgres.<project-ref>` |
+   | `SUPABASE_DB_PASSWORD` | Your database password |
+   | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+   | `SUPABASE_SECRET_KEY` | Project Settings → API Keys → secret key (`sb_secret_...`). Server-only; never put it in a template or browser code. |
+
+   On first start, Flyway runs `src/main/resources/db/migration`: it creates the `items` table with Row Level Security enabled and no policies (so Supabase's public Data API can't read or write it), and creates the public `item-images` bucket. Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema.
+
+4. Build the project (tests use an in-memory H2 database, not Supabase):
    ```
    mvn clean install
    ```
 
-4. Run the application:
+5. Run the application:
    ```
    mvn spring-boot:run
    ```
 
-5. Access the application at `http://localhost:8080`.
+6. Access the application at `http://localhost:8080`.
 
 ## Deploying to Render (Docker)
 The repository includes a `Dockerfile`, so Render can build and run it directly.
@@ -69,6 +81,11 @@ The repository includes a `Dockerfile`, so Render can build and run it directly.
    | --- | --- |
    | `FIREBASE_CREDENTIALS_PATH` | `/etc/secrets/firebase-service-account.json` |
    | `FOUNDORA_ADMIN_EMAILS` | Comma-separated `first.last@dlsl.edu.ph` admin addresses |
+   | `SUPABASE_DB_URL` | Session pooler JDBC URL (see Installation step 3) |
+   | `SUPABASE_DB_USER` | `postgres.<project-ref>` |
+   | `SUPABASE_DB_PASSWORD` | Database password |
+   | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+   | `SUPABASE_SECRET_KEY` | Supabase secret key (`sb_secret_...`) |
 
    `PORT` is provided by Render automatically. The image sets `SPRING_PROFILES_ACTIVE=prod`, which marks the session cookie `Secure` and trusts Render's HTTPS proxy headers.
 4. In the Firebase Console → Authentication → Settings → **Authorized domains**, add your Render domain (e.g. `foundora.onrender.com`) so Google sign-in works there.
@@ -76,7 +93,7 @@ The repository includes a `Dockerfile`, so Render can build and run it directly.
 To try the image locally:
 ```
 docker build -t foundora .
-docker run -p 8080:8080 -e PORT=8080 \
+docker run -p 8080:8080 -e PORT=8080 --env-file .env \
   -e FIREBASE_CREDENTIALS_PATH=/secrets/key.json \
   -v /path/to/key.json:/secrets/key.json:ro \
   foundora

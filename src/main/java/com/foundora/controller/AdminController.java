@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 public class AdminController {
@@ -29,19 +30,19 @@ public class AdminController {
     }
 
     @PostMapping("/admin/approve/{id}")
-    public String approveItem(@PathVariable String id) {
+    public String approveItem(@PathVariable UUID id) {
         itemService.updateItemStatus(id, "APPROVED");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/reject/{id}")
-    public String rejectItem(@PathVariable String id) {
+    public String rejectItem(@PathVariable UUID id) {
         itemService.updateItemStatus(id, "REJECTED");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/delete/{id}")
-    public String deleteItem(@PathVariable String id) {
+    public String deleteItem(@PathVariable UUID id) {
         itemService.deleteItem(id);
         return "redirect:/admin";
     }
