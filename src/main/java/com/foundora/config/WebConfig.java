@@ -18,6 +18,6 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(profileSetup)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/profile", "/profile/setup", "/login", "/auth/**", "/error", "/error/**",
-                        "/css/**", "/js/**", "/img/**", "/favicon.svg");
+                        "/css/**", "/js/**", "/img/**", "/favicon.svg", "/health");
     }
 }

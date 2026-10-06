@@ -148,7 +148,8 @@ The repository includes a `Dockerfile`, so Render can build and run it directly.
    | `SUPABASE_SECRET_KEY` | Supabase secret key (`sb_secret_...`) |
 
    `PORT` is provided by Render automatically. The image sets `SPRING_PROFILES_ACTIVE=prod`, which marks the session cookie `Secure` and trusts Render's HTTPS proxy headers.
-4. In the Firebase Console → Authentication → Settings → **Authorized domains**, add your Render domain (e.g. `foundora.onrender.com`) so Google sign-in works there.
+4. Optional: point an uptime monitor (or Render's **Health Check Path**) at `/health`. It's public, needs no sign-in, and returns `OK` as plain text without touching the database.
+5. In the Firebase Console → Authentication → Settings → **Authorized domains**, add your Render domain (e.g. `foundora.onrender.com`) so Google sign-in works there.
 
 To try the image locally:
 ```
