@@ -14,8 +14,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The admin's All Reports search. It runs in the database rather than the feed index because admins search
- * every status, including Pending, Rejected and Removed, which the feed index doesn't hold.
+ * The admin's All Reports and Archive search. It runs in the database rather than the feed index because admins
+ * search every status, including Pending, Rejected, Removed and archived, which the feed index doesn't hold.
+ * Unlike the feed's search, it also matches the location and specific spot (admins only).
  */
 @Service
 public class ReportSearch {
@@ -37,6 +38,7 @@ public class ReportSearch {
                         cb.like(cb.lower(root.get("itemName")), pattern, '\\'),
                         cb.like(cb.lower(root.get("description")), pattern, '\\'),
                         cb.like(cb.lower(root.get("location")), pattern, '\\'),
+                        cb.like(cb.lower(root.get("locationSpot")), pattern, '\\'),
                         cb.like(cb.lower(root.get("reporterName")), pattern, '\\'),
                         cb.like(cb.lower(root.get("reporterEmail")), pattern, '\\')));
             }
@@ -48,6 +50,12 @@ public class ReportSearch {
             }
             if (filter.category() != null) {
                 where.add(cb.equal(root.get("category"), filter.category()));
+            }
+            if (filter.location() != null) {
+                where.add(cb.equal(root.get("location"), filter.location()));
+            }
+            if (filter.archived() != null) {
+                where.add(filter.archived() ? cb.isNotNull(root.get("archivedAt")) : cb.isNull(root.get("archivedAt")));
             }
             if (filter.from() != null) {
                 where.add(cb.greaterThanOrEqualTo(root.get("dateLostFound"), filter.from()));

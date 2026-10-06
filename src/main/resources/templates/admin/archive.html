@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Archive · Foundora</title></head>
+<body>
+<div id="content">
+    <div class="page-head"><h1>Archive</h1></div>
+    <p class="lead" th:text="|Claimed items are archived ${archiveDays} days after they are claimed. They are off the feed, but kept here with their photos, comments and claim records, for disputes.|">Archived items</p>
+
+    <form class="card" method="get" th:action="@{/admin/archive}" role="search" aria-label="Search the archive">
+        <div class="filter-grid">
+            <div class="field span-2">
+                <label for="q">Search <span class="hint">Item, description, place, spot, reporter name or email</span></label>
+                <input id="q" type="search" name="q" maxlength="100" th:value="${filter.text()}">
+            </div>
+            <div class="field">
+                <label for="type">Type</label>
+                <select id="type" name="type">
+                    <option value="">Lost and found</option>
+                    <option th:each="t : ${types}" th:value="${t.slug()}" th:text="${t.label()}"
+                            th:selected="${filter.type() == t}">Lost</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">Any category</option>
+                    <option th:each="c : ${categories}" th:value="${c.slug()}" th:text="${c.label()}"
+                            th:selected="${filter.category() == c}">Electronics</option>
+                </select>
+            </div>
+            <div class="field span-2">
+                <label for="location">Location</label>
+                <select id="location" name="location">
+                    <option value="">Any location</option>
+                    <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}"
+                            th:selected="${filter.location() == place}">Sentrum</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="from">Lost/found from</label>
+                <input id="from" type="date" name="from" th:value="${filter.from()}" data-range-from>
+            </div>
+            <div class="field">
+                <label for="to">to</label>
+                <input id="to" type="date" name="to" th:value="${filter.to()}" data-range-to>
+            </div>
+            <div class="span-2 action-row">
+                <button class="btn btn-primary btn-small" type="submit">Search</button>
+                <a class="btn btn-ghost btn-small" th:href="@{/admin/archive}">Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <p class="muted small" role="status" style="margin-top:1rem"
+       th:text="${results.totalElements == 1} ? '1 archived item' : |${results.totalElements} archived items|">0 archived items</p>
+
+    <section class="card empty" th:if="${results.totalElements == 0}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('archive')}"></div>
+        <h2>Nothing archived matches</h2>
+        <p class="muted">Try a different search, or clear the filters.</p>
+    </section>
+
+    <div class="stack" th:if="${results.totalElements > 0}">
+        <article class="card" th:each="r : ${results.content}" th:with="d=${details.get(r.id)}">
+            <div class="action-row">
+                <span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
+                      th:text="${r.reportType.label()}">Found</span>
+                <span class="status" th:classappend="|status-${r.status.slug()}|" th:text="${r.status.label()}">Claimed</span>
+                <span class="muted small" th:text="|Archived ${@fmt.dateTime(r.archivedAt)}|">Archived</span>
+            </div>
+            <h2 style="margin:.4rem 0"><a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a></h2>
+            <p class="muted small" style="margin:0"
+               th:text="|${r.category.label()} · ${r.location}${r.locationSpot != null ? ' · ' + r.locationSpot : ''} · reported by ${r.reporterName} (${r.reporterEmail})|">details</p>
+            <div style="margin-top:.75rem" th:if="${d != null and d.claim() != null}">
+                <div th:replace="~{admin/archive :: claimRecord(${d.claim()}, ${currentUrl})}"></div>
+            </div>
+            <p class="muted small" th:if="${d == null or d.claim() == null}" style="margin-top:.5rem">No claim record (claimed before claim records were kept).</p>
+        </article>
+        <nav class="pager" aria-label="Pages" th:if="${results.totalPages > 1}">
+            <a class="btn btn-secondary btn-small" th:if="${results.hasPrevious()}" th:href="${newerUrl}">← Newer</a>
+            <span class="muted small" th:text="|Page ${results.number + 1} of ${results.totalPages}|">Page 1</span>
+            <a class="btn btn-secondary btn-small" th:if="${results.hasNext()}" th:href="${olderUrl}">Older →</a>
+        </nav>
+    </div>
+</div>
+
+<!--/* One claim record with the admin's dispute / resolve / reopen actions. Used here and on the post page. */-->
+<div th:fragment="claimRecord(cr, returnTo)" class="claim-record" th:classappend="|claim-${cr.status.name().toLowerCase()}|">
+    <div class="action-row">
+        <strong>Claim record</strong>
+        <span class="status" th:classappend="${cr.status.name() == 'DISPUTED'} ? 'status-rejected'
+                : (${cr.status.name() == 'REOPENED'} ? 'status-removed' : 'status-approved')"
+              th:text="${cr.status.label()}">Released</span>
+    </div>
+    <dl>
+        <dt>Claimant</dt>
+        <dd><span th:text="${cr.claimantName}">Name</span>
+            <span class="muted" th:if="${cr.claimantEmail != null}" th:text="|(${cr.claimantEmail}, registered user)|"></span>
+            <span class="muted" th:unless="${cr.claimantEmail != null}">(typed in by the admin)</span></dd>
+        <dt>Course / department</dt><dd th:text="${cr.claimantAffiliation}">BSIT · 2nd year · O1A</dd>
+        <dt>Released</dt><dd th:text="${@fmt.dateTime(cr.releasedAt)}">date</dd>
+        <dt>Released by</dt><dd th:text="|${cr.releasedByName} (${cr.releasedByEmail})|">admin</dd>
+        <dt th:if="${cr.notes != null}">Notes</dt><dd th:if="${cr.notes != null}" th:text="${cr.notes}">notes</dd>
+        <dt th:if="${cr.disputeNote != null}">Dispute</dt><dd th:if="${cr.disputeNote != null}" th:text="${cr.disputeNote}">note</dd>
+        <dt th:if="${cr.statusChangedAt != null}">Last change</dt>
+        <dd th:if="${cr.statusChangedAt != null}" th:text="|${cr.status.label()} by ${cr.statusChangedBy}, ${@fmt.dateTime(cr.statusChangedAt)}|">change</dd>
+    </dl>
+    <div class="action-row" style="margin-top:.5rem" th:if="${cr.status.name() != 'REOPENED'}">
+        <details class="confirm" th:if="${cr.status.name() == 'ACTIVE'}">
+            <summary class="btn btn-secondary btn-small">Mark as disputed</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/claims/{id}/dispute(id=${cr.id})}" data-loading>
+                <div class="field">
+                    <label th:for="|dispute-${cr.id}|">What's the dispute? <span class="hint">Saved on the claim record and in the activity log.</span></label>
+                    <textarea th:id="|dispute-${cr.id}|" name="note" required maxlength="1000" rows="3"></textarea>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-danger btn-small" type="submit">Mark as disputed</button>
+            </form>
+        </details>
+        <details class="confirm" th:if="${cr.status.name() == 'DISPUTED'}">
+            <summary class="btn btn-secondary btn-small">Resolve dispute</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/claims/{id}/resolve(id=${cr.id})}" data-loading>
+                <p>Keep this claim as it is and close the dispute?</p>
+                <div class="field">
+                    <label th:for="|resolve-${cr.id}|">Note <span class="hint">Optional. Saved in the activity log.</span></label>
+                    <textarea th:id="|resolve-${cr.id}|" name="note" maxlength="1000" rows="2"></textarea>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-primary btn-small" type="submit">Resolve dispute</button>
+            </form>
+        </details>
+        <details class="confirm">
+            <summary class="btn btn-ghost btn-small">Reopen claim</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/claims/{id}/reopen(id=${cr.id})}" data-loading>
+                <p>Reopen this claim? The item goes back on the feed as unclaimed (even if archived). This claim record is kept, marked Reopened.</p>
+                <div class="field">
+                    <label th:for="|reopen-${cr.id}|">Why? <span class="hint">For example: released to the wrong person.</span></label>
+                    <textarea th:id="|reopen-${cr.id}|" name="reason" required maxlength="1000" rows="2"></textarea>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-danger btn-small" type="submit">Reopen claim</button>
+            </form>
+        </details>
+    </div>
+</div>
+</body>
+</html>

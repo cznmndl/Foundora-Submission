@@ -9,7 +9,7 @@
     <form class="card" method="get" th:action="@{/admin/reports}" role="search" aria-label="Filter reports">
         <div class="filter-grid">
             <div class="field span-2">
-                <label for="q">Search <span class="hint">Item, description, place, reporter name or email</span></label>
+                <label for="q">Search <span class="hint">Item, description, place, specific spot, reporter name or email</span></label>
                 <input id="q" type="search" name="q" maxlength="100" th:value="${filter.text()}">
             </div>
             <div class="field">
@@ -34,6 +34,14 @@
                     <option value="">Any category</option>
                     <option th:each="c : ${categories}" th:value="${c.slug()}" th:text="${c.label()}"
                             th:selected="${filter.category() == c}">Electronics</option>
+                </select>
+            </div>
+            <div class="field span-2">
+                <label for="location">Location</label>
+                <select id="location" name="location">
+                    <option value="">Any location</option>
+                    <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}"
+                            th:selected="${filter.location() == place}">Sentrum</option>
                 </select>
             </div>
             <div class="field">
@@ -72,6 +80,8 @@
                 <td data-label="Item">
                     <a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
                     <div class="muted small" th:text="|${r.category.label()} · ${r.location}|">Category · place</div>
+                    <div class="muted small" th:if="${r.locationSpot != null}" th:text="${r.locationSpot}">spot</div>
+                    <div class="small" th:if="${r.archivedAt != null}"><span class="status status-claimed">Archived</span></div>
                 </td>
                 <td data-label="Type"><span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
                                             th:text="${r.reportType.label()}">Lost</span></td>

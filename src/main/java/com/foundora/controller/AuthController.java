@@ -5,6 +5,8 @@ import com.foundora.auth.FirebaseLoginService;
 import com.foundora.auth.FoundoraUser;
 import com.foundora.auth.LoginRejectedException;
 import com.foundora.config.FirebaseWebProperties;
+import com.foundora.config.ProfileSetupInterceptor;
+import com.foundora.service.ProfileService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -32,11 +34,14 @@ public class AuthController {
 
     private final FirebaseLoginService loginService;
     private final FirebaseWebProperties firebaseWeb;
+    private final ProfileService profiles;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(FirebaseLoginService loginService, FirebaseWebProperties firebaseWeb) {
+    public AuthController(FirebaseLoginService loginService, FirebaseWebProperties firebaseWeb,
+                          ProfileService profiles) {
         this.loginService = loginService;
         this.firebaseWeb = firebaseWeb;
+        this.profiles = profiles;
     }
 
     @GetMapping("/login")
@@ -67,7 +72,7 @@ public class AuthController {
         if (previous != null) {
             previous.invalidate();
         }
-        request.getSession(true);
+        HttpSession session = request.getSession(true);
 
         var authentication = UsernamePasswordAuthenticationToken.authenticated(
                 user, null, List.of(new SimpleGrantedAuthority(user.role().authority())));
@@ -76,6 +81,12 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
 
+        // First sign-in (or a profile missing details for this role): fill in the profile before anything else.
+        boolean complete = profiles.recordSignIn(user).isCompleteFor(user.role());
+        if (!complete) {
+            return ResponseEntity.ok(Map.of("redirect", ProfileSetupInterceptor.SETUP_PATH));
+        }
+        session.setAttribute(ProfileSetupInterceptor.COMPLETE_ATTRIBUTE, true);
         return ResponseEntity.ok(Map.of("redirect", user.homePath()));
     }
 

@@ -1,6 +1,7 @@
 package com.foundora.controller;
 
 import com.foundora.auth.FoundoraUser;
+import com.foundora.config.CampusLocations;
 import com.foundora.model.Category;
 import com.foundora.model.ReportType;
 import com.foundora.service.InvalidImageException;
@@ -23,9 +24,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ReportController {
 
     private final ReportService reports;
+    private final CampusLocations campusLocations;
 
-    public ReportController(ReportService reports) {
+    public ReportController(ReportService reports, CampusLocations campusLocations) {
         this.reports = reports;
+        this.campusLocations = campusLocations;
     }
 
     @GetMapping("/report")
@@ -46,6 +49,7 @@ public class ReportController {
         if (form.getDateLostFound() != null && form.getDateLostFound().isAfter(reports.today())) {
             errors.rejectValue("dateLostFound", "future", "The date can’t be in the future.");
         }
+        checkLocation(form, errors);
         if (errors.hasErrors()) {
             if (photo != null && !photo.isEmpty()) {
                 model.addAttribute("photoError", "Please choose the photo again.");
@@ -69,6 +73,20 @@ public class ReportController {
         }
         model.addAttribute("nav", "report");
         return "report-sent";
+    }
+
+    /** The place must come from the list; the specific spot is always required, and says where when it's "Other". */
+    private void checkLocation(ReportForm form, BindingResult errors) {
+        if (form.getLocation() != null && !form.getLocation().isBlank()
+                && !campusLocations.contains(form.getLocation())) {
+            errors.rejectValue("location", "unknown", "Choose a place from the list, or “Other”.");
+        }
+        if (form.getLocationSpot() == null || form.getLocationSpot().isBlank()) {
+            String message = CampusLocations.OTHER.equals(form.getLocation())
+                    ? "You chose “Other”, so describe where it was, e.g. “parking lot near Gate 3”."
+                    : "Describe the specific spot, e.g. “3rd floor hallway near room 305”.";
+            errors.rejectValue("locationSpot", "required", message);
+        }
     }
 
     private String formPage(Model model) {

@@ -6,6 +6,7 @@ import com.foundora.model.ReportType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -21,4 +22,11 @@ public interface ItemRepository extends JpaRepository<Item, UUID>, JpaSpecificat
     long countByStatus(ReportStatus status);
 
     long countByStatusAndReportType(ReportStatus status, ReportType reportType);
+
+    long countByStatusAndArchivedAtIsNull(ReportStatus status);
+
+    long countByArchivedAtIsNotNull();
+
+    /** Claimed reports due for archiving: claimed before the cutoff and not archived yet. */
+    List<Item> findByStatusAndArchivedAtIsNullAndClaimedAtBefore(ReportStatus status, Instant cutoff);
 }

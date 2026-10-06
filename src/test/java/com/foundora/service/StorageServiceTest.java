@@ -54,6 +54,22 @@ class StorageServiceTest {
     }
 
     @Test
+    void storesCommentPhotosInTheirOwnFolder() {
+        server.expect(method(HttpMethod.POST))
+                .andExpect(request -> assertThat(request.getURI().toString())
+                        .matches(BASE + "/storage/v1/object/item-images/comments/[0-9a-f-]{36}\\.jpg"))
+                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(BASE + "/storage/v1/object/item-images/comments/c.jpg"))
+                .andExpect(method(HttpMethod.DELETE)).andRespond(withSuccess());
+
+        assertThat(storage.storePhoto(StorageService.COMMENTS, new byte[]{1})).matches("comments/[0-9a-f-]{36}\\.jpg");
+        storage.deletePhoto("comments/c.jpg");
+        assertThatThrownBy(() -> storage.storePhoto("secrets", new byte[]{1}))
+                .isInstanceOf(IllegalArgumentException.class);
+        server.verify();
+    }
+
+    @Test
     void downloadsWithSecretKey() {
         server.expect(requestTo(OBJECTS + "abc.jpg"))
                 .andExpect(method(HttpMethod.GET))

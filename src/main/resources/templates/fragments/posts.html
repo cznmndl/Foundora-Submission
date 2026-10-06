@@ -3,15 +3,20 @@
 <body>
 
 <!--/*
-  One feed post. Rendered from a FeedPost, which has no reporter email, so the card can't leak it.
+  One feed post. Rendered from a FeedPost, which has no reporter email and no location, so the card can't leak
+  them. Admin-only details come from the ${adminDetails} map (post id -> AdminPostDetails), which controllers
+  add only for admins.
   controls: show admin Mark as claimed / Remove; returnTo: where admin actions come back to;
   clamp: shorten long descriptions (the detail page shows them in full).
 */-->
 <article th:fragment="card(post, controls, returnTo, clamp)" class="card post"
          th:classappend="${post.claimed()} ? 'is-claimed'" th:id="|post-${post.id()}|"
-         th:attr="aria-labelledby=|title-${post.id()}|">
+         th:attr="aria-labelledby=|title-${post.id()}|"
+         th:with="ad=${adminDetails != null ? adminDetails.get(post.id()) : null},
+                  commentCount=${commentCounts != null ? commentCounts.getOrDefault(post.id(), 0L) : null}">
     <div class="claimed-banner" th:if="${post.claimed()}">
-        <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block> Claimed / Returned ✓
+        <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block>
+        <span th:text="${post.claimedBy() != null} ? |Claimed by ${post.claimedBy()} ✓| : 'Claimed / Returned ✓'">Claimed / Returned ✓</span>
     </div>
     <div class="post-body">
         <header class="post-head">
@@ -41,17 +46,19 @@
     <div class="post-body" style="padding-top: .25rem">
         <dl class="post-meta">
             <div>
-                <th:block th:replace="~{fragments/icons :: icon('pin')}"></th:block>
-                <dt class="visually-hidden">Location</dt>
-                <dd th:text="${post.location()}">Library</dd>
-            </div>
-            <div>
                 <th:block th:replace="~{fragments/icons :: icon('calendar')}"></th:block>
                 <dt th:text="${post.found()} ? 'Found' : 'Lost'">Lost</dt>
                 <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}"
                           th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd>
             </div>
+            <div th:if="${commentCount != null}">
+                <th:block th:replace="~{fragments/icons :: icon('comment')}"></th:block>
+                <dt class="visually-hidden">Comments</dt>
+                <dd><a th:href="@{/posts/{id}(id=${post.id()})} + '#comments'"
+                       th:text="${commentCount == 1} ? '1 comment' : |${commentCount} comments|">0 comments</a></dd>
+            </div>
         </dl>
+        <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
         <p class="sdfo-note" th:classappend="${!post.found()} ? 'is-lost'">
             <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
             <span th:text="${post.found()} ? 'Claim this item at the SDFO office.' : 'Found this? Bring it to the SDFO office.'">Note</span>
@@ -85,14 +92,8 @@
             </form>
         </details>
     </th:block>
-    <details class="confirm" th:if="${status == 'APPROVED'}">
-        <summary class="btn btn-secondary btn-small">Mark as claimed</summary>
-        <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/claim(id=${id})}" data-loading>
-            <p th:text="|Mark “${name}” as claimed or returned? It stays on the feed, greyed out.|">Mark?</p>
-            <input type="hidden" name="returnTo" th:value="${returnTo}">
-            <button class="btn btn-primary btn-small" type="submit">Yes, mark as claimed</button>
-        </form>
-    </details>
+    <a class="btn btn-secondary btn-small" th:if="${status == 'APPROVED'}"
+       th:href="@{/admin/reports/{id}/claim(id=${id}, returnTo=${returnTo})}">Mark as claimed</a>
     <details class="confirm" th:if="${status == 'APPROVED' or status == 'CLAIMED'}">
         <summary class="btn btn-ghost btn-small">Remove</summary>
         <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/remove(id=${id})}" data-loading>
@@ -105,6 +106,36 @@
             <button class="btn btn-danger btn-small" type="submit">Remove report</button>
         </form>
     </details>
+</div>
+
+<!--/*
+  What only admins see on a post: where it was lost or found, who reported it, and the claim record.
+  ad is an AdminPostDetails; controllers create it only for admins.
+*/-->
+<div th:fragment="adminBox(ad)" class="admin-box" role="group" aria-label="Admin only">
+    <p class="admin-box-label"><th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>Admin only</p>
+    <dl>
+        <dt>Location</dt>
+        <dd><span th:text="${ad.location()}">Sentrum</span>
+            <span th:if="${ad.locationSpot() != null}" th:text="| · ${ad.locationSpot()}|"> · near the stairs</span></dd>
+        <dt>Reporter</dt>
+        <dd><span th:text="${ad.reporterEmail()}">email</span>
+            <span class="muted" th:if="${ad.reporterProfile() != null and !ad.reporterProfile().summary().isBlank()}"
+                  th:text="| · ${ad.reporterProfile().summary()}|"> · BSIT · 2nd year · O1A</span></dd>
+        <th:block th:if="${ad.claim() != null}">
+            <dt>Claimed by</dt>
+            <dd><span th:text="${ad.claim().claimantName}">Name</span>
+                <span class="muted" th:text="| · ${ad.claim().claimantAffiliation}|"> · course</span>
+                <span class="muted" th:if="${ad.claim().claimantEmail != null}" th:text="| · ${ad.claim().claimantEmail}|"></span></dd>
+            <dt>Released</dt>
+            <dd th:text="|${@fmt.dateTime(ad.claim().releasedAt)} by ${ad.claim().releasedByName}|">date by admin</dd>
+            <dt th:if="${ad.claim().notes != null}">Notes</dt>
+            <dd th:if="${ad.claim().notes != null}" th:text="${ad.claim().notes}">notes</dd>
+            <dt th:if="${ad.claim().status.name() == 'DISPUTED'}">Dispute</dt>
+            <dd th:if="${ad.claim().status.name() == 'DISPUTED'}"><span class="status status-rejected">Disputed</span>
+                <span th:text="${ad.claim().disputeNote}">note</span></dd>
+        </th:block>
+    </dl>
 </div>
 
 <!--/* A page of feed posts plus the "Load more" control. Also returned alone by /feed/posts. */-->

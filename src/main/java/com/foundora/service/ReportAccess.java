@@ -5,16 +5,16 @@ import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import org.springframework.stereotype.Component;
 
-/** Who may see a report (and its photo). One rule, used by the detail page and the photo endpoint. */
+/** Who may see a report (and its photos and comments). One rule, used by the detail page and the photo endpoints. */
 @Component
 public class ReportAccess {
 
     /**
-     * Approved and Claimed: any signed-in user. Pending and Rejected: the reporter and admins.
-     * Removed: admins only.
+     * On the feed (Approved, or Claimed and not archived): any signed-in user.
+     * Pending, Rejected and archived: the reporter and admins. Removed: admins only.
      */
     public boolean canView(Item item, FoundoraUser user) {
-        if (user.isAdmin() || ReportStatus.ON_FEED.contains(item.getStatus())) {
+        if (user.isAdmin() || item.isOnFeed()) {
             return true;
         }
         return item.getStatus() != ReportStatus.REMOVED && isReporter(item, user);

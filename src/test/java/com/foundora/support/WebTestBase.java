@@ -1,9 +1,14 @@
 package com.foundora.support;
 
+import com.foundora.auth.FoundoraUser;
 import com.foundora.feed.FeedIndex;
 import com.foundora.model.Item;
+import com.foundora.model.UserProfile;
 import com.foundora.repository.ActivityLogRepository;
+import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.CommentRepository;
 import com.foundora.repository.ItemRepository;
+import com.foundora.repository.UserProfileRepository;
 import com.foundora.service.StorageService;
 import com.google.firebase.auth.FirebaseAuth;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +18,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Full app on the in-memory database, with Firebase and Supabase Storage replaced by mocks. */
+import java.time.Instant;
+
+/**
+ * Full app on the in-memory database, with Firebase and Supabase Storage replaced by mocks.
+ * The four users in {@link TestData} start every test with completed profiles, so pages don't redirect to setup.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 public abstract class WebTestBase {
@@ -28,6 +38,15 @@ public abstract class WebTestBase {
     protected ActivityLogRepository activityLog;
 
     @Autowired
+    protected CommentRepository commentRepository;
+
+    @Autowired
+    protected ClaimRecordRepository claimRepository;
+
+    @Autowired
+    protected UserProfileRepository profileRepository;
+
+    @Autowired
     protected FeedIndex feedIndex;
 
     @MockitoBean
@@ -39,8 +58,25 @@ public abstract class WebTestBase {
     @BeforeEach
     void clearData() {
         activityLog.deleteAll();
+        commentRepository.deleteAll();
+        claimRepository.deleteAll();
         items.deleteAll();
+        profileRepository.deleteAll();
+        profileRepository.save(profile(TestData.STUDENT, "BS Information Technology", 2, "O1A", null));
+        profileRepository.save(profile(TestData.OTHER_STUDENT, "BS Psychology", 3, "P3B", null));
+        profileRepository.save(profile(TestData.STAFF, null, null, null, "Registrar's Office"));
+        profileRepository.save(profile(TestData.ADMIN, null, null, null, "SDFO"));
         feedIndex.rebuild();
+    }
+
+    protected static UserProfile profile(FoundoraUser user, String course, Integer year, String section,
+                                         String department) {
+        UserProfile p = new UserProfile(user.uid(), user.email(), user.name(), user.role(), Instant.now());
+        p.setCourse(course);
+        p.setYearLevel(year);
+        p.setSection(section);
+        p.setDepartment(department);
+        return p;
     }
 
     /** Saves items directly (as if already moderated) and reloads the feed index. */

@@ -11,8 +11,8 @@ import java.util.Set;
 
 /**
  * An inverted index, the same idea search engines use: instead of storing "post -> its words", it stores
- * "word -> the set of posts containing it". The search bar uses it to find posts by item name, description
- * and location.
+ * "word -> the set of posts containing it". The search bar uses it to find posts by item name and
+ * description. Locations are deliberately left out: they're secret, so they mustn't be searchable.
  *
  * <p><b>Data structure:</b> a {@link HashMap} from each word to a {@link HashSet} of post IDs (the word's
  * "posting list"), plus a {@link PrefixTrie} of all words so a search word also matches longer words that

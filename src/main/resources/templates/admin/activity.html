@@ -29,19 +29,19 @@
 </div>
 
 <li th:fragment="entry(e)">
-    <span class="status" th:classappend="${e.action.name() == 'REJECTED'} ? 'status-rejected'
-            : (${e.action.name() == 'APPROVED'} ? 'status-approved'
-            : (${e.action.name() == 'SUBMITTED'} ? 'status-pending' : 'status-claimed'))"
+    <span class="status" th:classappend="${e.action.name() == 'REJECTED' or e.action.name() == 'CLAIM_DISPUTED' or e.action.name() == 'COMMENT_DELETED'} ? 'status-rejected'
+            : (${e.action.name() == 'APPROVED' or e.action.name() == 'CLAIM_RESOLVED'} ? 'status-approved'
+            : (${e.action.name() == 'SUBMITTED' or e.action.name() == 'CLAIM_REOPENED'} ? 'status-pending' : 'status-claimed'))"
           th:text="${e.action.label()}">Approved</span>
     <div>
         <div>
             <strong th:text="${e.actorName}">Admin</strong>
-            <span class="muted small" th:text="|(${e.actorEmail})|">email</span>
+            <span class="muted small" th:if="${e.actorEmail != 'system'}" th:text="|(${e.actorEmail})|">email</span>
             <span th:text="${e.action.name() == 'SUBMITTED'} ? ' submitted' : ''"></span>
             <a th:if="${e.itemId != null}" th:href="@{/posts/{id}(id=${e.itemId})}" th:text="|“${e.itemName}”|">“Item”</a>
             <span th:unless="${e.itemId != null}" th:text="|“${e.itemName}”|">“Item”</span>
         </div>
-        <div class="small" th:if="${e.reason != null}" th:text="|Reason: ${e.reason}|">Reason</div>
+        <div class="small" th:if="${e.reason != null}" th:text="|Note: ${e.reason}|">Note</div>
         <time class="when" th:datetime="${@fmt.iso(e.createdAt)}" th:text="${@fmt.dateTime(e.createdAt)}">time</time>
     </div>
 </li>

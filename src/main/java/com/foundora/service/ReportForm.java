@@ -28,9 +28,12 @@ public class ReportForm {
     @NotNull(message = "Choose a category.")
     private Category category;
 
-    @NotBlank(message = "Enter where the item was lost or found.")
-    @Size(max = Item.MAX_LOCATION, message = "Keep the location to " + Item.MAX_LOCATION + " characters or fewer.")
+    /** One of foundora.campus-locations (checked in ReportController, which knows the list). */
+    @NotBlank(message = "Choose where the item was lost or found.")
     private String location;
+
+    @Size(max = Item.MAX_SPOT, message = "Keep the specific spot to " + Item.MAX_SPOT + " characters or fewer.")
+    private String locationSpot;
 
     @NotNull(message = "Enter the date the item was lost or found.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -74,6 +77,14 @@ public class ReportForm {
 
     public void setLocation(String location) {
         this.location = trim(location);
+    }
+
+    public String getLocationSpot() {
+        return locationSpot;
+    }
+
+    public void setLocationSpot(String locationSpot) {
+        this.locationSpot = trim(locationSpot);
     }
 
     public LocalDate getDateLostFound() {

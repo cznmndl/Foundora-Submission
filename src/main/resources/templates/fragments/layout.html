@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!--/* The one layout every signed-in page uses: header, navigation, content, optional right panel, footer. */-->
+<!--/*
+  The one layout every signed-in page uses: header, navigation, content, optional right panel, footer.
+  While ${setupMode} is true (first-time profile setup) the navigation is hidden: nothing else opens until it's done.
+*/-->
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content, aside, extraNav)">
 <head>
     <meta charset="UTF-8">
@@ -22,12 +25,15 @@
         <div class="user-chip" th:if="${currentUser != null}">
             <span class="visually-hidden"
                   th:text="|Signed in as ${currentUser.name}, ${currentUser.role.label()}|">Signed in</span>
-            <div class="user-text" aria-hidden="true">
-                <div class="user-name" th:text="${currentUser.name}">Name</div>
-                <span class="role-tag" th:classappend="${currentUser.isAdmin()} ? 'is-admin'"
-                      th:text="${currentUser.role.label()}">Student</span>
-            </div>
-            <span class="avatar avatar-sm" aria-hidden="true" th:text="${currentUser.initial()}">J</span>
+            <a class="user-link" th:href="@{/profile}" th:unless="${setupMode == true}" title="My Profile">
+                <div class="user-text" aria-hidden="true">
+                    <div class="user-name" th:text="${currentUser.name}">Name</div>
+                    <span class="role-tag" th:classappend="${currentUser.isAdmin()} ? 'is-admin'"
+                          th:text="${currentUser.role.label()}">Student</span>
+                </div>
+                <span class="avatar avatar-sm" aria-hidden="true" th:text="${currentUser.initial()}">J</span>
+                <span class="visually-hidden">My Profile</span>
+            </a>
             <form th:action="@{/logout}" method="post">
                 <button class="btn btn-ghost btn-small" type="submit">
                     <th:block th:replace="~{fragments/icons :: icon('logout')}"></th:block>
@@ -39,7 +45,7 @@
 </header>
 
 <div class="shell">
-    <nav class="sidenav" aria-label="Main" th:if="${currentUser != null}">
+    <nav class="sidenav" aria-label="Main" th:if="${currentUser != null and setupMode != true}">
         <div class="nav-section">
             <ul class="nav-list">
                 <li><a th:href="@{/}" th:attr="aria-current=${nav == 'feed'} ? 'page' : null">
@@ -48,6 +54,8 @@
                     <th:block th:replace="~{fragments/icons :: icon('plus')}"></th:block>Report an item</a></li>
                 <li><a th:href="@{/my-reports}" th:attr="aria-current=${nav == 'mine'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>My Reports</a></li>
+                <li><a th:href="@{/profile}" th:attr="aria-current=${nav == 'profile'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('user')}"></th:block>My Profile</a></li>
             </ul>
         </div>
         <div class="nav-section" th:if="${currentUser.isAdmin()}">
@@ -62,6 +70,8 @@
                     <span class="visually-hidden" th:if="${waiting > 0}"> reports waiting</span></a></li>
                 <li><a th:href="@{/admin/reports}" th:attr="aria-current=${adminNav == 'reports'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>All reports</a></li>
+                <li><a th:href="@{/admin/archive}" th:attr="aria-current=${adminNav == 'archive'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('archive')}"></th:block>Archive</a></li>
                 <li><a th:href="@{/admin/activity}" th:attr="aria-current=${adminNav == 'activity'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('activity')}"></th:block>Activity log</a></li>
             </ul>
@@ -88,7 +98,7 @@
     <p>Foundora · Lost and Found for the De La Salle Lipa community. Items are turned in and claimed at the SDFO office.</p>
 </footer>
 
-<nav class="tabbar" aria-label="Main" th:if="${currentUser != null}">
+<nav class="tabbar" aria-label="Main" th:if="${currentUser != null and setupMode != true}">
     <a th:href="@{/}" th:attr="aria-current=${nav == 'feed'} ? 'page' : null">
         <th:block th:replace="~{fragments/icons :: icon('home')}"></th:block>Feed</a>
     <a class="tab-report" th:href="@{/report}" th:attr="aria-current=${nav == 'report'} ? 'page' : null">

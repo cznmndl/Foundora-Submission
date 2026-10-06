@@ -1,9 +1,11 @@
 package com.foundora.feed;
 
 import com.foundora.model.Category;
+import com.foundora.model.ClaimRecord;
 import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
+import com.foundora.repository.ClaimRecordRepository;
 import com.foundora.repository.ItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,13 +30,16 @@ class FeedIndexTest {
     private static final Instant NOW = Instant.parse("2026-10-04T04:00:00Z");
 
     private final ItemRepository repository = mock(ItemRepository.class);
+    private final ClaimRecordRepository claims = mock(ClaimRecordRepository.class);
     private final List<Item> stored = new ArrayList<>();
+    private final List<ClaimRecord> storedClaims = new ArrayList<>();
     private FeedIndex index;
 
     @BeforeEach
     void setUp() {
         when(repository.findByStatusIn(any())).thenAnswer(call -> List.copyOf(stored));
-        index = new FeedIndex(repository, Clock.fixed(NOW, ZoneId.of("Asia/Manila")), List.of("Library", "Main Gate"));
+        when(claims.findByItemIdInAndStatusNot(any(), any())).thenAnswer(call -> List.copyOf(storedClaims));
+        index = new FeedIndex(repository, claims, Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
     }
 
     @Test
@@ -102,15 +107,54 @@ class FeedIndexTest {
     }
 
     @Test
-    void suggestsCampusPlacesAndPlacesFromReports() {
-        Item item = item("Bag", ReportType.LOST, Category.BAGS_WALLETS, NOW);
-        item.setLocation("Senior High Building");
+    void searchNeverMatchesTheSecretLocation() {
+        Item item = item("Black wallet", ReportType.LOST, Category.BAGS_WALLETS, NOW);
+        item.setLocation("Sentrum");
+        item.setLocationSpot("Under the bleachers");
         stored.add(item);
         index.rebuild();
 
-        assertThat(index.suggestLocations("li", 5)).containsExactly("Library");
-        assertThat(index.suggestLocations("gate", 5)).containsExactly("Main Gate");
-        assertThat(index.suggestLocations("build", 5)).containsExactly("Senior High Building");
+        assertThat(index.query(query(null, "wallet", 0)).totalMatches()).isEqualTo(1);
+        assertThat(index.query(query(null, "sentrum", 0)).totalMatches()).isZero();
+        assertThat(index.query(query(null, "bleachers", 0)).totalMatches()).isZero();
+        assertThat(index.suggestSearchWords("sent", 5)).isEmpty();
+        assertThat(index.suggestSearchWords("blea", 5)).isEmpty();
+    }
+
+    @Test
+    void filtersByLocationForAdmins() {
+        Item atOval = item("Umbrella", ReportType.FOUND, Category.UMBRELLAS, NOW);
+        atOval.setLocation("Oval");
+        Item atSentrum = item("Tumbler", ReportType.FOUND, Category.TUMBLERS_BOTTLES, NOW.minusSeconds(60));
+        atSentrum.setLocation("Sentrum");
+        stored.add(atOval);
+        stored.add(atSentrum);
+        index.rebuild();
+
+        FeedQuery oval = new FeedQuery(null, null, null, null, null, false, false, 0, "Oval", false);
+        assertThat(index.query(oval).posts()).extracting(FeedPost::itemName).containsExactly("Umbrella");
+    }
+
+    @Test
+    void leavesArchivedPostsOffAndShowsClaimantsOnTheClaimedTab() {
+        Item claimed = item("Claimed ID", ReportType.FOUND, Category.IDS_DOCUMENTS, NOW);
+        claimed.setStatus(ReportStatus.CLAIMED);
+        Item archived = item("Archived keys", ReportType.FOUND, Category.KEYS, NOW.minusSeconds(60));
+        archived.setStatus(ReportStatus.CLAIMED);
+        archived.setArchivedAt(NOW);
+        Item open = item("Open bag", ReportType.LOST, Category.BAGS_WALLETS, NOW.minusSeconds(120));
+        stored.add(claimed);
+        stored.add(archived);
+        stored.add(open);
+        storedClaims.add(new ClaimRecord(claimed.getId(), null, null, "Maria Santos", "BS Psychology · 3rd year",
+                NOW, "ana.cruz@dlsl.edu.ph", "Ana Cruz", null, NOW));
+        index.rebuild();
+
+        assertThat(index.query(query(null, null, 0)).posts()).extracting(FeedPost::itemName)
+                .containsExactly("Claimed ID", "Open bag");
+        FeedQuery claimedTab = new FeedQuery(null, null, null, null, null, false, false, 0, null, true);
+        assertThat(index.query(claimedTab).posts()).singleElement()
+                .satisfies(p -> assertThat(p.claimedBy()).isEqualTo("Maria Santos"));
     }
 
     private static FeedQuery query(Category category, String text, int page) {

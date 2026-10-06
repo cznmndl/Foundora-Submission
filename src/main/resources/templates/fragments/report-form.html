@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!--/* The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}. */-->
+<!--/*
+  The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}.
+  The location list comes from foundora.campus-locations (@campusLocations).
+*/-->
 <form th:fragment="form" class="report-form" th:action="@{/report}" method="post" enctype="multipart/form-data"
       th:object="${reportForm}" data-loading data-report-form>
 
@@ -36,7 +39,7 @@
     </div>
 
     <div class="field">
-        <label for="description">Description <span class="hint">Color, brand, stickers, what was inside: anything that helps the owner recognise it.</span></label>
+        <label for="description">Description <span class="hint">Color, brand, stickers, what was inside: anything that helps the owner recognise it. Don't write where it was lost or found here: put that in “Where?” below, which only SDFO admins see.</span></label>
         <textarea id="description" th:field="*{description}" maxlength="1000" required rows="4"
                   th:attr="aria-invalid=${#fields.hasErrors('description')} ? 'true' : null,
                            aria-describedby=${#fields.hasErrors('description')} ? 'description-error' : null"></textarea>
@@ -54,15 +57,26 @@
         <p class="field-error" id="category-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
     </div>
 
-    <div class="field">
-        <label for="location">Where? <span class="hint">Start typing for common campus places.</span></label>
-        <input type="text" id="location" th:field="*{location}" maxlength="120" required autocomplete="off"
-               list="location-options" data-suggest-locations
-               th:attr="aria-invalid=${#fields.hasErrors('location')} ? 'true' : null,
-                        aria-describedby=${#fields.hasErrors('location')} ? 'location-error' : null">
-        <datalist id="location-options"></datalist>
-        <p class="field-error" id="location-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></p>
-    </div>
+    <fieldset class="location-group">
+        <legend>Where? <span class="hint">Only SDFO admins see this. It's kept off the feed so that when someone claims the item, SDFO can ask them where they lost it.</span></legend>
+        <div class="field">
+            <label for="location">Campus location</label>
+            <select id="location" th:field="*{location}" required
+                    th:attr="aria-invalid=${#fields.hasErrors('location')} ? 'true' : null,
+                             aria-describedby=${#fields.hasErrors('location')} ? 'location-error' : null">
+                <option value="">Choose a place</option>
+                <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}">Sentrum</option>
+            </select>
+            <p class="field-error" id="location-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></p>
+        </div>
+        <div class="field">
+            <label for="locationSpot">Specific spot <span class="hint">Exactly where, e.g. “3rd floor hallway near room 305” or “under the bleachers”. If you chose Other, say where.</span></label>
+            <input type="text" id="locationSpot" th:field="*{locationSpot}" maxlength="200" required autocomplete="off"
+                   th:attr="aria-invalid=${#fields.hasErrors('locationSpot')} ? 'true' : null,
+                            aria-describedby=${#fields.hasErrors('locationSpot')} ? 'locationSpot-error' : null">
+            <p class="field-error" id="locationSpot-error" th:if="${#fields.hasErrors('locationSpot')}" th:errors="*{locationSpot}"></p>
+        </div>
+    </fieldset>
 
     <div class="field">
         <label for="dateLostFound">When? <span class="hint">The date you lost or found it.</span></label>
@@ -98,7 +112,7 @@
         <button class="btn btn-primary" type="submit">Send report</button>
         <a class="btn btn-ghost" th:href="@{/}" data-close-dialog>Cancel</a>
     </div>
-    <p class="muted small">Your name is shown on the post. Your email is never shown publicly. An admin reviews every report before it appears on the feed.</p>
+    <p class="muted small">Your name is shown on the post. Your email, profile details and the location are seen only by SDFO admins. An admin reviews every report before it appears on the feed.</p>
 </form>
 </body>
 </html>

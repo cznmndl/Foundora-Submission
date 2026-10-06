@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title th:text="${setupMode} ? 'Set up your profile · Foundora' : 'My Profile · Foundora'">My Profile · Foundora</title></head>
+<body>
+<!--/* First-time setup (${setupMode}: no navigation until it's done) and the My Profile page. */-->
+<div id="content" class="content-narrow">
+    <div class="page-head">
+        <h1 th:text="${setupMode} ? 'Set up your profile' : 'My Profile'">My Profile</h1>
+    </div>
+    <p class="lead" th:if="${setupMode}">Welcome to Foundora! Before you start, tell us a little about yourself. You only need to do this once.</p>
+    <p class="lead" th:unless="${setupMode}">Keep these details up to date. SDFO uses them to confirm who posted, lost or found an item.</p>
+
+    <form class="card" method="post" th:action="@{/profile}" th:object="${profileForm}" data-loading>
+        <div class="alert alert-error" role="alert" th:if="${#fields.hasAnyErrors()}">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span>Please fix the highlighted fields below.</span>
+        </div>
+
+        <div class="reporter-box" style="margin:0 0 1rem">
+            <dl>
+                <dt>Name</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd>
+                <dt>Email</dt><dd th:text="${currentUser.email}">email</dd>
+                <dt>Role</dt><dd th:text="${currentUser.role.label()}">Student</dd>
+            </dl>
+            <p class="hint" style="margin:.5rem 0 0">Your name and email come from your Google account.</p>
+        </div>
+
+        <th:block th:if="${isStudent}">
+            <div class="field">
+                <label for="course">Course</label>
+                <select id="course" th:field="*{course}" required data-other-toggle="course-other-field"
+                        th:attr="aria-invalid=${#fields.hasErrors('course')} ? 'true' : null,
+                                 aria-describedby=${#fields.hasErrors('course')} ? 'course-error' : null">
+                    <option value="">Choose your course</option>
+                    <option th:each="c : ${@profileOptions.courses()}" th:value="${c}" th:text="${c}">BSIT</option>
+                </select>
+                <p class="field-error" id="course-error" th:if="${#fields.hasErrors('course')}" th:errors="*{course}"></p>
+            </div>
+            <div class="field" id="course-other-field">
+                <label for="courseOther">If “Other”: your program</label>
+                <input type="text" id="courseOther" th:field="*{courseOther}" maxlength="120" autocomplete="off"
+                       th:attr="aria-invalid=${#fields.hasErrors('courseOther')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('courseOther')} ? 'courseOther-error' : null">
+                <p class="field-error" id="courseOther-error" th:if="${#fields.hasErrors('courseOther')}" th:errors="*{courseOther}"></p>
+            </div>
+            <div class="filter-grid" style="margin-top:0">
+                <div class="field">
+                    <label for="yearLevel">Year level</label>
+                    <select id="yearLevel" th:field="*{yearLevel}" required
+                            th:attr="aria-invalid=${#fields.hasErrors('yearLevel')} ? 'true' : null,
+                                     aria-describedby=${#fields.hasErrors('yearLevel')} ? 'yearLevel-error' : null">
+                        <option value="">Choose</option>
+                        <option th:each="y : ${@profileOptions.years()}" th:value="${y}" th:text="${@profileOptions.yearLabel(y)}">1st year</option>
+                    </select>
+                    <p class="field-error" id="yearLevel-error" th:if="${#fields.hasErrors('yearLevel')}" th:errors="*{yearLevel}"></p>
+                </div>
+                <div class="field">
+                    <label for="section">Section <span class="hint">For example: O1A</span></label>
+                    <input type="text" id="section" th:field="*{section}" maxlength="20" required autocomplete="off"
+                           th:attr="aria-invalid=${#fields.hasErrors('section')} ? 'true' : null,
+                                    aria-describedby=${#fields.hasErrors('section')} ? 'section-error' : null">
+                    <p class="field-error" id="section-error" th:if="${#fields.hasErrors('section')}" th:errors="*{section}"></p>
+                </div>
+            </div>
+        </th:block>
+
+        <div class="field" th:unless="${isStudent}">
+            <label for="department">Department or office <span class="hint">For example: SDFO, Registrar's Office, College of IT</span></label>
+            <input type="text" id="department" th:field="*{department}" maxlength="120" required autocomplete="off"
+                   th:attr="aria-invalid=${#fields.hasErrors('department')} ? 'true' : null,
+                            aria-describedby=${#fields.hasErrors('department')} ? 'department-error' : null">
+            <p class="field-error" id="department-error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}"></p>
+        </div>
+
+        <p class="muted small">Only SDFO admins see these details, next to your posts and comments. Other users see only your name.</p>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit" th:text="${setupMode} ? 'Save and continue' : 'Save changes'">Save</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

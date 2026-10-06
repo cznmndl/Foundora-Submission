@@ -52,6 +52,8 @@ class ReportSubmissionTest extends WebTestBase {
         assertThat(item.getReporterName()).isEqualTo(STUDENT.name());
         assertThat(item.getReporterUid()).isEqualTo(STUDENT.uid());
         assertThat(item.getImagePath()).isNull();
+        assertThat(item.getLocation()).isEqualTo("Sentrum");
+        assertThat(item.getLocationSpot()).isEqualTo("2nd floor near the elevator");
         assertThat(activityLog.findAll()).singleElement()
                 .satisfies(e -> assertThat(e.getAction()).isEqualTo(ActivityAction.SUBMITTED));
     }
@@ -80,10 +82,37 @@ class ReportSubmissionTest extends WebTestBase {
                 .andExpect(content().string(containsString("Choose whether you lost or found the item.")))
                 .andExpect(content().string(containsString("Enter the item’s name.")))
                 .andExpect(content().string(containsString("Choose a category.")))
-                .andExpect(content().string(containsString("Enter where the item was lost or found.")))
+                .andExpect(content().string(containsString("Choose where the item was lost or found.")))
+                .andExpect(content().string(containsString("Describe the specific spot")))
                 .andExpect(content().string(containsString("aria-invalid=\"true\"")));
 
         assertThat(items.count()).isZero();
+    }
+
+    @Test
+    void locationMustComeFromTheListAndOtherNeedsTheSpot() throws Exception {
+        mvc.perform(report("LOST", "Somewhere I typed", "Hallway").with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Choose a place from the list")));
+        mvc.perform(report("LOST", "Other", " ").with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("so describe where it was")));
+        assertThat(items.count()).isZero();
+
+        mvc.perform(report("LOST", "Other", "Parking lot near Gate 3").with(as(STUDENT)).with(csrf()))
+                .andExpect(redirectedUrl("/report/sent"));
+        assertThat(items.findAll()).singleElement().satisfies(i -> {
+            assertThat(i.getLocation()).isEqualTo("Other");
+            assertThat(i.getLocationSpot()).isEqualTo("Parking lot near Gate 3");
+        });
+    }
+
+    @Test
+    void formOffersTheCampusLocationsWithOtherLast() throws Exception {
+        String html = mvc.perform(get("/report").with(as(STUDENT))).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Mabini Building (MB)").contains("Chez Rafael Canteen").contains("JRF")
+                .contains("Specific spot");
+        assertThat(html.indexOf(">JRF<")).isLessThan(html.indexOf(">Other<"));
     }
 
     @Test
@@ -133,12 +162,22 @@ class ReportSubmissionTest extends WebTestBase {
     }
 
     private static MockMultipartHttpServletRequestBuilder report(String type, String date) {
+        return report(type, date, "Sentrum", "2nd floor near the elevator");
+    }
+
+    private static MockMultipartHttpServletRequestBuilder report(String type, String location, String spot) {
+        return report(type, today().toString(), location, spot);
+    }
+
+    private static MockMultipartHttpServletRequestBuilder report(String type, String date, String location,
+                                                                 String spot) {
         return (MockMultipartHttpServletRequestBuilder) multipart("/report")
                 .param("type", type)
                 .param("itemName", "Navy umbrella")
                 .param("description", "Folding umbrella with a wooden handle")
                 .param("category", "UMBRELLAS")
-                .param("location", "Library")
+                .param("location", location)
+                .param("locationSpot", spot)
                 .param("dateLostFound", date);
     }
 

@@ -1,0 +1,145 @@
+package com.foundora.migration;
+
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/**
+ * Runs the real Flyway migrations on a throwaway Postgres (never Supabase). V1-V5 run first and rows are
+ * written the way the live site writes them today; then V6 onward must apply on top without losing anything.
+ */
+class MigrationTest {
+
+    private static EmbeddedPostgres postgres;
+    private static DataSource dataSource;
+
+    @BeforeAll
+    static void migrateWithOldData() throws Exception {
+        postgres = EmbeddedPostgres.start();
+        dataSource = postgres.getPostgresDatabase();
+        SupabaseStubs.create(dataSource);
+
+        flyway("5").migrate();
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
+            s.execute("""
+                    insert into public.items (id, item_name, description, category, location, date_lost_found,
+                        report_type, status, reporter_name, reporter_email, reporter_uid, image_path, created_at,
+                        claimed_at)
+                    values
+                      ('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'Folding', 'UMBRELLAS',
+                       'Library 2nd floor', '2026-09-01', 'FOUND', 'APPROVED', 'Juan', 'juan_delacruz@dlsl.edu.ph',
+                       'uid-juan', 'items/a.jpg', now(), null),
+                      ('22222222-2222-2222-2222-222222222222', 'Calculator', 'Casio', 'ELECTRONICS',
+                       'Canteen', '2026-09-02', 'LOST', 'CLAIMED', 'Maria', 'maria_santos@dlsl.edu.ph',
+                       null, null, now(), now() - interval '40 days')""");
+            s.execute("""
+                    insert into public.activity_log (item_id, item_name, action, actor_email, actor_name, created_at)
+                    values ('22222222-2222-2222-2222-222222222222', 'Calculator', 'CLAIMED', 'ana.cruz@dlsl.edu.ph',
+                            'Ana', now())""");
+        }
+        flyway(null).migrate();
+    }
+
+    @AfterAll
+    static void stop() throws Exception {
+        if (postgres != null) {
+            postgres.close();
+        }
+    }
+
+    static Flyway flyway(String target) {
+        var config = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .schemas("flyway").defaultSchema("flyway");
+        if (target != null) {
+            config.target(target);
+        }
+        return config.load();
+    }
+
+    @Test
+    void appliesEveryMigration() {
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("10");
+        assertThat(flyway(null).info().pending()).isEmpty();
+    }
+
+    @Test
+    void keepsExistingReportsUnchanged() throws Exception {
+        assertThat(query("select item_name || '|' || location || '|' || coalesce(location_spot, '-') || '|' "
+                + "|| coalesce(image_path, '-') || '|' || (archived_at is null) from public.items "
+                + "where id = '11111111-1111-1111-1111-111111111111'"))
+                .isEqualTo("Blue umbrella|Library 2nd floor|-|items/a.jpg|true");
+        assertThat(query("select status from public.items where id = '22222222-2222-2222-2222-222222222222'"))
+                .isEqualTo("CLAIMED");
+        assertThat(query("select count(*) from public.activity_log where action = 'CLAIMED'")).isEqualTo("1");
+    }
+
+    @Test
+    void newTablesHaveRowLevelSecurityWithNoPolicies() throws Exception {
+        for (String table : new String[]{"user_profiles", "comments", "claim_records"}) {
+            assertThat(query("select relrowsecurity from pg_class where oid = 'public." + table + "'::regclass"))
+                    .as(table).isEqualTo("t");
+            assertThat(query("select count(*) from pg_policies where schemaname = 'public' and tablename = '"
+                    + table + "'")).as(table).isEqualTo("0");
+        }
+    }
+
+    @Test
+    void enforcesTheNewRules() throws Exception {
+        exec("insert into public.user_profiles (uid, email, full_name, role, course, year_level, section) "
+                + "values ('uid-x', 'x_y@dlsl.edu.ph', 'X Y', 'STUDENT', 'BSIT', 2, 'O1A')");
+        assertThatThrownBy(() -> exec("insert into public.user_profiles (uid, email, full_name, role, year_level) "
+                + "values ('uid-z', 'z_z@dlsl.edu.ph', 'Z', 'STUDENT', 6)")).isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec("insert into public.user_profiles (uid, email, full_name, role) "
+                + "values ('uid-dup', 'x_y@dlsl.edu.ph', 'Dup', 'STUDENT')")).isInstanceOf(SQLException.class);
+
+        exec("insert into public.comments (item_id, author_email, author_name, author_role, body) values "
+                + "('11111111-1111-1111-1111-111111111111', 'x_y@dlsl.edu.ph', 'X Y', 'STUDENT', 'Mine!')");
+        assertThatThrownBy(() -> exec("insert into public.comments (item_id, author_email, author_name, author_role, body) "
+                + "values ('11111111-1111-1111-1111-111111111111', 'x_y@dlsl.edu.ph', 'X Y', 'STUDENT', '  ')"))
+                .as("empty comment").isInstanceOf(SQLException.class);
+
+        String claim = "insert into public.claim_records (item_id, claimant_name, claimant_affiliation, released_at, "
+                + "released_by_email, released_by_name, status) values "
+                + "('22222222-2222-2222-2222-222222222222', 'Pedro', 'BSIT', now(), 'a@dlsl.edu.ph', 'A', '%s')";
+        exec(claim.formatted("ACTIVE"));
+        assertThatThrownBy(() -> exec(claim.formatted("ACTIVE"))).as("second open claim")
+                .isInstanceOf(SQLException.class);
+        exec(claim.formatted("REOPENED")); // reopened claims are history; any number is fine
+
+        exec("insert into public.activity_log (item_id, item_name, action, actor_email, actor_name) values "
+                + "('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'COMMENT_DELETED', 'a', 'A')");
+        assertThatThrownBy(() -> exec("insert into public.activity_log (item_name, action, actor_email, actor_name) "
+                + "values ('x', 'NOT_AN_ACTION', 'a', 'A')")).isInstanceOf(SQLException.class);
+
+        assertThatThrownBy(() -> exec("update public.items set archived_at = now() "
+                + "where id = '11111111-1111-1111-1111-111111111111'")).as("only claimed reports are archived")
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec("update public.items set location_spot = repeat('x', 201) "
+                + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
+    }
+
+    private static void exec(String sql) throws SQLException {
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
+            s.execute(sql);
+        }
+    }
+
+    private static String query(String sql) throws SQLException {
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement();
+             ResultSet r = s.executeQuery(sql)) {
+            r.next();
+            return r.getString(1);
+        }
+    }
+}

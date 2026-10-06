@@ -32,7 +32,10 @@
     </section>
 </div>
 
-<!--/* One submission, previewed exactly as its feed post will look, plus what only admins see. */-->
+<!--/*
+  One submission, previewed as its feed post will look to students (no location, no email: the card gets no
+  admin details here), plus what only admins see below it.
+*/-->
 <div th:fragment="review(r)" class="review-card card" style="padding:0">
     <article th:replace="~{fragments/posts :: card(${r.post()}, false, '/admin/pending', false)}"></article>
     <div class="post-foot">
@@ -40,6 +43,10 @@
             <dl>
                 <dt>Reporter</dt><dd th:text="${r.item().reporterName}">Name</dd>
                 <dt>Email</dt><dd th:text="${r.item().reporterEmail}">email</dd>
+                <dt>Profile</dt>
+                <dd th:text="${r.admin() != null and r.admin().reporterProfile() != null ? r.admin().reporterProfile().summary() : 'No profile yet'}">BSIT</dd>
+                <dt>Location</dt><dd th:text="${r.item().location}">Sentrum</dd>
+                <dt>Specific spot</dt><dd th:text="${r.item().locationSpot != null ? r.item().locationSpot : '—'}">spot</dd>
                 <dt>Submitted</dt>
                 <dd><span th:text="${@fmt.dateTime(r.item().createdAt)}">date</span>
                     (<span th:text="${@fmt.ago(r.item().createdAt)}">2 hours ago</span>)</dd>

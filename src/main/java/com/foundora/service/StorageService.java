@@ -15,8 +15,9 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Stores item photos in the private Supabase Storage bucket, using the server-only secret key.
- * Photos are never linked directly; {@code PhotoController} serves them after checking who is asking.
+ * Stores report and comment photos in the private Supabase Storage bucket, using the server-only secret key.
+ * Report photos live under items/, comment photos under comments/. Photos are never linked directly;
+ * {@code PhotoController} serves them after checking who is asking.
  */
 @Service
 @EnableConfigurationProperties(SupabaseProperties.class)
@@ -24,8 +25,12 @@ public class StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
-    /** Photo paths look like items/&lt;file&gt;; anything else is refused before it reaches Supabase. */
-    private static final Pattern PATH = Pattern.compile("items/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
+    public static final String ITEMS = "items";
+    public static final String COMMENTS = "comments";
+
+    /** Photo paths look like items/&lt;file&gt; or comments/&lt;file&gt;; anything else is refused before it reaches Supabase. */
+    private static final Pattern PATH =
+            Pattern.compile("(items|comments)/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
 
     private final RestClient restClient;
     private final SupabaseProperties supabase;
@@ -42,22 +47,31 @@ public class StorageService {
                 .build();
     }
 
-    /** Uploads JPEG bytes under a new random name and returns the object path to save on the report. */
+    /** Uploads a report photo (JPEG bytes) under a new random name and returns the object path to save. */
     public String storePhoto(byte[] jpeg) {
+        return storePhoto(ITEMS, jpeg);
+    }
+
+    /** Uploads JPEG bytes into {@code folder} (items or comments) under a new random name; returns the object path. */
+    public String storePhoto(String folder, byte[] jpeg) {
+        if (!ITEMS.equals(folder) && !COMMENTS.equals(folder)) {
+            throw new IllegalArgumentException("Unknown photo folder: " + folder);
+        }
         String fileName = UUID.randomUUID() + ".jpg";
         restClient.post()
-                .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName)
+                .uri("/object/{bucket}/{folder}/{fileName}", supabase.bucket(), folder, fileName)
                 .contentType(MediaType.IMAGE_JPEG)
                 .header("x-upsert", "false")
                 .body(jpeg)
                 .retrieve()
                 .toBodilessEntity();
-        return "items/" + fileName;
+        return folder + "/" + fileName;
     }
 
     public StoredPhoto downloadPhoto(String path) {
+        String[] parts = split(path);
         ResponseEntity<byte[]> response = restClient.get()
-                .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName(path))
+                .uri("/object/{bucket}/{folder}/{fileName}", supabase.bucket(), parts[0], parts[1])
                 .retrieve()
                 .toEntity(byte[].class);
         MediaType type = response.getHeaders().getContentType();
@@ -66,9 +80,10 @@ public class StorageService {
 
     /** Deletes a photo. A photo that is already gone counts as deleted. */
     public void deletePhoto(String path) {
+        String[] parts = split(path);
         try {
             restClient.delete()
-                    .uri("/object/{bucket}/items/{fileName}", supabase.bucket(), fileName(path))
+                    .uri("/object/{bucket}/{folder}/{fileName}", supabase.bucket(), parts[0], parts[1])
                     .retrieve()
                     .toBodilessEntity();
         } catch (HttpClientErrorException e) {
@@ -87,12 +102,13 @@ public class StorageService {
         }
     }
 
-    private static String fileName(String path) {
+    /** [folder, file name] of a valid photo path. */
+    private static String[] split(String path) {
         var matcher = PATH.matcher(path == null ? "" : path);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Not a photo path: " + path);
         }
-        return matcher.group(1);
+        return new String[]{matcher.group(1), matcher.group(2)};
     }
 
     // Supabase Storage has answered a missing object with 404, and with 400 + "not_found" in the body.

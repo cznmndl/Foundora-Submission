@@ -20,9 +20,11 @@ public final class FeedFilters {
     private final LocalDate to;
     private final boolean hideClaimed;
     private final boolean oldestFirst;
+    private final boolean claimedOnly;
+    private final String location;
 
     FeedFilters(ReportType type, Category category, String text, LocalDate from, LocalDate to,
-                boolean hideClaimed, boolean oldestFirst) {
+                boolean hideClaimed, boolean oldestFirst, boolean claimedOnly, String location) {
         this.type = type;
         this.category = category;
         this.text = text;
@@ -30,17 +32,25 @@ public final class FeedFilters {
         this.to = to;
         this.hideClaimed = hideClaimed;
         this.oldestFirst = oldestFirst;
+        this.claimedOnly = claimedOnly;
+        this.location = location;
     }
 
+    /**
+     * @param show     "claimed" for the Claimed tab
+     * @param location already checked by the caller: a campus place for admins, always null for everyone else
+     */
     static FeedFilters parse(String type, String category, String q, String from, String to,
-                             String hideClaimed, String sort) {
-        return new FeedFilters(ReportType.fromSlug(type), Category.fromSlug(category), Params.text(q, 100),
-                Params.date(from), Params.date(to), "on".equals(hideClaimed) || "true".equals(hideClaimed),
-                "oldest".equals(sort));
+                             String hideClaimed, String sort, String show, String location) {
+        boolean claimedOnly = "claimed".equals(show);
+        return new FeedFilters(claimedOnly ? null : ReportType.fromSlug(type), Category.fromSlug(category),
+                Params.text(q, 100), Params.date(from), Params.date(to),
+                !claimedOnly && ("on".equals(hideClaimed) || "true".equals(hideClaimed)),
+                "oldest".equals(sort), claimedOnly, location);
     }
 
     FeedQuery toQuery(int page) {
-        return new FeedQuery(type, category, text, from, to, hideClaimed, oldestFirst, page);
+        return new FeedQuery(type, category, text, from, to, hideClaimed, oldestFirst, page, location, claimedOnly);
     }
 
     public ReportType type() {
@@ -71,35 +81,47 @@ public final class FeedFilters {
         return oldestFirst;
     }
 
+    public boolean claimedOnly() {
+        return claimedOnly;
+    }
+
+    public String location() {
+        return location;
+    }
+
     public boolean isFiltered() {
         return toQuery(0).isFiltered();
     }
 
-    /** Feed link with the type tab changed ("all", "lost" or "found"). */
+    /** Feed link with the tab changed: "all", "lost", "found" or "claimed". */
     public String typeUrl(String slug) {
-        return url("/", ReportType.fromSlug(slug), category, 0);
+        return url("/", ReportType.fromSlug(slug), category, "claimed".equals(slug), 0);
     }
 
     /** Feed link with the category changed; null or "all" clears it. */
     public String categoryUrl(String slug) {
-        return url("/", type, Category.fromSlug(slug), 0);
+        return url("/", type, Category.fromSlug(slug), claimedOnly, 0);
     }
 
     /** Link that loads the given page of posts as an HTML fragment (for "Load more"). */
     public String moreUrl(int page) {
-        return url("/feed/posts", type, category, page);
+        return url("/feed/posts", type, category, claimedOnly, page);
     }
 
     /** The same page without JavaScript: a full feed page showing that page of posts. */
     public String pageUrl(int page) {
-        return url("/", type, category, page);
+        return url("/", type, category, claimedOnly, page);
     }
 
     /** Short description of the filters for the empty state, e.g. "found items in Umbrellas matching “blue”". */
     public String describe() {
-        StringBuilder words = new StringBuilder(type == null ? "items" : type.label().toLowerCase() + " items");
+        StringBuilder words = new StringBuilder(claimedOnly ? "claimed items"
+                : type == null ? "items" : type.label().toLowerCase() + " items");
         if (category != null) {
             words.append(" in ").append(category.label());
+        }
+        if (location != null) {
+            words.append(" at ").append(location);
         }
         if (text != null) {
             words.append(" matching “").append(text).append('”');
@@ -110,13 +132,18 @@ public final class FeedFilters {
         return words.toString();
     }
 
-    private String url(String path, ReportType withType, Category withCategory, int page) {
+    private String url(String path, ReportType withType, Category withCategory, boolean withClaimedOnly, int page) {
         UriComponentsBuilder b = UriComponentsBuilder.fromPath(path);
-        if (withType != null) {
+        if (withClaimedOnly) {
+            b.queryParam("show", "claimed");
+        } else if (withType != null) {
             b.queryParam("type", withType.slug());
         }
         if (withCategory != null) {
             b.queryParam("category", withCategory.slug());
+        }
+        if (location != null) {
+            b.queryParam("location", location);
         }
         if (text != null) {
             b.queryParam("q", text);
@@ -127,7 +154,7 @@ public final class FeedFilters {
         if (to != null) {
             b.queryParam("to", to);
         }
-        if (hideClaimed) {
+        if (hideClaimed && !withClaimedOnly) {
             b.queryParam("hideClaimed", "on");
         }
         if (oldestFirst) {

@@ -14,7 +14,7 @@ import java.util.TreeMap;
  * start with the same letters share the same path, so "every key starting with <i>umb</i>" is simply
  * "everything below the node reached by u-m-b".
  *
- * <p>Used for search-as-you-type (prefixes of words in reports) and location suggestions.
+ * <p>Used for search-as-you-type (prefixes of words in item names and descriptions).
  *
  * <p><b>Complexity:</b> adding or removing a key of length L is O(L). Finding keys with a prefix of length L
  * is O(L) to walk down to the prefix node, then a depth-first walk below it that stops as soon as

@@ -315,6 +315,7 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .post-meta dt { font-weight: 700; }
 .post-meta dd { margin: 0; }
 .post-meta .icon { width: 18px; height: 18px; color: var(--ink-3); }
+.post-meta a { color: var(--ink-2); }
 .sdfo-note {
   display: flex; gap: .5rem; align-items: center; margin: .85rem 0 0; padding: .55rem .75rem;
   border-radius: var(--radius-sm); background: var(--green-50); color: var(--green-900);
@@ -373,6 +374,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .checkbox { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; min-height: 44px; }
 .checkbox input { width: 20px; height: 20px; accent-color: var(--green-700); }
 fieldset { border: 0; padding: 0; margin: 0 0 1rem; }
+.location-group { padding: .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: #fafcfb; }
+.location-group .field:last-child { margin-bottom: 0; }
 
 .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .segmented label {
@@ -469,6 +472,63 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 .timeline li { display: flex; gap: .75rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
 .timeline li:last-child { border-bottom: 0; }
 .timeline .when { color: var(--ink-3); font-size: .85rem; }
+
+/* ---------- Admin-only details on posts ---------- */
+.admin-box {
+  margin-top: .75rem; padding: .65rem .75rem; border-radius: var(--radius-sm);
+  background: var(--pending-bg); border: 1px dashed #e2c879; font-size: .9rem;
+}
+.admin-box-label {
+  display: flex; align-items: center; gap: .35rem; margin: 0 0 .35rem;
+  font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--pending-ink);
+}
+.admin-box-label .icon { width: 16px; height: 16px; }
+.admin-box dl { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .75rem; margin: 0; }
+.admin-box dt { font-weight: 700; color: var(--pending-ink); }
+.admin-box dd { margin: 0; overflow-wrap: anywhere; }
+
+.claim-record {
+  padding: .75rem; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--line);
+  font-size: .92rem;
+}
+.claim-record dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .75rem; margin: .5rem 0 0; }
+.claim-record dt { font-weight: 700; color: var(--ink-3); }
+.claim-record dd { margin: 0; overflow-wrap: anywhere; }
+.claim-record.claim-disputed { border-color: #f6c9c9; background: var(--danger-bg); }
+.claim-record.claim-reopened { opacity: .75; }
+
+/* ---------- Comments ---------- */
+.comments h2 { font-size: 1.05rem; }
+.comment-list { list-style: none; margin: 0 0 1rem; padding: 0; }
+.comment { display: flex; gap: .6rem; padding: .4rem 0; }
+.comment-main { flex: 1; min-width: 0; }
+.comment-bubble { display: inline-block; max-width: 100%; padding: .5rem .8rem; border-radius: 16px; background: var(--muted-bg); }
+.comment-head { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .92rem; }
+.comment-body { margin: .2rem 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+.comment-admin { margin: .15rem 0 0; color: var(--pending-ink); }
+.comment-photo { display: block; margin-top: .4rem; max-width: 320px; }
+.comment-photo img { border-radius: var(--radius-sm); max-height: 260px; width: auto; }
+.comment-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .2rem; font-size: .8rem; color: var(--ink-3); }
+.comment-foot .confirm[open] { width: 100%; }
+.comment-form { border-top: 1px solid var(--line); padding-top: 1rem; }
+.comment-form .photo-picker { padding: .75rem; }
+.role-badge {
+  display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700;
+  background: var(--surface); color: var(--ink-2); border: 1px solid var(--line-strong);
+}
+.badge-role-admin, .badge-role-sdfo { background: var(--green-800); border-color: var(--green-800); color: #fff; }
+.badge-role-staff { background: var(--green-50); border-color: var(--green-100); color: var(--green-900); }
+.badge-role-op { background: var(--pending-bg); border-color: #f3dfa6; color: var(--pending-ink); }
+.link-button {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--ink-3); text-decoration: underline;
+  cursor: pointer; list-style: none;
+}
+.link-button::-webkit-details-marker { display: none; }
+.link-button:hover { color: var(--danger); }
+
+/* ---------- Header profile link ---------- */
+.user-link { display: flex; align-items: center; gap: .6rem; color: inherit; text-decoration: none; border-radius: var(--radius-sm); }
+.user-link:hover .user-name { text-decoration: underline; }
 
 /* ---------- Report list (My Reports) ---------- */
 .report-row { display: flex; gap: .85rem; align-items: flex-start; }

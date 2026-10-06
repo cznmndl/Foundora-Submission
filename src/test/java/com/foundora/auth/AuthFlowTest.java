@@ -5,6 +5,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.ErrorCode;
+import com.foundora.model.UserProfile;
+import com.foundora.repository.UserProfileRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +26,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,6 +40,76 @@ class AuthFlowTest {
 
     @MockitoBean
     private FirebaseAuth firebaseAuth;
+
+    @Autowired
+    private UserProfileRepository profiles;
+
+    /** These accounts have finished profile setup; first-time sign-in is tested separately. */
+    @BeforeEach
+    void completedProfiles() {
+        profiles.deleteAll();
+        profiles.save(profile("juan_delacruz@dlsl.edu.ph", UserRole.STUDENT, "BS Psychology", 1, "O1A", null));
+        profiles.save(profile("ana.cruz@dlsl.edu.ph", UserRole.ADMIN, null, null, null, "SDFO"));
+        profiles.save(profile("ben.santos@dlsl.edu.ph", UserRole.STAFF, null, null, null, "Library"));
+        profiles.save(profile("registrar@dlsl.edu.ph", UserRole.STAFF, null, null, null, "Registrar"));
+    }
+
+    @Test
+    void firstSignInMustSetUpTheProfileBeforeAnythingElse() throws Exception {
+        MockHttpSession session = signIn("new-token", token("pedro_reyes@dlsl.edu.ph", true, "google.com"),
+                "/profile/setup");
+
+        // Every other page sends them back, whatever URL they type, and POSTs are refused the same way.
+        for (String page : new String[]{"/", "/my-reports", "/report", "/posts/" + java.util.UUID.randomUUID()}) {
+            mvc.perform(get(page).session(session)).andExpect(status().isSeeOther())
+                    .andExpect(redirectedUrl("/profile/setup"));
+        }
+        mvc.perform(post("/report").session(session).with(csrf()))
+                .andExpect(status().isSeeOther()).andExpect(redirectedUrl("/profile/setup"));
+        mvc.perform(get("/profile/setup").session(session)).andExpect(status().isOk());
+
+        // Missing details are refused.
+        mvc.perform(post("/profile").session(session).with(csrf()).param("course", "BS Nursing"))
+                .andExpect(status().isOk());
+        assertThat(profiles.findById("uid-pedro_reyes@dlsl.edu.ph")).get()
+                .satisfies(p -> assertThat(p.isCompleteFor(UserRole.STUDENT)).isFalse());
+
+        mvc.perform(post("/profile").session(session).with(csrf())
+                        .param("course", "BS Nursing").param("yearLevel", "2").param("section", "n2a"))
+                .andExpect(redirectedUrl("/"));
+        mvc.perform(get("/").session(session)).andExpect(status().isOk());
+        assertThat(profiles.findById("uid-pedro_reyes@dlsl.edu.ph")).get().satisfies(p -> {
+            assertThat(p.getCourse()).isEqualTo("BS Nursing");
+            assertThat(p.getYearLevel()).isEqualTo(2);
+            assertThat(p.getSection()).isEqualTo("N2A");
+            assertThat(p.getEmail()).isEqualTo("pedro_reyes@dlsl.edu.ph");
+        });
+    }
+
+    @Test
+    void staffAndAdminsGiveADepartmentInstead() throws Exception {
+        MockHttpSession session = signIn("staff-new", token("lina.garcia@dlsl.edu.ph", true, "google.com"),
+                "/profile/setup");
+
+        mvc.perform(post("/profile").session(session).with(csrf()).param("department", "  "))
+                .andExpect(status().isOk());
+        mvc.perform(post("/profile").session(session).with(csrf()).param("department", "Guidance Office"))
+                .andExpect(redirectedUrl("/"));
+        assertThat(profiles.findById("uid-lina.garcia@dlsl.edu.ph")).get()
+                .satisfies(p -> assertThat(p.getDepartment()).isEqualTo("Guidance Office"));
+    }
+
+    @Test
+    void profileIsNotAskedForAgainOnTheNextSignIn() throws Exception {
+        signIn("t1", token("pedro_reyes@dlsl.edu.ph", true, "google.com"), "/profile/setup");
+        UserProfile p = profiles.findById("uid-pedro_reyes@dlsl.edu.ph").orElseThrow();
+        p.setCourse("BS Nursing");
+        p.setYearLevel(1);
+        p.setSection("N1A");
+        profiles.save(p);
+
+        signIn("t2", token("pedro_reyes@dlsl.edu.ph", true, "google.com"), "/");
+    }
 
     @Test
     void anonymousUsersAreSentToLogin() throws Exception {
@@ -127,6 +201,16 @@ class AuthFlowTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"idToken\":\"rejected-token\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").exists());
+    }
+
+    private static UserProfile profile(String email, UserRole role, String course, Integer year, String section,
+                                       String department) {
+        UserProfile p = new UserProfile("uid-" + email, email, "Test User", role, Instant.now());
+        p.setCourse(course);
+        p.setYearLevel(year);
+        p.setSection(section);
+        p.setDepartment(department);
+        return p;
     }
 
     private static FirebaseToken token(String email, boolean verified, String provider) {

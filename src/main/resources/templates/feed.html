@@ -21,19 +21,20 @@
         <form method="get" th:action="@{/}" role="search">
             <input type="hidden" name="type" th:if="${filters.type() != null}" th:value="${filters.type().slug()}">
             <input type="hidden" name="category" th:if="${filters.category() != null}" th:value="${filters.category().slug()}">
+            <input type="hidden" name="show" th:if="${filters.claimedOnly()}" value="claimed">
             <div class="search-row">
                 <div class="search-field">
                     <th:block th:replace="~{fragments/icons :: icon('search')}"></th:block>
-                    <label for="q" class="visually-hidden">Search item name, description or place</label>
+                    <label for="q" class="visually-hidden">Search item name or description</label>
                     <input id="q" type="search" name="q" th:value="${filters.text()}" maxlength="100"
-                           placeholder="Search item, description or place" list="search-suggestions"
+                           placeholder="Search item name or description" list="search-suggestions"
                            autocomplete="off" data-suggest-search>
                     <datalist id="search-suggestions"></datalist>
                 </div>
                 <button class="btn btn-primary" type="submit">Search</button>
             </div>
             <details class="more-filters"
-                     th:open="${filters.from() != null or filters.to() != null or filters.hideClaimed() or filters.oldestFirst()}">
+                     th:open="${filters.from() != null or filters.to() != null or filters.hideClaimed() or filters.oldestFirst() or filters.location() != null}">
                 <summary><th:block th:replace="~{fragments/icons :: icon('filter')}"></th:block>More filters</summary>
                 <div class="filter-grid">
                     <div class="field">
@@ -51,10 +52,19 @@
                             <option value="oldest" th:selected="${filters.oldestFirst()}">Oldest first</option>
                         </select>
                     </div>
-                    <div class="field">
+                    <div class="field" th:unless="${filters.claimedOnly()}">
                         <span class="label" aria-hidden="true">&nbsp;</span>
                         <label class="checkbox"><input type="checkbox" name="hideClaimed" value="on"
                                                        th:checked="${filters.hideClaimed()}"> Hide claimed items</label>
+                    </div>
+                    <!--/* Admins only: the server ignores ?location= for everyone else. */-->
+                    <div class="field span-2" th:if="${currentUser.isAdmin()}">
+                        <label for="location-filter">Location <span class="hint">Admin only</span></label>
+                        <select id="location-filter" name="location">
+                            <option value="">Any location</option>
+                            <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}"
+                                    th:selected="${filters.location() == place}">Sentrum</option>
+                        </select>
                     </div>
                     <div class="span-2 action-row">
                         <button class="btn btn-secondary btn-small" type="submit">Apply filters</button>
@@ -64,10 +74,11 @@
             </details>
         </form>
 
-        <nav class="tabs" aria-label="Show lost or found">
-            <a th:href="${filters.typeUrl('all')}" th:attr="aria-current=${filters.type() == null} ? 'true' : null">All</a>
+        <nav class="tabs" aria-label="Show lost, found or claimed">
+            <a th:href="${filters.typeUrl('all')}" th:attr="aria-current=${filters.type() == null and !filters.claimedOnly()} ? 'true' : null">All</a>
             <a th:href="${filters.typeUrl('lost')}" th:attr="aria-current=${filters.type() != null and filters.type().name() == 'LOST'} ? 'true' : null">Lost</a>
             <a th:href="${filters.typeUrl('found')}" th:attr="aria-current=${filters.type() != null and filters.type().name() == 'FOUND'} ? 'true' : null">Found</a>
+            <a th:href="${filters.typeUrl('claimed')}" th:attr="aria-current=${filters.claimedOnly()} ? 'true' : null">Claimed</a>
         </nav>
 
         <nav class="chip-row mobile-only" aria-label="Categories">
@@ -77,6 +88,8 @@
                th:attr="aria-current=${filters.category() == c} ? 'true' : null">Electronics</a>
         </nav>
     </section>
+
+    <p class="muted small" th:if="${filters.claimedOnly()}">Items returned to their owners. Claimed posts are archived after a while; SDFO keeps the records.</p>
 
     <p class="result-line muted small" role="status" th:if="${feedPage.totalMatches() > 0}"
        th:text="${feedPage.totalMatches() == 1} ? '1 post' : |${feedPage.totalMatches()} posts|">12 posts</p>

@@ -25,6 +25,7 @@ public class Item {
     public static final int MAX_NAME = 80;
     public static final int MAX_DESCRIPTION = 1000;
     public static final int MAX_LOCATION = 120;
+    public static final int MAX_SPOT = 200;
     public static final int MAX_REASON = 500;
 
     @Id
@@ -45,8 +46,12 @@ public class Item {
     @Column(nullable = false)
     private Category category;
 
+    /** A campus place from foundora.campus-locations; older reports have free text here. Admins only. */
     @Column(nullable = false)
     private String location;
+
+    /** Exactly where on that place, e.g. "3rd floor hallway near room 305". Null on older reports. Admins only. */
+    private String locationSpot;
 
     @Column(nullable = false)
     private LocalDate dateLostFound;
@@ -72,6 +77,9 @@ public class Item {
     private String reviewReason;
     private Instant claimedAt;
 
+    /** Set when a claimed report is archived: off the feed for students, kept forever for disputes. */
+    private Instant archivedAt;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -85,6 +93,15 @@ public class Item {
 
     public boolean hasPhoto() {
         return imagePath != null;
+    }
+
+    public boolean isArchived() {
+        return archivedAt != null;
+    }
+
+    /** On the feed: Approved, or Claimed and not yet archived. */
+    public boolean isOnFeed() {
+        return ReportStatus.ON_FEED.contains(status) && !isArchived();
     }
 
     public UUID getId() {
@@ -133,6 +150,14 @@ public class Item {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getLocationSpot() {
+        return locationSpot;
+    }
+
+    public void setLocationSpot(String locationSpot) {
+        this.locationSpot = locationSpot;
     }
 
     public LocalDate getDateLostFound() {
@@ -221,6 +246,14 @@ public class Item {
 
     public void setClaimedAt(Instant claimedAt) {
         this.claimedAt = claimedAt;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public void setArchivedAt(Instant archivedAt) {
+        this.archivedAt = archivedAt;
     }
 
     public Instant getCreatedAt() {

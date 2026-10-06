@@ -56,6 +56,7 @@
     }
     button.setAttribute("aria-busy", "true");
     if (form.matches("[data-report-form]")) button.textContent = "Sending…";
+    if (form.matches("[data-comment-form]")) button.textContent = "Posting…";
   });
 
   // ---------- Photo picker: preview, check type and size, shrink big photos before upload ----------
@@ -86,7 +87,7 @@
       previewImg.src = previewUrl || "";
       preview.classList.toggle("has-photo", Boolean(file));
       clear.hidden = !file;
-      buttonLabel.textContent = file ? "Choose a different photo" : "Choose a photo";
+      buttonLabel.textContent = file ? "Choose a different photo" : (form.matches("[data-comment-form]") ? "Add a photo" : "Choose a photo");
     }
 
     function setFile(file) {
@@ -201,6 +202,60 @@
     input.addEventListener("focus", update);
   }
 
+  // ---------- Claim form: registered users matching what the admin types (name or email) ----------
+  function setupPeopleSuggestions(input) {
+    const list = document.getElementById(input.getAttribute("list"));
+    if (!list) return;
+    let lastQuery = null;
+    const update = debounce(async () => {
+      const q = input.value.trim();
+      if (q.length < 2 || q === lastQuery) return;
+      lastQuery = q;
+      try {
+        const response = await fetch(`/admin/api/people?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+        if (!response.ok) return;
+        const people = await response.json();
+        list.replaceChildren(...people.map((person) => {
+          const option = document.createElement("option");
+          option.value = person.email;
+          option.label = person.label;
+          option.textContent = person.label;
+          return option;
+        }));
+      } catch (e) {
+        // suggestions are optional; the admin can still type the email
+      }
+    }, 200);
+    input.addEventListener("input", update);
+  }
+
+  // ---------- Comment box: characters left ----------
+  function setupCharCount(textarea) {
+    const counter = textarea.closest(".field").querySelector("[data-char-count]");
+    const max = Number(textarea.getAttribute("maxlength"));
+    if (!counter || !max) return;
+    const update = () => {
+      const left = max - textarea.value.length;
+      counter.textContent = left === max ? `Up to ${max} characters.` : `${left} characters left.`;
+    };
+    textarea.addEventListener("input", update);
+    update();
+  }
+
+  // ---------- Profile: show the "Other" program box only when Other is chosen ----------
+  function setupOtherToggle(select) {
+    const field = document.getElementById(select.dataset.otherToggle);
+    if (!field) return;
+    const input = field.querySelector("input");
+    const sync = () => {
+      const other = select.value === "Other";
+      field.hidden = !other;
+      if (input) input.required = other;
+    };
+    select.addEventListener("change", sync);
+    sync();
+  }
+
   // ---------- "Load more": fetch the next page of posts and append it; also loads as you scroll ----------
   function setupLoadMore(container) {
     const link = container.querySelector("a");
@@ -291,9 +346,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("form[data-report-form]").forEach(setupPhotoPicker);
-    document.querySelectorAll("input[data-suggest-locations]").forEach((input) =>
-      setupSuggestions(input, "/api/suggest/locations", false));
+    document.querySelectorAll("form[data-report-form], form[data-comment-form]").forEach(setupPhotoPicker);
+    document.querySelectorAll("input[data-suggest-people]").forEach(setupPeopleSuggestions);
+    document.querySelectorAll("textarea[data-count-chars]").forEach(setupCharCount);
+    document.querySelectorAll("select[data-other-toggle]").forEach(setupOtherToggle);
     document.querySelectorAll("input[data-suggest-search]").forEach((input) =>
       setupSuggestions(input, "/api/suggest/search", true));
     document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);

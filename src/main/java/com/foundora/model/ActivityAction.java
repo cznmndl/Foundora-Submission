@@ -5,7 +5,12 @@ public enum ActivityAction {
     APPROVED("Approved"),
     REJECTED("Rejected"),
     CLAIMED("Marked as claimed"),
-    REMOVED("Removed");
+    REMOVED("Removed"),
+    COMMENT_DELETED("Deleted a comment"),
+    CLAIM_DISPUTED("Marked claim as disputed"),
+    CLAIM_RESOLVED("Resolved claim dispute"),
+    CLAIM_REOPENED("Reopened claim"),
+    ARCHIVED("Archived");
 
     private final String label;
 
@@ -18,7 +23,7 @@ public enum ActivityAction {
     }
 
     public String slug() {
-        return name().toLowerCase();
+        return name().toLowerCase().replace('_', '-');
     }
 
     public static ActivityAction fromSlug(String slug) {

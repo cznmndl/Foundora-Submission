@@ -5,7 +5,8 @@ import java.util.Set;
 
 /**
  * Where a report is in its lifecycle. Only admins move a report between statuses:
- * PENDING -> APPROVED or REJECTED; APPROVED -> CLAIMED or REMOVED; CLAIMED -> REMOVED.
+ * PENDING -> APPROVED or REJECTED; APPROVED -> CLAIMED or REMOVED; CLAIMED -> REMOVED, or back to
+ * APPROVED when an admin reopens the claim (e.g. it went to the wrong person).
  */
 public enum ReportStatus {
     PENDING("Pending"),
@@ -14,7 +15,7 @@ public enum ReportStatus {
     CLAIMED("Claimed / Returned"),
     REMOVED("Removed");
 
-    /** Statuses that appear on the public feed. */
+    /** Statuses that appear on the public feed (claimed ones only until they're archived). */
     public static final Set<ReportStatus> ON_FEED = EnumSet.of(APPROVED, CLAIMED);
 
     private final String label;
@@ -35,7 +36,7 @@ public enum ReportStatus {
         return switch (this) {
             case PENDING -> next == APPROVED || next == REJECTED;
             case APPROVED -> next == CLAIMED || next == REMOVED;
-            case CLAIMED -> next == REMOVED;
+            case CLAIMED -> next == REMOVED || next == APPROVED;
             case REJECTED, REMOVED -> false;
         };
     }

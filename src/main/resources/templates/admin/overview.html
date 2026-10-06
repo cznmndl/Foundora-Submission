@@ -20,6 +20,8 @@
             <span class="num" th:text="${overview.claimed()}">0</span><span class="what">Claimed / returned</span></a>
         <a class="stat-tile" th:href="@{/admin/reports(status='rejected')}">
             <span class="num" th:text="${overview.rejected()}">0</span><span class="what">Rejected</span></a>
+        <a class="stat-tile" th:href="@{/admin/archive}">
+            <span class="num" th:text="${overview.archived()}">0</span><span class="what">Archived</span></a>
     </div>
 
     <section class="card" style="margin-top:1.25rem">

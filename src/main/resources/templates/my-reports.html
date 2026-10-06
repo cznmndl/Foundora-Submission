@@ -9,6 +9,7 @@
         <a class="btn btn-primary btn-small" th:href="@{/report}">Report an item</a>
     </div>
     <p class="lead">Everything you've reported, with where it stands. Check back here for updates.</p>
+    <p class="muted small">The location of each report is shown only to you here and to SDFO admins.</p>
 
     <section class="card empty" th:if="${reports.isEmpty()}">
         <div class="empty-icon" th:insert="~{fragments/icons :: icon('list')}"></div>
@@ -32,13 +33,13 @@
                 </h2>
                 <p class="muted small" style="margin:0">
                     <span th:text="${r.category.label()}">Category</span> ·
-                    <span th:text="${r.location}">Location</span> ·
+                    <span th:text="${r.location}">Location</span><span th:if="${r.locationSpot != null}" th:text="| (${r.locationSpot})|"> (spot)</span> ·
                     <span th:text="|Sent ${@fmt.ago(r.createdAt)}|">Sent 2 hours ago</span>
                 </p>
                 <p class="small" style="margin:.4rem 0 0" th:switch="${r.status.name()}">
                     <span th:case="'PENDING'">Waiting for an admin to review it.</span>
                     <span th:case="'APPROVED'">On the feed now.</span>
-                    <span th:case="'CLAIMED'">Claimed or returned. Thanks for helping!</span>
+                    <span th:case="'CLAIMED'" th:text="${r.archivedAt != null} ? 'Claimed or returned, and now archived. Thanks for helping!' : 'Claimed or returned. Thanks for helping!'">Claimed or returned. Thanks for helping!</span>
                     <span th:case="'REMOVED'">Removed from the feed by an admin.</span>
                 </p>
                 <div class="reason" th:if="${r.status.name() == 'REJECTED'}">

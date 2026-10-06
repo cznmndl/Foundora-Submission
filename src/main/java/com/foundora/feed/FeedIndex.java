@@ -3,16 +3,17 @@ package com.foundora.feed;
 import com.foundora.dsa.CategoryIndex;
 import com.foundora.dsa.DateMergeSort;
 import com.foundora.dsa.InvertedIndex;
-import com.foundora.dsa.PrefixTrie;
 import com.foundora.dsa.SortedInsert;
 import com.foundora.model.Category;
+import com.foundora.model.ClaimRecord;
+import com.foundora.model.ClaimStatus;
 import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
+import com.foundora.repository.ClaimRecordRepository;
 import com.foundora.repository.ItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,10 +32,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 /**
- * In-memory read model of the feed: every Approved and Claimed report, without photos.
- * The database stays the source of truth; this index only makes the feed's filtering and search fast.
+ * In-memory read model of the feed: every Approved report and every Claimed report that isn't archived yet,
+ * without photos. The database stays the source of truth; this index only makes the feed's filtering and
+ * search fast.
+ *
+ * <p>Locations are secret (only admins see them), so the search index holds item names and descriptions
+ * only: nobody can find a post, or guess its location, by searching for a place. The location of each post is
+ * kept in a separate map used only by the admin's location filter.
  *
  * <ul>
  *   <li>Built from the database at startup, sorted with {@link DateMergeSort}.</li>
@@ -55,8 +62,8 @@ public class FeedIndex {
             Comparator.comparing(FeedPost::createdAt).reversed();
 
     private final ItemRepository itemRepository;
+    private final ClaimRecordRepository claimRepository;
     private final Clock clock;
-    private final List<String> campusLocations;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final Object writeMutex = new Object();
@@ -69,22 +76,19 @@ public class FeedIndex {
         final CategoryIndex<Category, FeedPost> byCategory =
                 new CategoryIndex<>(Category.class, FeedPost::category, NEWEST_FIRST);
         final InvertedIndex<UUID> search = new InvertedIndex<>();
-        final PrefixTrie locations = new PrefixTrie();
+        /** Admin location filter only; never returned to a page. */
+        final Map<UUID, String> locationById = new HashMap<>();
 
-        Snapshot() {
-            campusLocations.forEach(place -> addLocation(locations, place));
-        }
-
-        void add(FeedPost post) {
+        void add(FeedPost post, String location) {
             SortedInsert.insert(newestFirst, post, NEWEST_FIRST);
             byCategory.add(post);
-            index(post);
+            index(post, location);
         }
 
-        void index(FeedPost post) {
+        void index(FeedPost post, String location) {
             byId.put(post.id(), post);
-            search.add(post.id(), post.itemName(), post.description(), post.location());
-            addLocation(locations, post.location());
+            search.add(post.id(), post.itemName(), post.description());
+            locationById.put(post.id(), location);
         }
 
         void remove(UUID id) {
@@ -95,15 +99,14 @@ public class FeedIndex {
             newestFirst.removeIf(p -> p.id().equals(id));
             byCategory.remove(post.category(), p -> p.id().equals(id));
             search.remove(id);
-            removeLocation(locations, post.location());
+            locationById.remove(id);
         }
     }
 
-    public FeedIndex(ItemRepository itemRepository, Clock clock,
-                     @Value("${foundora.campus-locations:}") List<String> campusLocations) {
+    public FeedIndex(ItemRepository itemRepository, ClaimRecordRepository claimRepository, Clock clock) {
         this.itemRepository = itemRepository;
+        this.claimRepository = claimRepository;
         this.clock = clock;
-        this.campusLocations = campusLocations.stream().map(String::trim).filter(s -> !s.isEmpty()).toList();
         this.snapshot = new Snapshot();
     }
 
@@ -123,13 +126,20 @@ public class FeedIndex {
         synchronized (writeMutex) {
             Snapshot next = new Snapshot();
             try {
-                List<FeedPost> posts = itemRepository.findByStatusIn(ReportStatus.ON_FEED).stream()
-                        .map(FeedPost::from).toList();
+                List<Item> onFeed = itemRepository.findByStatusIn(ReportStatus.ON_FEED).stream()
+                        .filter(Item::isOnFeed).toList();
+                Map<UUID, String> claimants = claimantNames(onFeed);
+                Map<UUID, String> locations = new HashMap<>();
+                List<FeedPost> posts = new ArrayList<>(onFeed.size());
+                for (Item item : onFeed) {
+                    posts.add(FeedPost.from(item, claimants.get(item.getId())));
+                    locations.put(item.getId(), item.getLocation());
+                }
                 // O(n log n) merge sort once; every category bucket then fills in O(n) because input is sorted.
                 List<FeedPost> sorted = DateMergeSort.sort(posts, NEWEST_FIRST);
                 next.newestFirst.addAll(sorted);
                 next.byCategory.addAllSorted(sorted);
-                sorted.forEach(next::index);
+                sorted.forEach(post -> next.index(post, locations.get(post.id())));
             } catch (RuntimeException e) {
                 log.warn("Feed index rebuild failed; keeping the previous index", e);
                 return;
@@ -148,11 +158,15 @@ public class FeedIndex {
     public void onItemChanged(ItemChangedEvent event) {
         synchronized (writeMutex) {
             Item item = itemRepository.findById(event.itemId()).orElse(null);
+            String claimant = item != null && item.getStatus() == ReportStatus.CLAIMED
+                    ? claimRepository.findFirstByItemIdAndStatusNot(item.getId(), ClaimStatus.REOPENED)
+                            .map(ClaimRecord::getClaimantName).orElse(null)
+                    : null;
             lock.writeLock().lock();
             try {
                 snapshot.remove(event.itemId());
-                if (item != null && ReportStatus.ON_FEED.contains(item.getStatus())) {
-                    snapshot.add(FeedPost.from(item));
+                if (item != null && item.isOnFeed()) {
+                    snapshot.add(FeedPost.from(item, claimant), item.getLocation());
                 }
             } finally {
                 lock.writeLock().unlock();
@@ -178,7 +192,10 @@ public class FeedIndex {
                 if (query.type() != null && post.type() != query.type()) {
                     continue;
                 }
-                if (query.hideClaimed() && post.claimed()) {
+                if (query.claimedOnly() ? !post.claimed() : (query.hideClaimed() && post.claimed())) {
+                    continue;
+                }
+                if (query.location() != null && !query.location().equals(snapshot.locationById.get(post.id()))) {
                     continue;
                 }
                 if (query.from() != null && post.dateLostFound().isBefore(query.from())) {
@@ -225,15 +242,6 @@ public class FeedIndex {
         }
     }
 
-    public List<String> suggestLocations(String prefix, int limit) {
-        lock.readLock().lock();
-        try {
-            return snapshot.locations.withPrefix(prefix, limit);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
     public List<String> suggestSearchWords(String prefix, int limit) {
         lock.readLock().lock();
         try {
@@ -243,29 +251,14 @@ public class FeedIndex {
         }
     }
 
-    /**
-     * Adds a location under every word it contains, so "gym" suggests "Main Gym" as well as "Gym lobby".
-     * Each key points back to the full place name for display.
-     */
-    private static void addLocation(PrefixTrie trie, String place) {
-        for (String key : locationKeys(place)) {
-            trie.add(key, place.trim());
+    /** Claimant names of the claimed items among these, by item ID. */
+    private Map<UUID, String> claimantNames(List<Item> items) {
+        List<UUID> claimed = items.stream().filter(i -> i.getStatus() == ReportStatus.CLAIMED)
+                .map(Item::getId).toList();
+        if (claimed.isEmpty()) {
+            return Map.of();
         }
-    }
-
-    private static void removeLocation(PrefixTrie trie, String place) {
-        for (String key : locationKeys(place)) {
-            trie.remove(key, place.trim());
-        }
-    }
-
-    /** "Senior High Building" -> ["senior high building", "high building", "building"]. */
-    private static List<String> locationKeys(String place) {
-        List<String> words = InvertedIndex.tokenize(place);
-        List<String> keys = new ArrayList<>();
-        for (int i = 0; i < words.size(); i++) {
-            keys.add(String.join(" ", words.subList(i, words.size())));
-        }
-        return keys;
+        return claimRepository.findByItemIdInAndStatusNot(claimed, ClaimStatus.REOPENED).stream()
+                .collect(Collectors.toMap(ClaimRecord::getItemId, ClaimRecord::getClaimantName, (a, b) -> a));
     }
 }

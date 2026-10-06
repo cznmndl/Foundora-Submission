@@ -51,7 +51,8 @@ public final class TestData {
         item.setDescription("Left near the canteen benches");
         item.setReportType(type);
         item.setCategory(Category.UMBRELLAS);
-        item.setLocation("Library");
+        item.setLocation("Sentrum");
+        item.setLocationSpot("Bench beside the vending machine");
         item.setDateLostFound(today().minusDays(1));
         item.setStatus(status);
         item.setReporterUid(reporter.uid());

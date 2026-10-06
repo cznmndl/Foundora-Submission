@@ -1,32 +1,51 @@
 package com.foundora.controller;
 
 import com.foundora.auth.FoundoraUser;
+import com.foundora.config.CampusLocations;
 import com.foundora.dsa.PendingQueue;
 import com.foundora.feed.FeedPost;
 import com.foundora.model.ActivityAction;
 import com.foundora.model.Category;
+import com.foundora.model.ClaimRecord;
 import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
+import com.foundora.model.UserProfile;
 import com.foundora.repository.ActivityLogRepository;
+import com.foundora.repository.ItemRepository;
+import com.foundora.service.AdminDetailsService;
+import com.foundora.service.AdminPostDetails;
 import com.foundora.service.AdminReportFilter;
+import com.foundora.service.ArchiveService;
+import com.foundora.service.ClaimForm;
 import com.foundora.service.ModerationException;
 import com.foundora.service.ModerationService;
+import com.foundora.service.ProfileService;
 import com.foundora.service.ReportSearch;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -37,22 +56,37 @@ public class AdminController {
 
     private static final int ACTIVITY_PAGE_SIZE = 25;
 
-    /** A pending report plus its feed-post preview (which, like the feed, carries no email). */
-    public record PendingReview(Item item, FeedPost post) {
-        static PendingReview of(Item item) {
-            return item == null ? null : new PendingReview(item, FeedPost.from(item));
-        }
+    /** A pending report: its feed-post preview (which, like the feed, carries no email) plus admin-only details. */
+    public record PendingReview(Item item, FeedPost post, AdminPostDetails admin) {
+    }
+
+    /** One registered user for the claimant picker. */
+    public record PersonOption(String email, String label) {
     }
 
     private final ModerationService moderation;
     private final ReportSearch reportSearch;
     private final ActivityLogRepository activityLog;
+    private final ItemRepository items;
+    private final AdminDetailsService adminDetails;
+    private final ProfileService profiles;
+    private final ArchiveService archive;
+    private final CampusLocations campusLocations;
+    private final Clock clock;
 
     public AdminController(ModerationService moderation, ReportSearch reportSearch,
-                           ActivityLogRepository activityLog) {
+                           ActivityLogRepository activityLog, ItemRepository items,
+                           AdminDetailsService adminDetails, ProfileService profiles, ArchiveService archive,
+                           CampusLocations campusLocations, Clock clock) {
         this.moderation = moderation;
         this.reportSearch = reportSearch;
         this.activityLog = activityLog;
+        this.items = items;
+        this.adminDetails = adminDetails;
+        this.profiles = profiles;
+        this.archive = archive;
+        this.campusLocations = campusLocations;
+        this.clock = clock;
     }
 
     @GetMapping
@@ -67,9 +101,15 @@ public class AdminController {
     @GetMapping("/pending")
     public String pending(Model model) {
         PendingQueue<Item> queue = moderation.pendingQueue();
-        model.addAttribute("queueSize", queue.size());
-        model.addAttribute("next", PendingReview.of(queue.next()));  // front of the queue: the oldest submission
-        model.addAttribute("waiting", queue.inOrder().stream().map(PendingReview::of).toList()); // the rest, in order
+        int queueSize = queue.size();              // before next(), which takes the front item off
+        Item next = queue.next();                  // front of the queue: the oldest submission
+        List<Item> waiting = queue.inOrder();      // the rest, in order
+        Map<UUID, AdminPostDetails> details = adminDetails.forItems(
+                next == null ? waiting : java.util.stream.Stream.concat(java.util.stream.Stream.of(next),
+                        waiting.stream()).toList());
+        model.addAttribute("queueSize", queueSize);
+        model.addAttribute("next", next == null ? null : review(next, details));
+        model.addAttribute("waiting", waiting.stream().map(i -> review(i, details)).toList());
         model.addAttribute("nav", "admin");
         model.addAttribute("adminNav", "pending");
         return "admin/pending";
@@ -80,23 +120,38 @@ public class AdminController {
                           @RequestParam(required = false) String status,
                           @RequestParam(required = false) String type,
                           @RequestParam(required = false) String category,
+                          @RequestParam(required = false) String location,
                           @RequestParam(required = false) String from,
                           @RequestParam(required = false) String to,
                           @RequestParam(required = false) Integer page,
                           HttpServletRequest request, Model model) {
         AdminReportFilter filter = new AdminReportFilter(Params.text(q, 100), ReportStatus.fromSlug(status),
-                ReportType.fromSlug(type), Category.fromSlug(category), Params.date(from), Params.date(to));
-        model.addAttribute("filter", filter);
-        Page<Item> results = reportSearch.search(filter, Params.page(page));
-        model.addAttribute("results", results);
-        addPager(model, results, request);
-        model.addAttribute("currentUrl", Params.currentUrl(request));
+                ReportType.fromSlug(type), Category.fromSlug(category), Params.date(from), Params.date(to),
+                campusLocations.contains(location) ? location : null, null);
+        search(filter, page, request, model);
         model.addAttribute("statuses", ReportStatus.values());
-        model.addAttribute("types", ReportType.values());
-        model.addAttribute("categories", Category.values());
-        model.addAttribute("nav", "admin");
         model.addAttribute("adminNav", "reports");
         return "admin/reports";
+    }
+
+    /** Archived claimed reports with their claim records, kept forever for disputes. */
+    @GetMapping("/archive")
+    public String archived(@RequestParam(required = false) String q,
+                           @RequestParam(required = false) String type,
+                           @RequestParam(required = false) String category,
+                           @RequestParam(required = false) String location,
+                           @RequestParam(required = false) String from,
+                           @RequestParam(required = false) String to,
+                           @RequestParam(required = false) Integer page,
+                           HttpServletRequest request, Model model) {
+        AdminReportFilter filter = new AdminReportFilter(Params.text(q, 100), null, ReportType.fromSlug(type),
+                Category.fromSlug(category), Params.date(from), Params.date(to),
+                campusLocations.contains(location) ? location : null, true);
+        Page<Item> results = search(filter, page, request, model);
+        model.addAttribute("details", adminDetails.forItems(results.getContent()));
+        model.addAttribute("archiveDays", archive.archiveAfter().toDays());
+        model.addAttribute("adminNav", "archive");
+        return "admin/archive";
     }
 
     @GetMapping("/activity")
@@ -120,28 +175,125 @@ public class AdminController {
     @PostMapping("/reports/{id}/approve")
     public String approve(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
                           @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
-        return act(() -> moderation.approve(id, admin), "Approved", returnTo, "/admin/pending", redirect);
+        return act(() -> moderation.approve(id, admin).getItemName(), "Approved", returnTo, "/admin/pending",
+                redirect);
     }
 
     @PostMapping("/reports/{id}/reject")
     public String reject(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
                          @RequestParam(required = false) String reason,
                          @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
-        return act(() -> moderation.reject(id, admin, reason), "Rejected", returnTo, "/admin/pending", redirect);
+        return act(() -> moderation.reject(id, admin, reason).getItemName(), "Rejected", returnTo,
+                "/admin/pending", redirect);
+    }
+
+    /** The claim record form: who the item was released to, when, and any notes. */
+    @GetMapping("/reports/{id}/claim")
+    public String claimForm(@PathVariable UUID id, @RequestParam(required = false) String returnTo, Model model) {
+        Item item = items.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!model.containsAttribute("claimForm")) {
+            ClaimForm form = new ClaimForm();
+            form.setReleasedAt(LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES));
+            model.addAttribute("claimForm", form);
+        }
+        return claimPage(item, returnTo, model);
     }
 
     @PostMapping("/reports/{id}/claim")
     public String claim(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
-                        @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
-        return act(() -> moderation.markClaimed(id, admin), "Marked as claimed:", returnTo, "/admin/reports",
-                redirect);
+                        @ModelAttribute("claimForm") ClaimForm form, BindingResult binding,
+                        @RequestParam(required = false) String returnTo, Model model, RedirectAttributes redirect) {
+        if (binding.hasFieldErrors("releasedAt")) {
+            model.addAttribute("flashError", "Enter the release date and time, e.g. 2026-10-06 13:30.");
+            Item item = items.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            return claimPage(item, returnTo, model);
+        }
+        try {
+            Item item = moderation.markClaimed(id, admin, form);
+            redirect.addFlashAttribute("flashSuccess", "Marked as claimed: “" + item.getItemName() + "”.");
+            return "redirect:" + Params.safeReturn(returnTo, "/admin/reports");
+        } catch (ModerationException e) {
+            model.addAttribute("flashError", e.getMessage());
+        } catch (ObjectOptimisticLockingFailureException e) {
+            model.addAttribute("flashError", "Someone else changed this report at the same moment. Check it and try again.");
+        }
+        Item item = items.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return claimPage(item, returnTo, model);
+    }
+
+    @PostMapping("/claims/{id}/dispute")
+    public String dispute(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                          @RequestParam(required = false) String note,
+                          @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return act(() -> claimItemName(moderation.disputeClaim(id, admin, note)), "Marked the claim as disputed for",
+                returnTo, "/admin/archive", redirect);
+    }
+
+    @PostMapping("/claims/{id}/resolve")
+    public String resolve(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                          @RequestParam(required = false) String note,
+                          @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return act(() -> claimItemName(moderation.resolveDispute(id, admin, note)), "Resolved the dispute for",
+                returnTo, "/admin/archive", redirect);
+    }
+
+    @PostMapping("/claims/{id}/reopen")
+    public String reopen(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                         @RequestParam(required = false) String reason,
+                         @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return act(() -> moderation.reopenClaim(id, admin, reason).getItemName(),
+                "Reopened the claim. Back on the feed:", returnTo, "/admin/reports", redirect);
     }
 
     @PostMapping("/reports/{id}/remove")
     public String remove(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
                          @RequestParam(required = false) String reason,
                          @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
-        return act(() -> moderation.remove(id, admin, reason), "Removed", returnTo, "/admin/reports", redirect);
+        return act(() -> moderation.remove(id, admin, reason).getItemName(), "Removed", returnTo,
+                "/admin/reports", redirect);
+    }
+
+    /** Registered people matching the text, for the claimant picker's suggestions. */
+    @GetMapping("/api/people")
+    @ResponseBody
+    public List<PersonOption> people(@RequestParam(defaultValue = "") String q) {
+        String text = q.length() > 60 ? q.substring(0, 60) : q;
+        return profiles.search(text).stream().map(AdminController::option).toList();
+    }
+
+    private static PersonOption option(UserProfile p) {
+        String summary = p.summary();
+        return new PersonOption(p.getEmail(), p.getFullName() + (summary.isBlank() ? "" : " · " + summary));
+    }
+
+    private String claimItemName(ClaimRecord claim) {
+        return items.findById(claim.getItemId()).map(Item::getItemName).orElse("the report");
+    }
+
+    private String claimPage(Item item, String returnTo, Model model) {
+        model.addAttribute("item", item);
+        model.addAttribute("post", FeedPost.from(item));
+        model.addAttribute("admin", adminDetails.forItem(item));
+        model.addAttribute("returnTo", Params.safeReturn(returnTo, "/posts/" + item.getId()));
+        model.addAttribute("nav", "admin");
+        model.addAttribute("adminNav", "reports");
+        return "admin/claim";
+    }
+
+    private static PendingReview review(Item item, Map<UUID, AdminPostDetails> details) {
+        return new PendingReview(item, FeedPost.from(item), details.get(item.getId()));
+    }
+
+    private Page<Item> search(AdminReportFilter filter, Integer page, HttpServletRequest request, Model model) {
+        Page<Item> results = reportSearch.search(filter, Params.page(page));
+        model.addAttribute("filter", filter);
+        model.addAttribute("results", results);
+        addPager(model, results, request);
+        model.addAttribute("currentUrl", Params.currentUrl(request));
+        model.addAttribute("types", ReportType.values());
+        model.addAttribute("categories", Category.values());
+        model.addAttribute("nav", "admin");
+        return results;
     }
 
     private static void addPager(Model model, Page<?> page, HttpServletRequest request) {
@@ -153,11 +305,11 @@ public class AdminController {
         }
     }
 
-    private String act(Supplier<Item> action, String doneWord, String returnTo, String fallback,
+    private String act(Supplier<String> action, String doneWords, String returnTo, String fallback,
                        RedirectAttributes redirect) {
         try {
-            Item item = action.get();
-            redirect.addFlashAttribute("flashSuccess", doneWord + " “" + item.getItemName() + "”.");
+            String itemName = action.get();
+            redirect.addFlashAttribute("flashSuccess", doneWords + " “" + itemName + "”.");
         } catch (ModerationException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
         } catch (ObjectOptimisticLockingFailureException e) {

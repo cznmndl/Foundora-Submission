@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Mark as claimed · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <p><a th:href="${returnTo}">← Back</a></p>
+    <div class="page-head"><h1>Mark as claimed</h1></div>
+    <p class="lead">Record who the item was released to. The record is kept for disputes, even after the post is archived.</p>
+
+    <section class="card">
+        <h2 style="margin-bottom:.25rem" th:text="${item.itemName}">Item</h2>
+        <p class="muted small" style="margin:0"
+           th:text="|${item.reportType.label()} · ${item.category.label()} · reported by ${item.reporterName}|">details</p>
+        <div th:replace="~{fragments/posts :: adminBox(${admin})}"></div>
+    </section>
+
+    <form class="card" method="post" th:action="@{/admin/reports/{id}/claim(id=${item.id})}" th:object="${claimForm}" data-loading>
+        <input type="hidden" name="returnTo" th:value="${returnTo}">
+        <fieldset>
+            <legend>Claimant</legend>
+            <div class="field">
+                <label for="claimantEmail">Registered user <span class="hint">Start typing a name or email and pick from the list. Their name and course (or department) are filled in from their profile.</span></label>
+                <input type="email" id="claimantEmail" th:field="*{claimantEmail}" autocomplete="off" maxlength="200"
+                       list="people-options" data-suggest-people placeholder="first_last@dlsl.edu.ph">
+                <datalist id="people-options"></datalist>
+            </div>
+            <p class="muted small">Or, if the claimant isn't registered on Foundora, leave that blank and type:</p>
+            <div class="field">
+                <label for="claimantName">Full name</label>
+                <input type="text" id="claimantName" th:field="*{claimantName}" maxlength="200" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="claimantAffiliation">Course, year and section, or department <span class="hint">For example “BSIT · 2nd year · O1A” or “Registrar's Office”. Optional for a registered user.</span></label>
+                <input type="text" id="claimantAffiliation" th:field="*{claimantAffiliation}" maxlength="200" autocomplete="off">
+            </div>
+        </fieldset>
+        <div class="field">
+            <label for="releasedAt">Released on <span class="hint">Date and time the item was handed over.</span></label>
+            <input type="datetime-local" id="releasedAt" th:field="*{releasedAt}" required>
+        </div>
+        <div class="field">
+            <label>Released by</label>
+            <p style="margin:0"><strong th:text="${currentUser.name}">Admin</strong>
+                <span class="muted" th:text="|(${currentUser.email}). Recorded automatically.|">(email)</span></p>
+        </div>
+        <div class="field">
+            <label for="notes">Notes <span class="hint">Optional. For example: “verified with school ID”, “described the sticker on the tumbler”.</span></label>
+            <textarea id="notes" th:field="*{notes}" maxlength="1000" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Mark as claimed</button>
+            <a class="btn btn-ghost" th:href="${returnTo}">Cancel</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

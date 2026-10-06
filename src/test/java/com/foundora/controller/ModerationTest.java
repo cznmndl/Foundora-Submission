@@ -80,7 +80,7 @@ class ModerationTest extends WebTestBase {
     void claimedReportsStayOnTheFeedGreyedOut() throws Exception {
         Item item = save(item("Navy umbrella", ReportType.FOUND, ReportStatus.APPROVED, STUDENT));
 
-        mvc.perform(post(action(item, "claim")).with(as(ADMIN)).with(csrf()))
+        mvc.perform(claim(item).with(as(ADMIN)).with(csrf()))
                 .andExpect(flash().attribute("flashSuccess", containsString("claimed")));
 
         Item after = reload(item);
@@ -113,8 +113,9 @@ class ModerationTest extends WebTestBase {
         Item pending = save(item("Navy umbrella", ReportType.FOUND, ReportStatus.PENDING, STUDENT));
         Item rejected = save(item("Old keys", ReportType.LOST, ReportStatus.REJECTED, STUDENT));
 
-        mvc.perform(post(action(pending, "claim")).with(as(ADMIN)).with(csrf()))
-                .andExpect(flash().attribute("flashError", containsString("can't be marked as claimed")));
+        mvc.perform(claim(pending).with(as(ADMIN)).with(csrf()))
+                .andExpect(status().isOk())   // the claim form is shown again with the message
+                .andExpect(content().string(containsString("can&#39;t be marked as claimed")));
         mvc.perform(post(action(rejected, "approve")).with(as(ADMIN)).with(csrf()))
                 .andExpect(flash().attribute("flashError", containsString("Rejected")));
 
@@ -168,7 +169,7 @@ class ModerationTest extends WebTestBase {
         save(item("Pending one", ReportType.LOST, ReportStatus.PENDING, STUDENT));
         save(item("Lost one", ReportType.LOST, ReportStatus.APPROVED, STUDENT));
         Item found = save(item("Found one", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
-        mvc.perform(post(action(found, "claim")).with(as(ADMIN)).with(csrf()));
+        mvc.perform(claim(found).with(as(ADMIN)).with(csrf()));
 
         mvc.perform(get("/admin").with(as(ADMIN))).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Pending review")))
@@ -184,7 +185,16 @@ class ModerationTest extends WebTestBase {
                 .andExpect(content().string(containsString(ADMIN.name())));
     }
 
-    private static String action(Item item, String verb) {
+    static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder claim(Item item) {
+        return post(action(item, "claim"))
+                .param("claimantName", "Pedro Reyes")
+                .param("claimantAffiliation", "BS Nursing · 1st year · N1A")
+                .param("releasedAt", java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Manila"))
+                        .minusMinutes(5).truncatedTo(java.time.temporal.ChronoUnit.MINUTES).toString())
+                .param("notes", "Verified with school ID");
+    }
+
+    static String action(Item item, String verb) {
         return "/admin/reports/" + item.getId() + "/" + verb;
     }
 

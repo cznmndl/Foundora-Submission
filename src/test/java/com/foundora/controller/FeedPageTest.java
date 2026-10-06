@@ -142,17 +142,17 @@ class FeedPageTest extends WebTestBase {
     }
 
     @Test
-    void suggestionsComeFromCampusPlacesAndPastReports() throws Exception {
+    void searchSuggestionsNeverRevealLocations() throws Exception {
         Item post = item("Navy umbrella", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT);
-        post.setLocation("Senior High Building");
+        post.setLocation("Gazebo");
+        post.setLocationSpot("Bleachers behind the stage");
         save(post);
 
-        mvc.perform(get("/api/suggest/locations?q=lib").with(as(STUDENT)))
-                .andExpect(content().json("[\"Library\"]"));
-        mvc.perform(get("/api/suggest/locations?q=high").with(as(STUDENT)))
-                .andExpect(content().json("[\"Senior High Building\"]"));
         mvc.perform(get("/api/suggest/search?q=umb").with(as(STUDENT)))
                 .andExpect(content().json("[\"umbrella\"]"));
+        mvc.perform(get("/api/suggest/search?q=gaz").with(as(STUDENT))).andExpect(content().json("[]"));
+        mvc.perform(get("/api/suggest/search?q=blea").with(as(STUDENT))).andExpect(content().json("[]"));
+        mvc.perform(get("/api/suggest/locations?q=gaz").with(as(STUDENT))).andExpect(status().isNotFound());
     }
 
     private void assertFeed(String url, String shown, String hidden) throws Exception {
