@@ -356,6 +356,14 @@
     update();
   }
 
+  // ---------- Filter forms that apply as soon as a choice is made (the Apply button stays for no-JS) ----------
+  function setupAutosubmit(form) {
+    const button = form.querySelector("[data-autosubmit-button]");
+    if (button) button.hidden = true;
+    form.querySelectorAll("select").forEach((select) =>
+      select.addEventListener("change", () => form.requestSubmit ? form.requestSubmit() : form.submit()));
+  }
+
   let liveRegion;
   function announce(message) {
     if (!liveRegion) {
@@ -415,5 +423,6 @@
       setupSuggestions(input, "/api/suggest/search", true));
     document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);
     document.querySelectorAll("form").forEach(setupDateRange);
+    document.querySelectorAll("form[data-autosubmit]").forEach(setupAutosubmit);
   });
 })();

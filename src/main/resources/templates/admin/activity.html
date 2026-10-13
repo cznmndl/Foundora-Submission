@@ -7,11 +7,32 @@
     <div class="page-head"><h1>Activity log</h1></div>
     <p class="lead">Who did what to which report, newest first.</p>
 
-    <nav class="chip-row chip-row-wrap" aria-label="Filter by action">
-        <a class="chip" th:href="@{/admin/activity}" th:attr="aria-current=${action == null} ? 'true' : null">Everything</a>
-        <a class="chip" th:each="a : ${actions}" th:href="@{/admin/activity(action=${a.slug()})}" th:text="${a.label()}"
-           th:attr="aria-current=${action == a} ? 'true' : null">Approved</a>
-    </nav>
+    <div class="log-filters">
+        <nav class="log-tabs" aria-label="Filter by category">
+            <a class="chip" th:href="@{/admin/activity}" th:attr="aria-current=${group == null} ? 'true' : null">All</a>
+            <a class="chip" th:each="g : ${groups}" th:href="@{/admin/activity(group=${g.slug()})}" th:text="${g.label()}"
+               th:attr="aria-current=${group == g} ? 'true' : null">Reports</a>
+        </nav>
+        <!--/* Works without JavaScript: a GET form with Apply. app.js applies on change and hides the button. */-->
+        <form class="log-action" method="get" th:action="@{/admin/activity}" data-autosubmit>
+            <input type="hidden" name="group" th:if="${group != null}" th:value="${group.slug()}">
+            <label for="action" class="visually-hidden">Action</label>
+            <select id="action" name="action">
+                <option value="">Any action</option>
+                <th:block th:if="${group != null}">
+                    <option th:each="a : ${group.actions()}" th:value="${a.slug()}" th:text="${a.filterLabel()}"
+                            th:selected="${action == a}">Submitted</option>
+                </th:block>
+                <th:block th:if="${group == null}">
+                    <optgroup th:each="g : ${groups}" th:label="${g.label()}">
+                        <option th:each="a : ${g.actions()}" th:value="${a.slug()}" th:text="${a.filterLabel()}"
+                                th:selected="${action == a}">Submitted</option>
+                    </optgroup>
+                </th:block>
+            </select>
+            <button class="btn btn-secondary btn-small" type="submit" data-autosubmit-button>Apply</button>
+        </form>
+    </div>
 
     <section class="card">
         <p class="muted" th:if="${entries.totalElements == 0}">No activity yet.</p>

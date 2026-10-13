@@ -281,8 +281,21 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .small { font-size: var(--text-meta); }
 .page-note { color: var(--ink-3); font-size: var(--text-meta); margin: calc(-1 * var(--s3)) 0 var(--s5); }
 .result-count { margin: var(--s4) 0 var(--s3); }
-.chip-row-wrap { margin-bottom: var(--s4); }
-@media (min-width: 640px) { .chip-row-wrap { flex-wrap: wrap; overflow: visible; margin: 0 0 var(--s4); padding: 0; } }
+/* Activity log filters: category tabs in one row, then the Action dropdown. Directly on the page. */
+.log-filters { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s5); }
+.log-tabs {
+  display: flex; flex-wrap: nowrap; gap: var(--s2); overflow-x: auto; scrollbar-width: none;
+  margin: 0 calc(-1 * var(--s4)); padding: 0 var(--s4);
+}
+.log-tabs::-webkit-scrollbar { display: none; }
+.log-tabs .chip { flex: none; min-height: 36px; padding: 0 var(--s4); }
+.log-action { display: flex; gap: var(--s2); align-items: center; }
+.log-action select { flex: 1; }
+@media (min-width: 640px) {
+  .log-filters { flex-direction: row; align-items: center; justify-content: space-between; }
+  .log-tabs { margin: 0; padding: 0; overflow: visible; }
+  .log-action select { width: 17rem; flex: none; }
+}
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s4); }
 .card-head h2 { margin: 0; }
 
@@ -868,8 +881,10 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 }
 .atl li {
   display: grid; grid-template-columns: 8.75rem minmax(0, 1fr); column-gap: calc(var(--s4) * 2 + 1px);
-  align-items: center;
+  align-items: start;
 }
+/* The badge lines up with the entry's first line (the person's name): 12px padding + half a 23px line − half the badge. */
+.atl > li > .sbadge { margin-top: calc(var(--s3) + .725rem - .875rem); }
 .atl-entry { padding: var(--s3) 0; border-bottom: 1px solid var(--line); line-height: 1.45; overflow-wrap: anywhere; }
 .atl li:last-child .atl-entry { border-bottom: 0; }
 .atl-who { font-weight: 600; }
@@ -882,6 +897,7 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
   .atl li { grid-template-columns: minmax(0, 1fr); padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
   .atl li:last-child { border-bottom: 0; }
   .atl-entry { padding: var(--s2) 0 0; border-bottom: 0; }
+  .atl > li > .sbadge { margin-top: 0; }
 }
 
 /* ---------- Admin filter form: two equal columns, every control the same height ---------- */

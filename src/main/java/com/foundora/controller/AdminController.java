@@ -199,19 +199,32 @@ public class AdminController {
                 redirect);
     }
 
+    /**
+     * The activity log, filtered by category (?group=reports|claims|claim-requests) and/or one action
+     * (?action=…). An action outside the chosen category is ignored; an action alone selects its category.
+     */
     @GetMapping("/activity")
-    public String activity(@RequestParam(required = false) String action,
+    public String activity(@RequestParam(required = false) String group,
+                           @RequestParam(required = false) String action,
                            @RequestParam(required = false) Integer page,
                            HttpServletRequest request, Model model) {
+        ActivityAction.Group category = ActivityAction.Group.fromSlug(group);
         ActivityAction filter = ActivityAction.fromSlug(action);
+        if (filter != null && category != null && filter.group() != category) {
+            filter = null;
+        }
+        if (filter != null && category == null) {
+            category = filter.group();
+        }
         PageRequest pageRequest = PageRequest.of(Params.page(page), ACTIVITY_PAGE_SIZE);
-        var entries = filter == null
-                ? activityLog.findAllByOrderByCreatedAtDescIdDesc(pageRequest)
-                : activityLog.findByActionOrderByCreatedAtDescIdDesc(filter, pageRequest);
+        var entries = filter != null ? activityLog.findByActionOrderByCreatedAtDescIdDesc(filter, pageRequest)
+                : category != null ? activityLog.findByActionInOrderByCreatedAtDescIdDesc(category.actions(), pageRequest)
+                : activityLog.findAllByOrderByCreatedAtDescIdDesc(pageRequest);
         model.addAttribute("entries", entries);
         addPager(model, entries, request);
+        model.addAttribute("group", category);
         model.addAttribute("action", filter);
-        model.addAttribute("actions", ActivityAction.values());
+        model.addAttribute("groups", ActivityAction.Group.values());
         model.addAttribute("nav", "admin");
         model.addAttribute("adminNav", "activity");
         return "admin/activity";
