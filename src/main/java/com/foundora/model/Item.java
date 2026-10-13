@@ -27,6 +27,7 @@ public class Item {
     public static final int MAX_LOCATION = 120;
     public static final int MAX_SPOT = 200;
     public static final int MAX_REASON = 500;
+    public static final int MAX_PRIVATE_DETAILS = 500;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -52,6 +53,9 @@ public class Item {
 
     /** Exactly where on that place, e.g. "3rd floor hallway near room 305". Null on older reports. Admins only. */
     private String locationSpot;
+
+    /** Identifying marks, names or contents, kept out of the public description so claimants can be asked. Admins only. */
+    private String privateDetails;
 
     @Column(nullable = false)
     private LocalDate dateLostFound;
@@ -158,6 +162,14 @@ public class Item {
 
     public void setLocationSpot(String locationSpot) {
         this.locationSpot = locationSpot;
+    }
+
+    public String getPrivateDetails() {
+        return privateDetails;
+    }
+
+    public void setPrivateDetails(String privateDetails) {
+        this.privateDetails = privateDetails;
     }
 
     public LocalDate getDateLostFound() {

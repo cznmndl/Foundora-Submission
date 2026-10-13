@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  The one status badge used on every admin list: an icon, a short word and a tint, fixed width so it lines up
+  in its column. code is a ReportStatus or ActivityAction name (the shared ones mean the same thing), or
+  'ARCHIVED'. Unknown codes fall back to a quiet grey badge with the code itself.
+*/-->
+<span th:fragment="badge(code)" class="sbadge"
+      th:with="tones=${ {SUBMITTED:'pending', PENDING:'pending', APPROVED:'ok', REJECTED:'bad', CLAIMED:'done',
+                         REMOVED:'muted', ARCHIVED:'muted', COMMENT_DELETED:'muted', CLAIM_DISPUTED:'bad',
+                         CLAIM_RESOLVED:'ok', CLAIM_REOPENED:'pending', CLAIM_REQUESTED:'claim',
+                         CLAIM_INFO_REQUESTED:'pending', CLAIM_VERIFIED:'info', CLAIM_DENIED:'bad',
+                         CLAIM_WITHDRAWN:'muted', CLAIM_PASS_EXTENDED:'info', CLAIM_PASS_EXPIRED:'muted'} },
+               icons=${ {SUBMITTED:'inbox', PENDING:'clock', APPROVED:'check', REJECTED:'x', CLAIMED:'check',
+                         REMOVED:'trash', ARCHIVED:'archive', COMMENT_DELETED:'comment', CLAIM_DISPUTED:'info',
+                         CLAIM_RESOLVED:'check', CLAIM_REOPENED:'activity', CLAIM_REQUESTED:'user',
+                         CLAIM_INFO_REQUESTED:'comment', CLAIM_VERIFIED:'shield-check', CLAIM_DENIED:'x',
+                         CLAIM_WITHDRAWN:'x', CLAIM_PASS_EXTENDED:'clock', CLAIM_PASS_EXPIRED:'clock'} },
+               words=${ {SUBMITTED:'Submitted', PENDING:'Pending', APPROVED:'Approved', REJECTED:'Rejected',
+                         CLAIMED:'Claimed', REMOVED:'Removed', ARCHIVED:'Archived', COMMENT_DELETED:'Comment',
+                         CLAIM_DISPUTED:'Disputed', CLAIM_RESOLVED:'Resolved', CLAIM_REOPENED:'Reopened',
+                         CLAIM_REQUESTED:'Claim request', CLAIM_INFO_REQUESTED:'Asked info',
+                         CLAIM_VERIFIED:'Verified', CLAIM_DENIED:'Denied', CLAIM_WITHDRAWN:'Withdrawn',
+                         CLAIM_PASS_EXTENDED:'Pass extended', CLAIM_PASS_EXPIRED:'Pass expired'} }"
+      th:classappend="|sbadge-${tones.get(code) ?: 'muted'}|">
+    <th:block th:replace="~{fragments/icons :: icon(${icons.get(code) ?: 'posted'})}"></th:block>
+    <span th:text="${words.get(code) ?: code}">Approved</span>
+</span>
+</body>
+</html>

@@ -3,20 +3,36 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title>Report sent · Foundora</title></head>
 <body>
-<div id="content" class="content-narrow">
-    <section class="card empty">
-        <div class="empty-icon" th:insert="~{fragments/icons :: icon('check')}"></div>
-        <h1>Your report was sent!</h1>
-        <p class="lead">It will appear on the feed once an admin approves it. You can follow it on My Reports.</p>
-        <p class="sdfo-note" style="justify-content:center" th:if="${sentType != null and sentType.name() == 'FOUND'}">
-            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
-            <span>Please bring the item to the SDFO office.</span>
-        </p>
-        <div class="action-row" style="justify-content:center; margin-top:1rem">
-            <a class="btn btn-primary" th:href="@{/my-reports}">See My Reports</a>
-            <a class="btn btn-secondary" th:href="@{/}">Back to the feed</a>
-        </div>
+<div id="content" class="content-narrow sent-page">
+    <h1>Sent to SDFO</h1>
+    <p class="lead">Here's your card. It goes on the board once SDFO has checked it.</p>
+
+    <div class="sent-card" th:if="${sentPost != null}">
+        <article th:replace="~{fragments/posts :: idcard(${sentPost}, false, '/my-reports')}"></article>
+    </div>
+
+    <section class="sent-next" aria-labelledby="next-heading">
+        <h2 id="next-heading">What happens next</h2>
+        <ol class="sent-steps">
+            <li th:if="${sentType != null and sentType.name() == 'FOUND'}" class="is-now">
+                <strong>Bring the item to the SDFO office</strong>
+                <span><th:block th:text="${@sdfo.room() != null ? @sdfo.room() : 'SDFO office'}">MB 3rd Floor</th:block><th:block th:if="${@sdfo.hours() != null}" th:text="|, ${@sdfo.hours()}|">, 8:00 AM – 4:00 PM</th:block>. SDFO keeps it until the owner proves it's theirs.</span>
+            </li>
+            <li>
+                <strong>SDFO checks your report</strong>
+                <span>Usually within office hours. If something's missing, they'll say why on My Reports.</span>
+            </li>
+            <li>
+                <strong>It goes on the board</strong>
+                <span th:text="${sentType != null and sentType.name() == 'FOUND'} ? 'The owner can ask to claim it. SDFO checks their answer against your private details.' : 'If someone turns it in, SDFO checks it against your private details.'">Then…</span>
+            </li>
+        </ol>
     </section>
+
+    <div class="action-row">
+        <a class="btn btn-primary" th:href="@{/my-reports}">See My Reports</a>
+        <a class="btn btn-secondary" th:href="@{/}">Back to the board</a>
+    </div>
 </div>
 </body>
 </html>

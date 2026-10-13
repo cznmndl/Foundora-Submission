@@ -88,7 +88,7 @@ class ModerationTest extends WebTestBase {
         assertThat(after.getClaimedAt()).isNotNull();
         mvc.perform(get("/").with(as(OTHER_STUDENT)))
                 .andExpect(content().string(containsString("Navy umbrella")))
-                .andExpect(content().string(containsString("is-claimed")));
+                .andExpect(content().string(containsString("stage-returned")));
         mvc.perform(get("/?hideClaimed=on").with(as(OTHER_STUDENT)))
                 .andExpect(content().string(not(containsString("Navy umbrella"))));
     }
@@ -173,7 +173,8 @@ class ModerationTest extends WebTestBase {
 
         mvc.perform(get("/admin").with(as(ADMIN))).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Pending review")))
-                .andExpect(content().string(containsString("Marked as claimed")));
+                .andExpect(content().string(containsString("sbadge-done")))     // the "Claimed" status badge
+                .andExpect(content().string(containsString("Claimed</span>")));
         mvc.perform(get("/admin/reports?status=claimed").with(as(ADMIN)))
                 .andExpect(content().string(containsString("Found one")))
                 .andExpect(content().string(not(containsString("Lost one"))));

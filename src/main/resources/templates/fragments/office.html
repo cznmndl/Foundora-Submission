@@ -3,8 +3,8 @@
 <body>
 <!--/* SDFO office details. Values come from foundora.sdfo.* in application.properties; blank ones show a marked placeholder. */-->
 <section th:fragment="card" class="card office">
-    <h2>SDFO office</h2>
-    <p class="small">Found items are turned in here, and owners claim them here.</p>
+    <h2 class="office-stripe">SDFO office</h2>
+    <p class="small">Found items are turned in here, and owners pick them up here.</p>
     <dl>
         <dt>Where</dt>
         <dd th:if="${@sdfo.room() != null}" th:text="${@sdfo.room()}">Room</dd>

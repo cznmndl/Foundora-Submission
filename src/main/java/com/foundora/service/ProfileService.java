@@ -2,6 +2,7 @@ package com.foundora.service;
 
 import com.foundora.auth.FoundoraUser;
 import com.foundora.auth.UserRole;
+import com.foundora.model.Community;
 import com.foundora.model.UserProfile;
 import com.foundora.repository.UserProfileRepository;
 import org.springframework.data.domain.PageRequest;
@@ -43,8 +44,10 @@ public class ProfileService {
             UserProfile previous = profiles.findByEmailIgnoreCase(user.email()).orElse(null);
             profile = new UserProfile(user.uid(), user.email(), user.name(), user.role(), now);
             if (previous != null) {
+                profile.setCommunity(previous.getCommunity());
                 profile.setCourse(previous.getCourse());
                 profile.setYearLevel(previous.getYearLevel());
+                profile.setGradeLevel(previous.getGradeLevel());
                 profile.setSection(previous.getSection());
                 profile.setDepartment(previous.getDepartment());
                 profiles.delete(previous);
@@ -68,19 +71,33 @@ public class ProfileService {
         return profiles.findById(user.uid()).map(p -> p.isCompleteFor(user.role())).orElse(false);
     }
 
-    /** Saves the details for this role; the other role's details are cleared so the profile stays consistent. */
+    /**
+     * Saves the details for this role and community. Details another role or community would use are cleared,
+     * so the profile stays consistent (and V13's check constraint holds). Call only with a validated form.
+     */
     @Transactional
     public UserProfile save(FoundoraUser user, ProfileForm form) {
         UserProfile profile = profiles.findById(user.uid()).orElseGet(() -> recordSignIn(user));
         if (user.role() == UserRole.STUDENT) {
-            profile.setCourse(form.resolvedCourse());
-            profile.setYearLevel(form.getYearLevel());
-            profile.setSection(form.getSection());
+            Community community = form.resolvedCommunity();
+            profile.setCommunity(community);
+            profile.setSection(form.resolvedSection());
             profile.setDepartment(null);
+            if (community.isCollege()) {
+                profile.setCourse(form.getCourse());
+                profile.setYearLevel(form.getYearLevel());
+                profile.setGradeLevel(null);
+            } else {
+                profile.setGradeLevel(form.getGradeLevel());
+                profile.setCourse(null);
+                profile.setYearLevel(null);
+            }
         } else {
             profile.setDepartment(form.getDepartment());
+            profile.setCommunity(null);
             profile.setCourse(null);
             profile.setYearLevel(null);
+            profile.setGradeLevel(null);
             profile.setSection(null);
         }
         profile.setRole(user.role());

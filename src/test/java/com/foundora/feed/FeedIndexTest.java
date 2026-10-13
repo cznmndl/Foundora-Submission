@@ -1,11 +1,11 @@
 package com.foundora.feed;
 
 import com.foundora.model.Category;
-import com.foundora.model.ClaimRecord;
 import com.foundora.model.Item;
+import com.foundora.model.ItemStage;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
-import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.ClaimRequestRepository;
 import com.foundora.repository.ItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,16 +30,13 @@ class FeedIndexTest {
     private static final Instant NOW = Instant.parse("2026-10-04T04:00:00Z");
 
     private final ItemRepository repository = mock(ItemRepository.class);
-    private final ClaimRecordRepository claims = mock(ClaimRecordRepository.class);
     private final List<Item> stored = new ArrayList<>();
-    private final List<ClaimRecord> storedClaims = new ArrayList<>();
     private FeedIndex index;
 
     @BeforeEach
     void setUp() {
         when(repository.findByStatusIn(any())).thenAnswer(call -> List.copyOf(stored));
-        when(claims.findByItemIdInAndStatusNot(any(), any())).thenAnswer(call -> List.copyOf(storedClaims));
-        index = new FeedIndex(repository, claims, Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
+        index = new FeedIndex(repository, mock(ClaimRequestRepository.class), Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
     }
 
     @Test
@@ -136,7 +133,7 @@ class FeedIndexTest {
     }
 
     @Test
-    void leavesArchivedPostsOffAndShowsClaimantsOnTheClaimedTab() {
+    void leavesArchivedPostsOffAndShowsReturnedItemsOnTheirTab() {
         Item claimed = item("Claimed ID", ReportType.FOUND, Category.IDS_DOCUMENTS, NOW);
         claimed.setStatus(ReportStatus.CLAIMED);
         Item archived = item("Archived keys", ReportType.FOUND, Category.KEYS, NOW.minusSeconds(60));
@@ -146,15 +143,13 @@ class FeedIndexTest {
         stored.add(claimed);
         stored.add(archived);
         stored.add(open);
-        storedClaims.add(new ClaimRecord(claimed.getId(), null, null, "Maria Santos", "BS Psychology · 3rd year",
-                NOW, "ana.cruz@dlsl.edu.ph", "Ana Cruz", null, NOW));
         index.rebuild();
 
         assertThat(index.query(query(null, null, 0)).posts()).extracting(FeedPost::itemName)
                 .containsExactly("Claimed ID", "Open bag");
         FeedQuery claimedTab = new FeedQuery(null, null, null, null, null, false, false, 0, null, true);
         assertThat(index.query(claimedTab).posts()).singleElement()
-                .satisfies(p -> assertThat(p.claimedBy()).isEqualTo("Maria Santos"));
+                .satisfies(p -> assertThat(p.stage()).isEqualTo(ItemStage.RETURNED));
     }
 
     private static FeedQuery query(Category category, String text, int page) {

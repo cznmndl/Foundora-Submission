@@ -2,7 +2,10 @@ package com.foundora.controller;
 
 import com.foundora.auth.FoundoraUser;
 import com.foundora.config.CampusLocations;
+import com.foundora.feed.FeedPost;
 import com.foundora.model.Category;
+import com.foundora.model.Item;
+import com.foundora.model.ItemStage;
 import com.foundora.model.ReportType;
 import com.foundora.service.InvalidImageException;
 import com.foundora.service.ReportForm;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.UUID;
 
 /** The report form (a full page on phones, a dialog on the desktop feed) and its confirmation. */
 @Controller
@@ -56,20 +61,28 @@ public class ReportController {
             }
             return formPage(model);
         }
+        Item saved;
         try {
-            reports.submit(user, form, photo);
+            saved = reports.submit(user, form, photo);
         } catch (InvalidImageException e) {
             model.addAttribute("photoError", e.getMessage());
             return formPage(model);
         }
         redirect.addFlashAttribute("sentType", form.getType());
+        redirect.addFlashAttribute("sentId", saved.getId());
         return "redirect:/report/sent";
     }
 
+    /** The confirmation: the reporter's own card as it will look on the board, waiting "Under review". */
     @GetMapping("/report/sent")
-    public String sent(Model model) {
+    public String sent(@AuthenticationPrincipal FoundoraUser user, Model model) {
         if (!model.containsAttribute("sentType")) {
             return "redirect:/my-reports";
+        }
+        Object id = model.getAttribute("sentId");
+        if (id instanceof UUID itemId) {
+            reports.findViewable(itemId, user)
+                    .ifPresent(item -> model.addAttribute("sentPost", FeedPost.from(item)));
         }
         model.addAttribute("nav", "report");
         return "report-sent";
@@ -83,8 +96,8 @@ public class ReportController {
         }
         if (form.getLocationSpot() == null || form.getLocationSpot().isBlank()) {
             String message = CampusLocations.OTHER.equals(form.getLocation())
-                    ? "You chose “Other”, so describe where it was, e.g. “parking lot near Gate 3”."
-                    : "Describe the specific spot, e.g. “3rd floor hallway near room 305”.";
+                    ? "You chose “Other”, so describe where it was."
+                    : "Describe the specific spot.";
             errors.rejectValue("locationSpot", "required", message);
         }
     }
@@ -92,6 +105,7 @@ public class ReportController {
     private String formPage(Model model) {
         model.addAttribute("categories", Category.values());
         model.addAttribute("today", reports.today());
+        model.addAttribute("underReview", ItemStage.UNDER_REVIEW);
         model.addAttribute("nav", "report");
         return "report";
     }

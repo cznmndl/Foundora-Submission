@@ -8,8 +8,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">Foundora</title>
-    <meta name="theme-color" content="#0b6b3a">
+    <meta name="theme-color" content="#063d22">
     <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+    <link rel="preload" th:href="@{/fonts/inter-latin-wght-normal.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/archivo-latin-wdth-normal.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script th:src="@{/js/app.js}" defer></script>
 </head>
@@ -17,10 +19,11 @@
 <a class="skip-link" href="#main">Skip to main content</a>
 
 <header class="topbar">
+    <div class="strap" aria-hidden="true"><span th:each="i : ${#numbers.sequence(1, 8)}">De La Salle Lipa · Foundora · </span></div>
     <div class="topbar-inner">
         <a class="brand" th:href="@{/}">
-            <span class="brand-mark" th:insert="~{fragments/icons :: icon('search')}"></span>
-            <span>Foundora <small>DLSL Lost &amp; Found</small></span>
+            <span class="brand-name">Foundora</span>
+            <small>DLSL Lost &amp; Found</small>
         </a>
         <div class="user-chip" th:if="${currentUser != null}">
             <span class="visually-hidden"
@@ -68,6 +71,11 @@
                     <th:block th:replace="~{fragments/icons :: icon('inbox')}"></th:block>Pending
                     <span class="nav-count" th:if="${waiting > 0}" th:text="${waiting}">0</span>
                     <span class="visually-hidden" th:if="${waiting > 0}"> reports waiting</span></a></li>
+                <li><a th:href="@{/admin/claims}" th:attr="aria-current=${adminNav == 'claims'} ? 'page' : null"
+                       th:with="claimsWaiting=${@navCounts.claims()}">
+                    <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block>Claims
+                    <span class="nav-count" th:if="${claimsWaiting > 0}" th:text="${claimsWaiting}">0</span>
+                    <span class="visually-hidden" th:if="${claimsWaiting > 0}"> claim requests waiting</span></a></li>
                 <li><a th:href="@{/admin/reports}" th:attr="aria-current=${adminNav == 'reports'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>All reports</a></li>
                 <li><a th:href="@{/admin/archive}" th:attr="aria-current=${adminNav == 'archive'} ? 'page' : null">
@@ -95,7 +103,7 @@
 </div>
 
 <footer class="footer">
-    <p>Foundora · Lost and Found for the De La Salle Lipa community. Items are turned in and claimed at the SDFO office.</p>
+    <p>Foundora · Lost and Found for the De La Salle Lipa community.</p>
 </footer>
 
 <nav class="tabbar" aria-label="Main" th:if="${currentUser != null and setupMode != true}">

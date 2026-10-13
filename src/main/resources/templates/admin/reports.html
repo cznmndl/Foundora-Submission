@@ -7,7 +7,7 @@
     <div class="page-head"><h1>All reports</h1></div>
 
     <form class="card" method="get" th:action="@{/admin/reports}" role="search" aria-label="Filter reports">
-        <div class="filter-grid">
+        <div class="form-grid">
             <div class="field span-2">
                 <label for="q">Search <span class="hint">Item, description, place, specific spot, reporter name or email</span></label>
                 <input id="q" type="search" name="q" maxlength="100" th:value="${filter.text()}">
@@ -36,7 +36,7 @@
                             th:selected="${filter.category() == c}">Electronics</option>
                 </select>
             </div>
-            <div class="field span-2">
+            <div class="field">
                 <label for="location">Location</label>
                 <select id="location" name="location">
                     <option value="">Any location</option>
@@ -52,14 +52,14 @@
                 <label for="to">to</label>
                 <input id="to" type="date" name="to" th:value="${filter.to()}" data-range-to>
             </div>
-            <div class="span-2 action-row">
+            <div class="span-2 action-row form-actions">
                 <button class="btn btn-primary btn-small" type="submit">Apply</button>
                 <a class="btn btn-ghost btn-small" th:href="@{/admin/reports}">Clear</a>
             </div>
         </div>
     </form>
 
-    <p class="muted small" role="status" style="margin-top:1rem"
+    <p class="muted small result-count" role="status"
        th:text="${results.totalElements == 1} ? '1 report' : |${results.totalElements} reports|">0 reports</p>
 
     <section class="card empty" th:if="${results.totalElements == 0}">
@@ -72,7 +72,7 @@
         <table class="data">
             <caption class="visually-hidden">Reports, newest first</caption>
             <thead>
-            <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Status</th>
+            <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col" class="col-status">Status</th>
                 <th scope="col">Reporter</th><th scope="col">Lost/found</th><th scope="col">Actions</th></tr>
             </thead>
             <tbody>
@@ -81,12 +81,12 @@
                     <a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
                     <div class="muted small" th:text="|${r.category.label()} · ${r.location}|">Category · place</div>
                     <div class="muted small" th:if="${r.locationSpot != null}" th:text="${r.locationSpot}">spot</div>
-                    <div class="small" th:if="${r.archivedAt != null}"><span class="status status-claimed">Archived</span></div>
+
                 </td>
                 <td data-label="Type"><span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
                                             th:text="${r.reportType.label()}">Lost</span></td>
-                <td data-label="Status"><span class="status" th:classappend="|status-${r.status.slug()}|"
-                                              th:text="${r.status.label()}">Pending</span></td>
+                <td data-label="Status" class="col-status">
+                    <span th:replace="~{fragments/status :: badge(${r.archivedAt != null ? 'ARCHIVED' : r.status.name()})}"></span></td>
                 <td data-label="Reporter"><span th:text="${r.reporterName}">Name</span>
                     <div class="muted small" th:text="${r.reporterEmail}">email</div></td>
                 <td data-label="Lost/found" th:text="${@fmt.date(r.dateLostFound)}">date</td>

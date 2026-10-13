@@ -5,12 +5,13 @@ import com.foundora.dsa.DateMergeSort;
 import com.foundora.dsa.InvertedIndex;
 import com.foundora.dsa.SortedInsert;
 import com.foundora.model.Category;
-import com.foundora.model.ClaimRecord;
-import com.foundora.model.ClaimStatus;
+import com.foundora.model.ClaimRequest;
+import com.foundora.model.ClaimRequestStatus;
 import com.foundora.model.Item;
+import com.foundora.model.ItemStage;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
-import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.ClaimRequestRepository;
 import com.foundora.repository.ItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,7 @@ public class FeedIndex {
             Comparator.comparing(FeedPost::createdAt).reversed();
 
     private final ItemRepository itemRepository;
-    private final ClaimRecordRepository claimRepository;
+    private final ClaimRequestRepository requestRepository;
     private final Clock clock;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -103,9 +104,9 @@ public class FeedIndex {
         }
     }
 
-    public FeedIndex(ItemRepository itemRepository, ClaimRecordRepository claimRepository, Clock clock) {
+    public FeedIndex(ItemRepository itemRepository, ClaimRequestRepository requestRepository, Clock clock) {
         this.itemRepository = itemRepository;
-        this.claimRepository = claimRepository;
+        this.requestRepository = requestRepository;
         this.clock = clock;
         this.snapshot = new Snapshot();
     }
@@ -128,11 +129,12 @@ public class FeedIndex {
             try {
                 List<Item> onFeed = itemRepository.findByStatusIn(ReportStatus.ON_FEED).stream()
                         .filter(Item::isOnFeed).toList();
-                Map<UUID, String> claimants = claimantNames(onFeed);
+                Map<UUID, List<ClaimRequestStatus>> requests = openRequests(onFeed);
                 Map<UUID, String> locations = new HashMap<>();
                 List<FeedPost> posts = new ArrayList<>(onFeed.size());
                 for (Item item : onFeed) {
-                    posts.add(FeedPost.from(item, claimants.get(item.getId())));
+                    ItemStage stage = ItemStage.of(item.getStatus(), requests.getOrDefault(item.getId(), List.of()));
+                    posts.add(FeedPost.from(item, stage));
                     locations.put(item.getId(), item.getLocation());
                 }
                 // O(n log n) merge sort once; every category bucket then fills in O(n) because input is sorted.
@@ -158,15 +160,14 @@ public class FeedIndex {
     public void onItemChanged(ItemChangedEvent event) {
         synchronized (writeMutex) {
             Item item = itemRepository.findById(event.itemId()).orElse(null);
-            String claimant = item != null && item.getStatus() == ReportStatus.CLAIMED
-                    ? claimRepository.findFirstByItemIdAndStatusNot(item.getId(), ClaimStatus.REOPENED)
-                            .map(ClaimRecord::getClaimantName).orElse(null)
-                    : null;
+            ItemStage stage = item == null ? null : ItemStage.of(item.getStatus(),
+                    requestRepository.findByItemIdAndStatusIn(item.getId(), ClaimRequestStatus.OPEN).stream()
+                            .map(ClaimRequest::getStatus).toList());
             lock.writeLock().lock();
             try {
                 snapshot.remove(event.itemId());
                 if (item != null && item.isOnFeed()) {
-                    snapshot.add(FeedPost.from(item, claimant), item.getLocation());
+                    snapshot.add(FeedPost.from(item, stage), item.getLocation());
                 }
             } finally {
                 lock.writeLock().unlock();
@@ -251,14 +252,15 @@ public class FeedIndex {
         }
     }
 
-    /** Claimant names of the claimed items among these, by item ID. */
-    private Map<UUID, String> claimantNames(List<Item> items) {
-        List<UUID> claimed = items.stream().filter(i -> i.getStatus() == ReportStatus.CLAIMED)
+    /** Statuses of the open claim requests on the approved items among these, by item ID. */
+    private Map<UUID, List<ClaimRequestStatus>> openRequests(List<Item> items) {
+        List<UUID> approved = items.stream().filter(i -> i.getStatus() == ReportStatus.APPROVED)
                 .map(Item::getId).toList();
-        if (claimed.isEmpty()) {
+        if (approved.isEmpty()) {
             return Map.of();
         }
-        return claimRepository.findByItemIdInAndStatusNot(claimed, ClaimStatus.REOPENED).stream()
-                .collect(Collectors.toMap(ClaimRecord::getItemId, ClaimRecord::getClaimantName, (a, b) -> a));
+        return requestRepository.findByItemIdInAndStatusIn(approved, ClaimRequestStatus.OPEN).stream()
+                .collect(Collectors.groupingBy(ClaimRequest::getItemId,
+                        Collectors.mapping(ClaimRequest::getStatus, Collectors.toList())));
     }
 }

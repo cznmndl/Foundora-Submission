@@ -88,6 +88,19 @@
       preview.classList.toggle("has-photo", Boolean(file));
       clear.hidden = !file;
       buttonLabel.textContent = file ? "Choose a different photo" : (form.matches("[data-comment-form]") ? "Add a photo" : "Choose a photo");
+      form.dispatchEvent(new CustomEvent("photo-preview", { detail: { url: previewUrl } }));
+    }
+
+    // Phones: "Take a photo" opens the camera directly; "Choose a photo" opens the gallery.
+    const camera = form.querySelector("[data-photo-camera]");
+    const choose = form.querySelector("[data-photo-choose]");
+    if (camera && window.matchMedia("(pointer: coarse)").matches) {
+      camera.hidden = false;
+      camera.addEventListener("click", () => {
+        input.setAttribute("capture", "environment");
+        input.click();
+      });
+      if (choose) choose.addEventListener("click", () => input.removeAttribute("capture"));
     }
 
     function setFile(file) {
@@ -242,17 +255,41 @@
     update();
   }
 
-  // ---------- Profile: show the "Other" program box only when Other is chosen ----------
-  function setupOtherToggle(select) {
-    const field = document.getElementById(select.dataset.otherToggle);
-    if (!field) return;
-    const input = field.querySelector("input");
-    const sync = () => {
-      const other = select.value === "Other";
-      field.hidden = !other;
-      if (input) input.required = other;
-    };
-    select.addEventListener("change", sync);
+  // ---------- Profile: show only the chosen community's fields ----------
+  // College: course and year level. Elementary, JHS, SHS: grade level, with only that community's grades.
+  // Hidden fields are disabled too, so they're not sent; the server ignores them anyway.
+  function setupCommunityFields(form) {
+    const radios = form.querySelectorAll('input[name="community"]');
+    if (!radios.length) return;
+    const grade = form.querySelector("#gradeLevel");
+    document.documentElement.classList.add("has-community-js");
+
+    function sync() {
+      const chosen = form.querySelector('input[name="community"]:checked');
+      const value = chosen ? chosen.value : null;
+      const kind = !value ? null : value === "COLLEGE" ? "COLLEGE" : "BASIC";
+      form.querySelectorAll("[data-community]").forEach((field) => {
+        const show = kind === field.dataset.community;
+        field.hidden = !show;
+        field.querySelectorAll("select, input").forEach((control) => {
+          control.disabled = !show;
+          control.required = show;
+        });
+      });
+      if (grade && kind === "BASIC") {
+        grade.querySelectorAll("optgroup").forEach((group) => {
+          const mine = group.dataset.gradesFor === value;
+          group.hidden = !mine;
+          group.disabled = !mine;
+        });
+        const selected = grade.selectedOptions[0];
+        if (selected && selected.parentElement.tagName === "OPTGROUP" && selected.parentElement.disabled) {
+          grade.value = "";
+        }
+      }
+    }
+
+    radios.forEach((radio) => radio.addEventListener("change", sync));
     sync();
   }
 
@@ -272,9 +309,9 @@
         if (!response.ok) throw new Error(String(response.status));
         const template = document.createElement("template");
         template.innerHTML = await response.text();
-        const added = template.content.querySelectorAll("article.post").length;
+        const added = template.content.querySelectorAll("article[data-post]").length;
         container.replaceWith(template.content);
-        announce(`Loaded ${added} more ${added === 1 ? "post" : "posts"}.`);
+        announce(`Loaded ${added} more ${added === 1 ? "item" : "items"}.`);
         document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);
       } catch (e) {
         loading = false;
@@ -294,6 +331,61 @@
       }, { rootMargin: "400px 0px" });
       observer.observe(container);
     }
+  }
+
+  // ---------- Report page: the item's ID card fills in as the form is completed ----------
+  function setupReportPreview(form) {
+    const preview = document.querySelector("[data-report-preview]");
+    if (!preview) return;
+    const card = preview.querySelector("[data-preview-card]");
+    const field = (name) => form.querySelector(`[data-preview="${name}"]`);
+    const out = (name) => preview.querySelector(`[data-preview-${name}]`);
+    const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    function setText(el, value) {
+      const empty = !value;
+      el.textContent = empty ? el.dataset.empty : value;
+      el.toggleAttribute("data-empty-shown", empty);
+    }
+
+    function update() {
+      const type = form.querySelector('input[name="type"]:checked');
+      const lost = Boolean(type) && type.value === "LOST";
+      card.classList.toggle("is-unset", !type);
+      card.classList.toggle("is-lost", lost);
+      card.classList.toggle("is-found", Boolean(type) && !lost);
+      out("type").textContent = !type ? "Lost or found?" : lost ? "Lost item" : "Found item";
+      out("date-label").textContent = !type ? "Date" : lost ? "Lost" : "Found";
+      setText(out("name"), field("name").value.trim());
+      const category = field("category");
+      setText(out("category"), category.value ? category.options[category.selectedIndex].text : "");
+      // No photo: the board shows the category's glyph, so the preview does too.
+      preview.querySelectorAll("[data-preview-glyph]").forEach((glyph) => {
+        glyph.hidden = glyph.dataset.previewGlyph !== category.value;
+      });
+      const date = field("date").value;
+      setText(out("date"), date ? dateFormat.format(new Date(date + "T00:00")) : "");
+    }
+
+    form.addEventListener("input", update);
+    form.addEventListener("change", update);
+    form.addEventListener("photo-preview", (event) => {
+      const img = out("photo");
+      const url = event.detail.url;
+      img.hidden = !url;
+      img.src = url || "";
+      out("photo-empty").hidden = Boolean(url);
+    });
+    preview.hidden = false;
+    update();
+  }
+
+  // ---------- Filter forms that apply as soon as a choice is made (the Apply button stays for no-JS) ----------
+  function setupAutosubmit(form) {
+    const button = form.querySelector("[data-autosubmit-button]");
+    if (button) button.hidden = true;
+    form.querySelectorAll("select").forEach((select) =>
+      select.addEventListener("change", () => form.requestSubmit ? form.requestSubmit() : form.submit()));
   }
 
   let liveRegion;
@@ -347,12 +439,14 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("form[data-report-form], form[data-comment-form]").forEach(setupPhotoPicker);
+    document.querySelectorAll(".report-sheet form[data-report-form]").forEach(setupReportPreview);
     document.querySelectorAll("input[data-suggest-people]").forEach(setupPeopleSuggestions);
     document.querySelectorAll("textarea[data-count-chars]").forEach(setupCharCount);
-    document.querySelectorAll("select[data-other-toggle]").forEach(setupOtherToggle);
+    document.querySelectorAll("form[data-profile-form]").forEach(setupCommunityFields);
     document.querySelectorAll("input[data-suggest-search]").forEach((input) =>
       setupSuggestions(input, "/api/suggest/search", true));
     document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);
     document.querySelectorAll("form").forEach(setupDateRange);
+    document.querySelectorAll("form[data-autosubmit]").forEach(setupAutosubmit);
   });
 })();

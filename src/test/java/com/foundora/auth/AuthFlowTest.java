@@ -69,17 +69,19 @@ class AuthFlowTest {
         mvc.perform(get("/profile/setup").session(session)).andExpect(status().isOk());
 
         // Missing details are refused.
-        mvc.perform(post("/profile").session(session).with(csrf()).param("course", "BS Nursing"))
+        mvc.perform(post("/profile").session(session).with(csrf()).param("community", "COLLEGE")
+                        .param("course", "College of Nursing"))
                 .andExpect(status().isOk());
         assertThat(profiles.findById("uid-pedro_reyes@dlsl.edu.ph")).get()
                 .satisfies(p -> assertThat(p.isCompleteFor(UserRole.STUDENT)).isFalse());
 
         mvc.perform(post("/profile").session(session).with(csrf())
-                        .param("course", "BS Nursing").param("yearLevel", "2").param("section", "n2a"))
+                        .param("community", "COLLEGE").param("course", "College of Nursing")
+                        .param("yearLevel", "2").param("section", "n2a"))
                 .andExpect(redirectedUrl("/"));
         mvc.perform(get("/").session(session)).andExpect(status().isOk());
         assertThat(profiles.findById("uid-pedro_reyes@dlsl.edu.ph")).get().satisfies(p -> {
-            assertThat(p.getCourse()).isEqualTo("BS Nursing");
+            assertThat(p.getCourse()).isEqualTo("College of Nursing");
             assertThat(p.getYearLevel()).isEqualTo(2);
             assertThat(p.getSection()).isEqualTo("N2A");
             assertThat(p.getEmail()).isEqualTo("pedro_reyes@dlsl.edu.ph");

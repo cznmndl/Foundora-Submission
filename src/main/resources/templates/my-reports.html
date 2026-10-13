@@ -8,8 +8,25 @@
         <h1>My Reports</h1>
         <a class="btn btn-primary btn-small" th:href="@{/report}">Report an item</a>
     </div>
-    <p class="lead">Everything you've reported, with where it stands. Check back here for updates.</p>
-    <p class="muted small">The location of each report is shown only to you here and to SDFO admins.</p>
+    <p class="page-note">The location and private details of each report are shown only to you here and to SDFO admins.</p>
+
+    <section th:unless="${myClaims.isEmpty()}" id="claims" aria-labelledby="claims-heading" style="margin-bottom:1.5rem">
+        <h2 id="claims-heading">My claim requests</h2>
+        <div class="stack">
+            <article class="card report-row" th:each="c : ${myClaims}">
+                <div class="grow">
+                    <span class="status" th:classappend="|claim-${c.request().status.slug()}|" th:text="${c.request().status.label()}">Waiting</span>
+                    <h3 style="margin:.25rem 0"><a th:href="@{/posts/{id}(id=${c.item().id})} + '#claim'" th:text="${c.item().itemName}">Item</a></h3>
+                    <p class="muted small" style="margin:0" th:text="|Sent ${@fmt.ago(c.request().createdAt)}|">Sent</p>
+                    <p class="small" style="margin:.4rem 0 0" th:if="${c.request().status.name() == 'NEEDS_INFO'}">
+                        <strong>SDFO asked you something.</strong> Open the item to answer.</p>
+                    <p class="small" style="margin:.4rem 0 0" th:if="${c.request().status.name() == 'VERIFIED'}"
+                       th:text="|Pick it up at SDFO before ${@fmt.dateTime(c.request().expiresAt)}. Bring your school ID.|">Pick up</p>
+                </div>
+            </article>
+        </div>
+        <h2 style="margin-top:1.5rem">My reports</h2>
+    </section>
 
     <section class="card empty" th:if="${reports.isEmpty()}">
         <div class="empty-icon" th:insert="~{fragments/icons :: icon('list')}"></div>
@@ -36,6 +53,8 @@
                     <span th:text="${r.location}">Location</span><span th:if="${r.locationSpot != null}" th:text="| (${r.locationSpot})|"> (spot)</span> ·
                     <span th:text="|Sent ${@fmt.ago(r.createdAt)}|">Sent 2 hours ago</span>
                 </p>
+                <p class="muted small" style="margin:.2rem 0 0" th:if="${r.privateDetails != null}"
+                   th:text="|Private details: ${r.privateDetails}|">Private details</p>
                 <p class="small" style="margin:.4rem 0 0" th:switch="${r.status.name()}">
                     <span th:case="'PENDING'">Waiting for an admin to review it.</span>
                     <span th:case="'APPROVED'">On the feed now.</span>

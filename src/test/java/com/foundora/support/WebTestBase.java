@@ -6,6 +6,7 @@ import com.foundora.model.Item;
 import com.foundora.model.UserProfile;
 import com.foundora.repository.ActivityLogRepository;
 import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.ClaimRequestRepository;
 import com.foundora.repository.CommentRepository;
 import com.foundora.repository.ItemRepository;
 import com.foundora.repository.UserProfileRepository;
@@ -44,6 +45,9 @@ public abstract class WebTestBase {
     protected ClaimRecordRepository claimRepository;
 
     @Autowired
+    protected ClaimRequestRepository claimRequestRepository;
+
+    @Autowired
     protected UserProfileRepository profileRepository;
 
     @Autowired
@@ -60,6 +64,7 @@ public abstract class WebTestBase {
         activityLog.deleteAll();
         commentRepository.deleteAll();
         claimRepository.deleteAll();
+        claimRequestRepository.deleteAll();
         items.deleteAll();
         profileRepository.deleteAll();
         profileRepository.save(profile(TestData.STUDENT, "BS Information Technology", 2, "O1A", null));

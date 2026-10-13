@@ -115,7 +115,7 @@ public final class FeedFilters {
 
     /** Short description of the filters for the empty state, e.g. "found items in Umbrellas matching “blue”". */
     public String describe() {
-        StringBuilder words = new StringBuilder(claimedOnly ? "claimed items"
+        StringBuilder words = new StringBuilder(claimedOnly ? "returned items"
                 : type == null ? "items" : type.label().toLowerCase() + " items");
         if (category != null) {
             words.append(" in ").append(category.label());

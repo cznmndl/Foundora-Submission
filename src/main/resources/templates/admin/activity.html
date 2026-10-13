@@ -7,15 +7,36 @@
     <div class="page-head"><h1>Activity log</h1></div>
     <p class="lead">Who did what to which report, newest first.</p>
 
-    <nav class="chip-row" aria-label="Filter by action">
-        <a class="chip" th:href="@{/admin/activity}" th:attr="aria-current=${action == null} ? 'true' : null">Everything</a>
-        <a class="chip" th:each="a : ${actions}" th:href="@{/admin/activity(action=${a.slug()})}" th:text="${a.label()}"
-           th:attr="aria-current=${action == a} ? 'true' : null">Approved</a>
-    </nav>
+    <div class="log-filters">
+        <nav class="log-tabs" aria-label="Filter by category">
+            <a class="chip" th:href="@{/admin/activity}" th:attr="aria-current=${group == null} ? 'true' : null">All</a>
+            <a class="chip" th:each="g : ${groups}" th:href="@{/admin/activity(group=${g.slug()})}" th:text="${g.label()}"
+               th:attr="aria-current=${group == g} ? 'true' : null">Reports</a>
+        </nav>
+        <!--/* Works without JavaScript: a GET form with Apply. app.js applies on change and hides the button. */-->
+        <form class="log-action" method="get" th:action="@{/admin/activity}" data-autosubmit>
+            <input type="hidden" name="group" th:if="${group != null}" th:value="${group.slug()}">
+            <label for="action" class="visually-hidden">Action</label>
+            <select id="action" name="action">
+                <option value="">Any action</option>
+                <th:block th:if="${group != null}">
+                    <option th:each="a : ${group.actions()}" th:value="${a.slug()}" th:text="${a.filterLabel()}"
+                            th:selected="${action == a}">Submitted</option>
+                </th:block>
+                <th:block th:if="${group == null}">
+                    <optgroup th:each="g : ${groups}" th:label="${g.label()}">
+                        <option th:each="a : ${g.actions()}" th:value="${a.slug()}" th:text="${a.filterLabel()}"
+                                th:selected="${action == a}">Submitted</option>
+                    </optgroup>
+                </th:block>
+            </select>
+            <button class="btn btn-secondary btn-small" type="submit" data-autosubmit-button>Apply</button>
+        </form>
+    </div>
 
     <section class="card">
         <p class="muted" th:if="${entries.totalElements == 0}">No activity yet.</p>
-        <ol class="timeline" th:if="${entries.totalElements > 0}">
+        <ol class="atl" th:if="${entries.totalElements > 0}">
             <th:block th:each="e : ${entries.content}"><li th:replace="~{admin/activity :: entry(${e})}"></li></th:block>
         </ol>
         <nav class="pager" aria-label="Pages" th:if="${entries.totalPages > 1}">
@@ -28,21 +49,19 @@
     </section>
 </div>
 
+<!--/* One activity entry: the status badge in its fixed column, then who did what to which report. */-->
 <li th:fragment="entry(e)">
-    <span class="status" th:classappend="${e.action.name() == 'REJECTED' or e.action.name() == 'CLAIM_DISPUTED' or e.action.name() == 'COMMENT_DELETED'} ? 'status-rejected'
-            : (${e.action.name() == 'APPROVED' or e.action.name() == 'CLAIM_RESOLVED'} ? 'status-approved'
-            : (${e.action.name() == 'SUBMITTED' or e.action.name() == 'CLAIM_REOPENED'} ? 'status-pending' : 'status-claimed'))"
-          th:text="${e.action.label()}">Approved</span>
-    <div>
+    <span th:replace="~{fragments/status :: badge(${e.action.name()})}"></span>
+    <div class="atl-entry">
         <div>
-            <strong th:text="${e.actorName}">Admin</strong>
-            <span class="muted small" th:if="${e.actorEmail != 'system'}" th:text="|(${e.actorEmail})|">email</span>
+            <span class="atl-who" th:text="${e.actorName}">Admin</span>
+            <span class="atl-email" th:if="${e.actorEmail != 'system'}" th:text="|(${e.actorEmail})|">email</span>
             <span th:text="${e.action.name() == 'SUBMITTED'} ? ' submitted' : ''"></span>
             <a th:if="${e.itemId != null}" th:href="@{/posts/{id}(id=${e.itemId})}" th:text="|“${e.itemName}”|">“Item”</a>
             <span th:unless="${e.itemId != null}" th:text="|“${e.itemName}”|">“Item”</span>
         </div>
-        <div class="small" th:if="${e.reason != null}" th:text="|Note: ${e.reason}|">Note</div>
-        <time class="when" th:datetime="${@fmt.iso(e.createdAt)}" th:text="${@fmt.dateTime(e.createdAt)}">time</time>
+        <div class="atl-note" th:if="${e.reason != null}" th:text="|Note: ${e.reason}|">Note</div>
+        <time class="atl-when" th:datetime="${@fmt.iso(e.createdAt)}" th:text="${@fmt.dateTime(e.createdAt)}">time</time>
     </div>
 </li>
 </body>
