@@ -34,6 +34,8 @@
         <article th:replace="~{fragments/posts :: card(${post}, ${currentUser.isAdmin()}, |/posts/${post.id()}|, false)}"></article>
     </div>
 
+    <section th:replace="~{fragments/claims :: requester(${post}, ${myRequests}, ${canRequest}, ${passDays})}"></section>
+
     <!--/* ---------- Comments ---------- */-->
     <section class="card comments" id="comments" aria-labelledby="comments-heading">
         <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
@@ -128,6 +130,15 @@
         <div style="margin-top:1rem" th:if="${post.status().name() == 'PENDING'}">
             <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|)}"></div>
         </div>
+
+        <th:block th:unless="${claimRequests.isEmpty()}">
+            <h3 style="margin-top:1rem">Claim requests</h3>
+            <div class="stack">
+                <th:block th:each="r : ${claimRequests}">
+                    <div th:replace="~{fragments/claims :: adminRequest(${r}, ${item}, |/posts/${post.id()}|)}"></div>
+                </th:block>
+            </div>
+        </th:block>
 
         <th:block th:unless="${claimHistory.isEmpty()}">
             <h3 style="margin-top:1rem">Claim records</h3>

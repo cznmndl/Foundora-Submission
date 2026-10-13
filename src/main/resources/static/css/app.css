@@ -229,6 +229,12 @@ p { margin: 0 0 .75rem; }
 .status-rejected { background: var(--danger-bg); color: var(--danger); }
 .status-claimed { background: var(--muted-bg); color: var(--muted-ink); }
 .status-removed { background: var(--muted-bg); color: var(--muted-ink); }
+/* Claim requests (stage 1, plain; restyled with the School ID screens). Blue is 7.9:1 on its tint. */
+.claim-pending, .claim-needs-info, .stage-claim-pending { background: var(--pending-bg); color: var(--pending-ink); }
+.claim-verified, .stage-verified { background: #e3ebf8; color: #1f3f80; }
+.claim-released { background: var(--found-bg); color: var(--green-900); }
+.claim-denied, .claim-expired { background: var(--danger-bg); color: var(--danger); }
+.claim-withdrawn, .claim-closed { background: var(--muted-bg); color: var(--muted-ink); }
 
 .chip {
   display: inline-flex; align-items: center; min-height: 32px;

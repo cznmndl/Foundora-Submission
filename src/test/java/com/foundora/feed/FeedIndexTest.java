@@ -6,6 +6,7 @@ import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
 import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.ClaimRequestRepository;
 import com.foundora.repository.ItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class FeedIndexTest {
     void setUp() {
         when(repository.findByStatusIn(any())).thenAnswer(call -> List.copyOf(stored));
         when(claims.findByItemIdInAndStatusNot(any(), any())).thenAnswer(call -> List.copyOf(storedClaims));
-        index = new FeedIndex(repository, claims, Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
+        index = new FeedIndex(repository, claims, mock(ClaimRequestRepository.class), Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
     }
 
     @Test

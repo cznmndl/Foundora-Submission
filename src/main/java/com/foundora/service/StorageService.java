@@ -27,10 +27,11 @@ public class StorageService {
 
     public static final String ITEMS = "items";
     public static final String COMMENTS = "comments";
+    public static final String CLAIMS = "claims";
 
-    /** Photo paths look like items/&lt;file&gt; or comments/&lt;file&gt;; anything else is refused before it reaches Supabase. */
+    /** Photo paths look like items/&lt;file&gt;, comments/&lt;file&gt; or claims/&lt;file&gt;; anything else is refused before it reaches Supabase. */
     private static final Pattern PATH =
-            Pattern.compile("(items|comments)/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
+            Pattern.compile("(items|comments|claims)/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
 
     private final RestClient restClient;
     private final SupabaseProperties supabase;
@@ -52,9 +53,9 @@ public class StorageService {
         return storePhoto(ITEMS, jpeg);
     }
 
-    /** Uploads JPEG bytes into {@code folder} (items or comments) under a new random name; returns the object path. */
+    /** Uploads JPEG bytes into {@code folder} (items, comments or claims) under a new random name; returns the object path. */
     public String storePhoto(String folder, byte[] jpeg) {
-        if (!ITEMS.equals(folder) && !COMMENTS.equals(folder)) {
+        if (!ITEMS.equals(folder) && !COMMENTS.equals(folder) && !CLAIMS.equals(folder)) {
             throw new IllegalArgumentException("Unknown photo folder: " + folder);
         }
         String fileName = UUID.randomUUID() + ".jpg";

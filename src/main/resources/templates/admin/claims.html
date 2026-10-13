@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Claim requests · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <div class="page-head"><h1>Claim requests</h1></div>
+    <p class="lead">Items people say are theirs, the one waiting longest first. Compare each person's answer with
+        where the item was really found, then verify one, ask a question, or deny.</p>
+    <p class="muted small" th:text="|A verified request gets a pickup pass for ${passDays} days. If it isn't collected, the item goes back on the feed.|">7 days</p>
+
+    <section class="card empty" th:if="${queue.isEmpty()}">
+        <h2>No claim requests</h2>
+        <p class="muted">Nobody is waiting for a decision.</p>
+    </section>
+
+    <div class="stack">
+        <section class="card" th:each="e : ${queue}" th:with="item=${e.item()}, ad=${details.get(e.item().id)}">
+            <h2 style="margin-bottom:.25rem"><a th:href="@{/posts/{id}(id=${item.id})}" th:text="${item.itemName}">Item</a></h2>
+            <p class="muted small" style="margin:0"
+               th:text="|${item.category.label()} · found ${@fmt.date(item.dateLostFound)} · reported by ${item.reporterName}|">details</p>
+            <div class="reporter-box">
+                <dl>
+                    <dt>Found at</dt><dd th:text="${item.location}">Sentrum</dd>
+                    <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
+                    <dt>Description</dt><dd th:text="${item.description}">desc</dd>
+                </dl>
+            </div>
+            <h3 style="margin-top:1rem" th:text="${e.openRequests().size() == 1} ? '1 open request' : |${e.openRequests().size()} open requests|">2 open requests</h3>
+            <div class="stack">
+                <th:block th:each="r : ${e.openRequests()}">
+                    <div th:replace="~{fragments/claims :: adminRequest(${r}, ${item}, '/admin/claims')}"></div>
+                </th:block>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>

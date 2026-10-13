@@ -69,7 +69,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("10");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("11");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -86,7 +86,7 @@ class MigrationTest {
 
     @Test
     void newTablesHaveRowLevelSecurityWithNoPolicies() throws Exception {
-        for (String table : new String[]{"user_profiles", "comments", "claim_records"}) {
+        for (String table : new String[]{"user_profiles", "comments", "claim_records", "claim_requests"}) {
             assertThat(query("select relrowsecurity from pg_class where oid = 'public." + table + "'::regclass"))
                     .as(table).isEqualTo("t");
             assertThat(query("select count(*) from pg_policies where schemaname = 'public' and tablename = '"
@@ -121,6 +121,20 @@ class MigrationTest {
                 + "('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'COMMENT_DELETED', 'a', 'A')");
         assertThatThrownBy(() -> exec("insert into public.activity_log (item_name, action, actor_email, actor_name) "
                 + "values ('x', 'NOT_AN_ACTION', 'a', 'A')")).isInstanceOf(SQLException.class);
+
+        String request = "insert into public.claim_requests (item_id, requester_uid, requester_email, requester_name, "
+                + "proof, status) values ('11111111-1111-1111-1111-111111111111', 'uid-%1$s', '%1$s@dlsl.edu.ph', "
+                + "'%1$s', 'Lost it at the library on Monday', '%2$s')";
+        exec(request.formatted("p_one", "VERIFIED"));
+        assertThatThrownBy(() -> exec(request.formatted("p_one", "PENDING"))).as("second open request, same person")
+                .isInstanceOf(SQLException.class);
+        exec(request.formatted("p_two", "PENDING"));
+        assertThatThrownBy(() -> exec(request.formatted("p_three", "VERIFIED"))).as("second verified request")
+                .isInstanceOf(SQLException.class);
+        exec(request.formatted("p_one", "DENIED")); // closed requests are history
+        assertThatThrownBy(() -> exec(request.formatted("p_four", "MATCHED"))).isInstanceOf(SQLException.class);
+        exec("insert into public.activity_log (item_id, item_name, action, actor_email, actor_name) values "
+                + "('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'CLAIM_PASS_EXPIRED', 'system', 'S')");
 
         assertThatThrownBy(() -> exec("update public.items set archived_at = now() "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).as("only claimed reports are archived")

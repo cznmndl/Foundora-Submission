@@ -32,6 +32,8 @@
                   th:text="${post.type().label()}">Lost</span>
         </header>
         <span class="chip chip-quiet" th:text="${post.category().label()}">Umbrellas</span>
+        <span class="status" th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"
+              th:classappend="|stage-${post.stage().slug()}|" th:text="${post.stage().label()}">Claim pending</span>
         <h2 class="post-title" th:id="|title-${post.id()}|">
             <a th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Blue umbrella</a>
         </h2>

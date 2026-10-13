@@ -40,6 +40,7 @@ public class ModerationService {
     private final ActivityLogRepository activityLog;
     private final ClaimRecordRepository claims;
     private final ProfileService profiles;
+    private final ClaimRequestService claimRequests;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
@@ -48,11 +49,13 @@ public class ModerationService {
     }
 
     public ModerationService(ItemRepository items, ActivityLogRepository activityLog, ClaimRecordRepository claims,
-                             ProfileService profiles, ApplicationEventPublisher events, Clock clock) {
+                             ProfileService profiles, ClaimRequestService claimRequests,
+                             ApplicationEventPublisher events, Clock clock) {
         this.items = items;
         this.activityLog = activityLog;
         this.claims = claims;
         this.profiles = profiles;
+        this.claimRequests = claimRequests;
         this.events = events;
         this.clock = clock;
     }
@@ -99,7 +102,8 @@ public class ModerationService {
 
     /**
      * Marks an approved report as claimed and saves the claim record: who it was released to, when, and by
-     * which admin. The claimant is a registered user (picked by email) or typed in by hand.
+     * which admin. The claimant is a registered user (picked by email) or typed in by hand. Open claim
+     * requests end: the claimant's own becomes Released, everyone else's Closed.
      */
     @Transactional
     public Item markClaimed(UUID id, FoundoraUser admin, ClaimForm form) {
@@ -141,6 +145,7 @@ public class ModerationService {
 
         claims.save(new ClaimRecord(item.getId(), uid, email, name, affiliation, releasedAt, admin.email(),
                 admin.name(), form.getNotes(), now));
+        claimRequests.onReleased(item, email, now);
         return move(item, ReportStatus.CLAIMED, admin, "Released to " + name + " (" + affiliation + ")");
     }
 
@@ -273,6 +278,9 @@ public class ModerationService {
         }
         if (next == ReportStatus.CLAIMED) {
             item.setClaimedAt(now);
+        }
+        if (next == ReportStatus.REMOVED) {
+            claimRequests.closeOpen(item, now);
         }
         if ((next == ReportStatus.REJECTED || next == ReportStatus.REMOVED) && item.hasPhoto()) {
             // Detach now so the photo stops being served at once; the file is deleted after commit.

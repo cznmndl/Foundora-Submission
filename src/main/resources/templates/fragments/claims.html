@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  Claim request pieces. Plain for now: the School ID redesign restyles them screen by screen.
+  A request's proof is shown only to its requester and to admins.
+*/-->
+
+<!--/* The requester's side, on the post page: their latest request, or the "This is mine" form. */-->
+<section th:fragment="requester(post, myRequests, canRequest, passDays)" class="card" id="claim"
+         th:if="${post.found() and (canRequest or !myRequests.isEmpty())}" aria-labelledby="claim-heading"
+         th:with="r=${myRequests.isEmpty() ? null : myRequests[0]}">
+    <h2 id="claim-heading">Is this yours?</h2>
+
+    <th:block th:if="${r != null}">
+        <p><strong>Your request:</strong>
+            <span class="status" th:classappend="|claim-${r.status.slug()}|" th:text="${r.status.label()}">Waiting for review</span>
+            <span class="muted small" th:text="|sent ${@fmt.ago(r.createdAt)}|">sent 2 hours ago</span></p>
+
+        <div th:switch="${r.status.name()}">
+            <p th:case="'PENDING'" class="small">SDFO will compare your answer with what they know about the item. Check back here.</p>
+
+            <div th:case="'NEEDS_INFO'">
+                <p class="small"><strong>SDFO asks:</strong> <span th:text="${r.adminNote}">Question</span></p>
+                <form method="post" th:action="@{/claim-requests/{id}/reply(id=${r.id})}" data-loading>
+                    <div class="field">
+                        <label th:for="|reply-${r.id}|">Your answer</label>
+                        <textarea th:id="|reply-${r.id}|" name="reply" rows="3" maxlength="1000" required></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-small" type="submit">Send answer</button>
+                </form>
+            </div>
+
+            <div th:case="'VERIFIED'" class="alert alert-success" role="status">
+                <div>
+                    <strong>Verified. Pick it up at the SDFO office.</strong>
+                    <p class="small" style="margin:.25rem 0 0">
+                        <span th:text="${@sdfo.room() != null ? @sdfo.room() : 'SDFO office'}">MB 3rd Floor</span>
+                        <span th:if="${@sdfo.hours() != null}" th:text="|· ${@sdfo.hours()}|">· hours</span><br>
+                        Bring your school ID. Pass ends <strong th:text="${@fmt.dateTime(r.expiresAt)}">Oct 20</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <p th:case="'DENIED'" class="small"><strong>Not verified.</strong> <span th:text="${r.adminNote}">Reason</span></p>
+            <p th:case="'EXPIRED'" class="small">Your pickup pass ended before the item was collected. Ask SDFO if you still need it.</p>
+            <p th:case="'RELEASED'" class="small">Returned to you. Thanks for using Foundora!</p>
+            <p th:case="'CLOSED'" class="small">This item was returned to its owner or taken off the feed.</p>
+            <p th:case="*" class="small"></p>
+        </div>
+
+        <details class="small" style="margin-top:.5rem">
+            <summary>What you told SDFO</summary>
+            <p style="white-space:pre-line;margin:.5rem 0 0" th:text="${r.proof}">Proof</p>
+            <p th:if="${r.infoReply != null}" style="white-space:pre-line;margin:.5rem 0 0"
+               th:text="|Your answer: ${r.infoReply}|">Answer</p>
+            <img th:if="${r.hasPhoto()}" th:src="@{/claim-requests/{id}/photo(id=${r.id})}" alt="Your photo" class="thumb" style="margin-top:.5rem">
+        </details>
+
+        <form th:if="${r.isOpen()}" method="post" th:action="@{/claim-requests/{id}/withdraw(id=${r.id})}" style="margin-top:.75rem">
+            <button class="btn btn-ghost btn-small" type="submit">Withdraw request</button>
+        </form>
+    </th:block>
+
+    <form th:if="${canRequest}" method="post" enctype="multipart/form-data"
+          th:action="@{/posts/{id}/claim-requests(id=${post.id()})}" data-loading style="margin-top:.75rem">
+        <div class="field">
+            <label for="proof">This is mine
+                <span class="hint">Tell SDFO where and when you lost it, and anything only the owner would know (marks, stickers, what's inside). Only SDFO sees this.</span></label>
+            <textarea id="proof" name="proof" rows="4" minlength="15" maxlength="1000" required th:text="${proofDraft}"></textarea>
+        </div>
+        <div class="field">
+            <label for="claim-photo">Photo <span class="hint">Optional, e.g. you with the item before you lost it.</span></label>
+            <input type="file" id="claim-photo" name="photo" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <button class="btn btn-primary" type="submit">Send claim request</button>
+        <p class="muted small" style="margin-top:.5rem" th:text="|If SDFO verifies it, you'll have ${passDays} days to pick it up.|">7 days</p>
+    </form>
+</section>
+
+<!--/* One request as admins see it, with the decisions it allows. */-->
+<div th:fragment="adminRequest(r, item, returnTo)" class="reporter-box" th:id="|request-${r.id}|">
+    <p style="margin:0">
+        <strong th:text="${r.requesterName}">Name</strong>
+        <span class="status" th:classappend="|claim-${r.status.slug()}|" th:text="${r.status.label()}">Waiting</span>
+        <span class="muted small" th:text="|${@fmt.ago(r.createdAt)}|">2 hours ago</span>
+    </p>
+    <p class="muted small" style="margin:0" th:text="|${r.requesterEmail}${r.requesterAffiliation != null ? ' · ' + r.requesterAffiliation : ''}|">email · course</p>
+    <p style="white-space:pre-line;margin:.5rem 0 0" th:text="${r.proof}">Proof</p>
+    <p class="small" th:if="${r.adminNote != null and r.status.name() == 'NEEDS_INFO'}" style="margin:.5rem 0 0"
+       th:text="|Asked: ${r.adminNote}|">Asked</p>
+    <p class="small" th:if="${r.infoReply != null}" style="white-space:pre-line;margin:.25rem 0 0"
+       th:text="|Answer: ${r.infoReply}|">Answer</p>
+    <p class="small" th:if="${r.adminNote != null and r.status.name() == 'DENIED'}" style="margin:.5rem 0 0"
+       th:text="|Denied: ${r.adminNote}|">Denied</p>
+    <p class="small" th:if="${r.status.name() == 'VERIFIED'}" style="margin:.5rem 0 0"
+       th:text="|Verified by ${r.reviewedByName}. Pass ends ${@fmt.dateTime(r.expiresAt)}.|">Pass ends</p>
+    <a th:if="${r.hasPhoto()}" th:href="@{/claim-requests/{id}/photo(id=${r.id})}">
+        <img th:src="@{/claim-requests/{id}/photo(id=${r.id})}" th:alt="|Photo from ${r.requesterName}|" class="thumb" style="margin-top:.5rem"></a>
+
+    <div class="action-row" style="margin-top:.75rem" th:if="${r.isOpen()}">
+        <form th:if="${r.status.name() != 'VERIFIED'}" method="post" th:action="@{/admin/claim-requests/{id}/verify(id=${r.id})}">
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <button class="btn btn-primary btn-small" type="submit">Verify</button>
+        </form>
+        <a th:if="${r.status.name() == 'VERIFIED'}" class="btn btn-primary btn-small"
+           th:href="@{/admin/reports/{id}/claim(id=${item.id}, request=${r.id}, returnTo=${returnTo})}">Release at counter</a>
+        <form th:if="${r.status.name() == 'VERIFIED'}" method="post" th:action="@{/admin/claim-requests/{id}/extend(id=${r.id})}">
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <button class="btn btn-secondary btn-small" type="submit">Extend pass</button>
+        </form>
+        <details class="confirm" th:if="${r.status.name() != 'VERIFIED'}">
+            <summary class="btn btn-secondary btn-small">Ask for more info</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/claim-requests/{id}/ask(id=${r.id})}">
+                <div class="field">
+                    <label th:for="|q-${r.id}|">Question</label>
+                    <input type="text" th:id="|q-${r.id}|" name="question" maxlength="500" required>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-primary btn-small" type="submit">Send question</button>
+            </form>
+        </details>
+        <details class="confirm">
+            <summary class="btn btn-ghost btn-small">Deny</summary>
+            <form class="confirm-panel" method="post" th:action="@{/admin/claim-requests/{id}/deny(id=${r.id})}">
+                <div class="field">
+                    <label th:for="|d-${r.id}|">Reason <span class="hint">Shown to the person.</span></label>
+                    <input type="text" th:id="|d-${r.id}|" name="reason" maxlength="500" required>
+                </div>
+                <input type="hidden" name="returnTo" th:value="${returnTo}">
+                <button class="btn btn-danger btn-small" type="submit">Deny request</button>
+            </form>
+        </details>
+    </div>
+</div>
+</body>
+</html>

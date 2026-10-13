@@ -7,6 +7,7 @@ import com.foundora.feed.FeedPost;
 import com.foundora.model.ActivityAction;
 import com.foundora.model.Category;
 import com.foundora.model.ClaimRecord;
+import com.foundora.model.ClaimRequest;
 import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
@@ -18,6 +19,8 @@ import com.foundora.service.AdminPostDetails;
 import com.foundora.service.AdminReportFilter;
 import com.foundora.service.ArchiveService;
 import com.foundora.service.ClaimForm;
+import com.foundora.service.ClaimRequestException;
+import com.foundora.service.ClaimRequestService;
 import com.foundora.service.ModerationException;
 import com.foundora.service.ModerationService;
 import com.foundora.service.ProfileService;
@@ -72,12 +75,13 @@ public class AdminController {
     private final ProfileService profiles;
     private final ArchiveService archive;
     private final CampusLocations campusLocations;
+    private final ClaimRequestService claimRequests;
     private final Clock clock;
 
     public AdminController(ModerationService moderation, ReportSearch reportSearch,
                            ActivityLogRepository activityLog, ItemRepository items,
                            AdminDetailsService adminDetails, ProfileService profiles, ArchiveService archive,
-                           CampusLocations campusLocations, Clock clock) {
+                           CampusLocations campusLocations, ClaimRequestService claimRequests, Clock clock) {
         this.moderation = moderation;
         this.reportSearch = reportSearch;
         this.activityLog = activityLog;
@@ -86,6 +90,7 @@ public class AdminController {
         this.profiles = profiles;
         this.archive = archive;
         this.campusLocations = campusLocations;
+        this.claimRequests = claimRequests;
         this.clock = clock;
     }
 
@@ -154,6 +159,46 @@ public class AdminController {
         return "admin/archive";
     }
 
+    /** Claim requests: every item with open requests, the one waiting longest first, all its requests side by side. */
+    @GetMapping("/claims")
+    public String claims(Model model) {
+        var queue = claimRequests.queue();
+        model.addAttribute("queue", queue);
+        model.addAttribute("details", adminDetails.forItems(queue.stream().map(ClaimRequestService.QueueEntry::item).toList()));
+        model.addAttribute("passDays", claimRequests.passValidFor().toDays());
+        model.addAttribute("nav", "admin");
+        model.addAttribute("adminNav", "claims");
+        return "admin/claims";
+    }
+
+    @PostMapping("/claim-requests/{id}/verify")
+    public String verifyRequest(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                                @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return actOnRequest(() -> claimRequests.verify(id, admin), "Verified. Pickup pass sent to", returnTo, redirect);
+    }
+
+    @PostMapping("/claim-requests/{id}/deny")
+    public String denyRequest(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                              @RequestParam(required = false) String reason,
+                              @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return actOnRequest(() -> claimRequests.deny(id, admin, reason), "Denied the request from", returnTo, redirect);
+    }
+
+    @PostMapping("/claim-requests/{id}/ask")
+    public String askRequest(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                             @RequestParam(required = false) String question,
+                             @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return actOnRequest(() -> claimRequests.askForInfo(id, admin, question), "Question sent to", returnTo,
+                redirect);
+    }
+
+    @PostMapping("/claim-requests/{id}/extend")
+    public String extendRequest(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                                @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return actOnRequest(() -> claimRequests.extendPass(id, admin), "Extended the pickup pass of", returnTo,
+                redirect);
+    }
+
     @GetMapping("/activity")
     public String activity(@RequestParam(required = false) String action,
                            @RequestParam(required = false) Integer page,
@@ -189,11 +234,19 @@ public class AdminController {
 
     /** The claim record form: who the item was released to, when, and any notes. */
     @GetMapping("/reports/{id}/claim")
-    public String claimForm(@PathVariable UUID id, @RequestParam(required = false) String returnTo, Model model) {
+    public String claimForm(@PathVariable UUID id, @RequestParam(required = false) String returnTo,
+                            @RequestParam(value = "request", required = false) UUID requestId, Model model) {
         Item item = items.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!model.containsAttribute("claimForm")) {
             ClaimForm form = new ClaimForm();
             form.setReleasedAt(LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES));
+            // Releasing to a verified requester: fill in who they are.
+            claimRequests.forItem(item.getId()).stream()
+                    .filter(r -> r.getId().equals(requestId) && r.isOpen()).findFirst()
+                    .ifPresent(r -> {
+                        form.setClaimantEmail(r.getRequesterEmail());
+                        form.setNotes("Verified claim request. Checked school ID at pickup.");
+                    });
             model.addAttribute("claimForm", form);
         }
         return claimPage(item, returnTo, model);
@@ -303,6 +356,20 @@ public class AdminController {
         if (page.hasNext()) {
             model.addAttribute("olderUrl", Params.withPage(request, page.getNumber() + 1));
         }
+    }
+
+    private String actOnRequest(Supplier<ClaimRequest> action, String doneWords, String returnTo,
+                                RedirectAttributes redirect) {
+        try {
+            ClaimRequest request = action.get();
+            redirect.addFlashAttribute("flashSuccess", doneWords + " " + request.getRequesterName() + ".");
+        } catch (ClaimRequestException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        } catch (ObjectOptimisticLockingFailureException e) {
+            redirect.addFlashAttribute("flashError",
+                    "Someone else changed this request at the same moment. Check it and try again.");
+        }
+        return "redirect:" + Params.safeReturn(returnTo, "/admin/claims");
     }
 
     private String act(Supplier<String> action, String doneWords, String returnTo, String fallback,

@@ -6,11 +6,15 @@ import com.foundora.dsa.InvertedIndex;
 import com.foundora.dsa.SortedInsert;
 import com.foundora.model.Category;
 import com.foundora.model.ClaimRecord;
+import com.foundora.model.ClaimRequest;
+import com.foundora.model.ClaimRequestStatus;
 import com.foundora.model.ClaimStatus;
 import com.foundora.model.Item;
+import com.foundora.model.ItemStage;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
 import com.foundora.repository.ClaimRecordRepository;
+import com.foundora.repository.ClaimRequestRepository;
 import com.foundora.repository.ItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +67,7 @@ public class FeedIndex {
 
     private final ItemRepository itemRepository;
     private final ClaimRecordRepository claimRepository;
+    private final ClaimRequestRepository requestRepository;
     private final Clock clock;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -103,9 +108,11 @@ public class FeedIndex {
         }
     }
 
-    public FeedIndex(ItemRepository itemRepository, ClaimRecordRepository claimRepository, Clock clock) {
+    public FeedIndex(ItemRepository itemRepository, ClaimRecordRepository claimRepository,
+                     ClaimRequestRepository requestRepository, Clock clock) {
         this.itemRepository = itemRepository;
         this.claimRepository = claimRepository;
+        this.requestRepository = requestRepository;
         this.clock = clock;
         this.snapshot = new Snapshot();
     }
@@ -129,10 +136,12 @@ public class FeedIndex {
                 List<Item> onFeed = itemRepository.findByStatusIn(ReportStatus.ON_FEED).stream()
                         .filter(Item::isOnFeed).toList();
                 Map<UUID, String> claimants = claimantNames(onFeed);
+                Map<UUID, List<ClaimRequestStatus>> requests = openRequests(onFeed);
                 Map<UUID, String> locations = new HashMap<>();
                 List<FeedPost> posts = new ArrayList<>(onFeed.size());
                 for (Item item : onFeed) {
-                    posts.add(FeedPost.from(item, claimants.get(item.getId())));
+                    ItemStage stage = ItemStage.of(item.getStatus(), requests.getOrDefault(item.getId(), List.of()));
+                    posts.add(FeedPost.from(item, claimants.get(item.getId()), stage));
                     locations.put(item.getId(), item.getLocation());
                 }
                 // O(n log n) merge sort once; every category bucket then fills in O(n) because input is sorted.
@@ -162,11 +171,14 @@ public class FeedIndex {
                     ? claimRepository.findFirstByItemIdAndStatusNot(item.getId(), ClaimStatus.REOPENED)
                             .map(ClaimRecord::getClaimantName).orElse(null)
                     : null;
+            ItemStage stage = item == null ? null : ItemStage.of(item.getStatus(),
+                    requestRepository.findByItemIdAndStatusIn(item.getId(), ClaimRequestStatus.OPEN).stream()
+                            .map(ClaimRequest::getStatus).toList());
             lock.writeLock().lock();
             try {
                 snapshot.remove(event.itemId());
                 if (item != null && item.isOnFeed()) {
-                    snapshot.add(FeedPost.from(item, claimant), item.getLocation());
+                    snapshot.add(FeedPost.from(item, claimant, stage), item.getLocation());
                 }
             } finally {
                 lock.writeLock().unlock();
@@ -249,6 +261,18 @@ public class FeedIndex {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    /** Statuses of the open claim requests on the approved items among these, by item ID. */
+    private Map<UUID, List<ClaimRequestStatus>> openRequests(List<Item> items) {
+        List<UUID> approved = items.stream().filter(i -> i.getStatus() == ReportStatus.APPROVED)
+                .map(Item::getId).toList();
+        if (approved.isEmpty()) {
+            return Map.of();
+        }
+        return requestRepository.findByItemIdInAndStatusIn(approved, ClaimRequestStatus.OPEN).stream()
+                .collect(Collectors.groupingBy(ClaimRequest::getItemId,
+                        Collectors.mapping(ClaimRequest::getStatus, Collectors.toList())));
     }
 
     /** Claimant names of the claimed items among these, by item ID. */

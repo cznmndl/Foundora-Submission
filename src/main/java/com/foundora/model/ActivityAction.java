@@ -10,7 +10,14 @@ public enum ActivityAction {
     CLAIM_DISPUTED("Marked claim as disputed"),
     CLAIM_RESOLVED("Resolved claim dispute"),
     CLAIM_REOPENED("Reopened claim"),
-    ARCHIVED("Archived");
+    ARCHIVED("Archived"),
+    CLAIM_REQUESTED("Requested to claim"),
+    CLAIM_INFO_REQUESTED("Asked the claimant for more information"),
+    CLAIM_VERIFIED("Verified a claim request"),
+    CLAIM_DENIED("Denied a claim request"),
+    CLAIM_WITHDRAWN("Withdrew a claim request"),
+    CLAIM_PASS_EXTENDED("Extended a pickup pass"),
+    CLAIM_PASS_EXPIRED("Pickup pass expired");
 
     private final String label;
 

@@ -9,6 +9,7 @@ import com.foundora.model.ReportStatus;
 import com.foundora.repository.ActivityLogRepository;
 import com.foundora.repository.ClaimRecordRepository;
 import com.foundora.service.AdminDetailsService;
+import com.foundora.service.ClaimRequestService;
 import com.foundora.service.CommentService;
 import com.foundora.service.ReportAccess;
 import com.foundora.service.ReportService;
@@ -36,16 +37,18 @@ public class PostController {
     private final ClaimRecordRepository claims;
     private final CommentService comments;
     private final AdminDetailsService adminDetails;
+    private final ClaimRequestService claimRequests;
 
     public PostController(ReportService reports, ReportAccess access, ActivityLogRepository activityLog,
                           ClaimRecordRepository claims, CommentService comments,
-                          AdminDetailsService adminDetails) {
+                          AdminDetailsService adminDetails, ClaimRequestService claimRequests) {
         this.reports = reports;
         this.access = access;
         this.activityLog = activityLog;
         this.claims = claims;
         this.comments = comments;
         this.adminDetails = adminDetails;
+        this.claimRequests = claimRequests;
     }
 
     @GetMapping("/posts/{id}")
@@ -57,7 +60,11 @@ public class PostController {
                         .map(ClaimRecord::getClaimantName).orElse(null)
                 : null;
         boolean isReporter = access.isReporter(item, user);
-        model.addAttribute("post", FeedPost.from(item, claimant));
+        model.addAttribute("post", FeedPost.from(item, claimant, claimRequests.stage(item)));
+        // Claim requests: your own (the proof is only ever shown to you and admins), and whether you can ask.
+        model.addAttribute("myRequests", claimRequests.mine(item, user));
+        model.addAttribute("canRequest", claimRequests.canRequest(item, user));
+        model.addAttribute("passDays", claimRequests.passValidFor().toDays());
         model.addAttribute("isReporter", isReporter);
         model.addAttribute("archived", item.isArchived());
         if (isReporter || user.isAdmin()) {
@@ -71,6 +78,7 @@ public class PostController {
             model.addAttribute("admin", details);
             model.addAttribute("adminDetails", java.util.Map.of(item.getId(), details));
             model.addAttribute("claimHistory", claims.findByItemIdOrderByCreatedAtAsc(item.getId()));
+            model.addAttribute("claimRequests", claimRequests.forItem(item.getId()));
             model.addAttribute("history", activityLog.findByItemIdOrderByCreatedAtAscIdAsc(item.getId()));
         }
         model.addAttribute("nav", "feed");
