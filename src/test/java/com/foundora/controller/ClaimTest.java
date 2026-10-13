@@ -98,19 +98,20 @@ class ClaimTest extends WebTestBase {
     }
 
     @Test
-    void theClaimedTabShowsWhoClaimedItButOnlyAdminsSeeTheRecord() throws Exception {
+    void theReturnedTabHidesWhoGotItFromEveryoneButAdmins() throws Exception {
         Item claimed = approved("Blue tumbler");
         claim(claimed);
         approved("Unclaimed umbrella");
 
         String student = html("/?show=claimed", as(STUDENT));
-        assertThat(student).contains("Blue tumbler").contains("Returned to Pedro Reyes")
-                .doesNotContain("Unclaimed umbrella").doesNotContain("Verified with school ID")
-                .doesNotContain("Grade 11");
-        assertThat(html("/posts/" + claimed.getId(), as(STAFF))).contains("Claimed by Pedro Reyes")
-                .doesNotContain("Verified with school ID");
+        assertThat(student).contains("Blue tumbler").contains("Returned to owner")
+                .doesNotContain("Pedro Reyes").doesNotContain("Unclaimed umbrella")
+                .doesNotContain("Verified with school ID").doesNotContain("Grade 11");
+        assertThat(html("/posts/" + claimed.getId(), as(STAFF))).contains("Returned to owner")
+                .doesNotContain("Pedro Reyes").doesNotContain("Verified with school ID");
 
-        assertThat(html("/?show=claimed", as(ADMIN))).contains("Verified with school ID").contains("Grade 11 · STEM A");
+        assertThat(html("/?show=claimed", as(ADMIN))).contains("Pedro Reyes")
+                .contains("Verified with school ID").contains("Grade 11 · STEM A");
         assertThat(html("/posts/" + claimed.getId(), as(ADMIN))).contains("Claim record")
                 .contains("Verified with school ID").contains(ADMIN.name());
     }
@@ -155,7 +156,7 @@ class ClaimTest extends WebTestBase {
         assertThat(after.getClaimedAt()).isNull();
         assertThat(claimRepository.findById(first.getId()).orElseThrow().getStatus()).isEqualTo(ClaimStatus.REOPENED);
         assertThat(lastAction()).isEqualTo(ActivityAction.CLAIM_REOPENED);
-        assertThat(html("/", as(STUDENT))).contains("Blue tumbler").doesNotContain("Returned to");
+        assertThat(html("/", as(STUDENT))).contains("Blue tumbler").doesNotContain("Returned to owner");
 
         // It can be claimed again; both records are kept.
         claim(after);

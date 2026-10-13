@@ -47,6 +47,7 @@
                 <dd th:text="${r.admin() != null and r.admin().reporterProfile() != null ? r.admin().reporterProfile().summary() : 'No profile yet'}">BSIT</dd>
                 <dt>Location</dt><dd th:text="${r.item().location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${r.item().locationSpot != null ? r.item().locationSpot : '—'}">spot</dd>
+                <dt>Private details</dt><dd th:text="${r.item().privateDetails != null ? r.item().privateDetails : '—'}">marks</dd>
                 <dt>Submitted</dt>
                 <dd><span th:text="${@fmt.dateTime(r.item().createdAt)}">date</span>
                     (<span th:text="${@fmt.ago(r.item().createdAt)}">2 hours ago</span>)</dd>

@@ -49,7 +49,7 @@ public class AdminDetailsService {
         Map<UUID, AdminPostDetails> details = new HashMap<>();
         for (Item item : page) {
             details.put(item.getId(), new AdminPostDetails(item.getLocation(), item.getLocationSpot(),
-                    item.getReporterEmail(), reporters.get(item.getReporterEmail().toLowerCase(Locale.ROOT)),
+                    item.getPrivateDetails(), item.getReporterEmail(), reporters.get(item.getReporterEmail().toLowerCase(Locale.ROOT)),
                     openClaims.get(item.getId())));
         }
         return details;

@@ -35,6 +35,11 @@ public class ReportForm {
     @Size(max = Item.MAX_SPOT, message = "Keep the specific spot to " + Item.MAX_SPOT + " characters or fewer.")
     private String locationSpot;
 
+    /** Optional. Identifying marks only SDFO sees; blank means none. */
+    @Size(max = Item.MAX_PRIVATE_DETAILS,
+          message = "Keep the private details to " + Item.MAX_PRIVATE_DETAILS + " characters or fewer.")
+    private String privateDetails;
+
     @NotNull(message = "Enter the date the item was lost or found.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateLostFound;
@@ -85,6 +90,15 @@ public class ReportForm {
 
     public void setLocationSpot(String locationSpot) {
         this.locationSpot = trim(locationSpot);
+    }
+
+    public String getPrivateDetails() {
+        return privateDetails;
+    }
+
+    public void setPrivateDetails(String privateDetails) {
+        String trimmed = trim(privateDetails);
+        this.privateDetails = trimmed == null || trimmed.isEmpty() ? null : trimmed;
     }
 
     public LocalDate getDateLostFound() {

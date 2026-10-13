@@ -88,6 +88,19 @@
       preview.classList.toggle("has-photo", Boolean(file));
       clear.hidden = !file;
       buttonLabel.textContent = file ? "Choose a different photo" : (form.matches("[data-comment-form]") ? "Add a photo" : "Choose a photo");
+      form.dispatchEvent(new CustomEvent("photo-preview", { detail: { url: previewUrl } }));
+    }
+
+    // Phones: "Take a photo" opens the camera directly; "Choose a photo" opens the gallery.
+    const camera = form.querySelector("[data-photo-camera]");
+    const choose = form.querySelector("[data-photo-choose]");
+    if (camera && window.matchMedia("(pointer: coarse)").matches) {
+      camera.hidden = false;
+      camera.addEventListener("click", () => {
+        input.setAttribute("capture", "environment");
+        input.click();
+      });
+      if (choose) choose.addEventListener("click", () => input.removeAttribute("capture"));
     }
 
     function setFile(file) {
@@ -296,6 +309,53 @@
     }
   }
 
+  // ---------- Report page: the item's ID card fills in as the form is completed ----------
+  function setupReportPreview(form) {
+    const preview = document.querySelector("[data-report-preview]");
+    if (!preview) return;
+    const card = preview.querySelector("[data-preview-card]");
+    const field = (name) => form.querySelector(`[data-preview="${name}"]`);
+    const out = (name) => preview.querySelector(`[data-preview-${name}]`);
+    const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    function setText(el, value) {
+      const empty = !value;
+      el.textContent = empty ? el.dataset.empty : value;
+      el.toggleAttribute("data-empty-shown", empty);
+    }
+
+    function update() {
+      const type = form.querySelector('input[name="type"]:checked');
+      const lost = Boolean(type) && type.value === "LOST";
+      card.classList.toggle("is-unset", !type);
+      card.classList.toggle("is-lost", lost);
+      card.classList.toggle("is-found", Boolean(type) && !lost);
+      out("type").textContent = !type ? "Lost or found?" : lost ? "Lost item" : "Found item";
+      out("date-label").textContent = !type ? "Date" : lost ? "Lost" : "Found";
+      setText(out("name"), field("name").value.trim());
+      const category = field("category");
+      setText(out("category"), category.value ? category.options[category.selectedIndex].text : "");
+      // No photo: the board shows the category's glyph, so the preview does too.
+      preview.querySelectorAll("[data-preview-glyph]").forEach((glyph) => {
+        glyph.hidden = glyph.dataset.previewGlyph !== category.value;
+      });
+      const date = field("date").value;
+      setText(out("date"), date ? dateFormat.format(new Date(date + "T00:00")) : "");
+    }
+
+    form.addEventListener("input", update);
+    form.addEventListener("change", update);
+    form.addEventListener("photo-preview", (event) => {
+      const img = out("photo");
+      const url = event.detail.url;
+      img.hidden = !url;
+      img.src = url || "";
+      out("photo-empty").hidden = Boolean(url);
+    });
+    preview.hidden = false;
+    update();
+  }
+
   let liveRegion;
   function announce(message) {
     if (!liveRegion) {
@@ -347,6 +407,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("form[data-report-form], form[data-comment-form]").forEach(setupPhotoPicker);
+    document.querySelectorAll(".report-sheet form[data-report-form]").forEach(setupReportPreview);
     document.querySelectorAll("input[data-suggest-people]").forEach(setupPeopleSuggestions);
     document.querySelectorAll("textarea[data-count-chars]").forEach(setupCharCount);
     document.querySelectorAll("select[data-other-toggle]").forEach(setupOtherToggle);

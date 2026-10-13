@@ -120,6 +120,7 @@
                 <dd th:text="${admin.reporterProfile() != null ? admin.reporterProfile().summary() : 'No profile yet'}">BSIT · 2nd year</dd>
                 <dt>Location</dt><dd th:text="${item.location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
+                <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
                 <dt>Submitted</dt><dd th:text="${@fmt.dateTime(item.createdAt)}">date</dd>
                 <dt th:if="${item.reviewedByName != null}">Reviewed by</dt>
                 <dd th:if="${item.reviewedByName != null}" th:text="|${item.reviewedByName}, ${@fmt.dateTime(item.reviewedAt)}|">admin</dd>

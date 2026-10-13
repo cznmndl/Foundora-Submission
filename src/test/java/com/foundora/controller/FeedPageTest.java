@@ -36,7 +36,7 @@ class FeedPageTest extends WebTestBase {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Approved umbrella")))
                 .andExpect(content().string(containsString("Claimed tumbler")))
-                .andExpect(content().string(containsString("Returned to its owner")))
+                .andExpect(content().string(containsString("Returned to owner")))
                 .andExpect(content().string(not(containsString("Pending wallet"))))
                 .andExpect(content().string(not(containsString("Rejected keys"))))
                 .andExpect(content().string(not(containsString("Removed calculator"))));

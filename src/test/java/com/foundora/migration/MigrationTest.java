@@ -69,7 +69,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("11");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("12");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -139,6 +139,10 @@ class MigrationTest {
         assertThatThrownBy(() -> exec("update public.items set archived_at = now() "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).as("only claimed reports are archived")
                 .isInstanceOf(SQLException.class);
+        exec("update public.items set private_details = 'Initials JDC' "
+                + "where id = '11111111-1111-1111-1111-111111111111'");
+        assertThatThrownBy(() -> exec("update public.items set private_details = repeat('x', 501) "
+                + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
         assertThatThrownBy(() -> exec("update public.items set location_spot = repeat('x', 201) "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
     }

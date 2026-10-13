@@ -66,6 +66,7 @@ public class ReportService {
                 item.setCategory(form.getCategory());
                 item.setLocation(form.getLocation());
                 item.setLocationSpot(form.getLocationSpot());
+                item.setPrivateDetails(form.getPrivateDetails());
                 item.setDateLostFound(form.getDateLostFound());
                 item.setImagePath(storedPath);
                 item.setStatus(ReportStatus.PENDING);

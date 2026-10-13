@@ -3,11 +3,17 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title>Report an item · Foundora</title></head>
 <body>
-<div id="content" class="content-narrow">
-    <div class="page-head"><h1>Report an item</h1></div>
-    <section class="card">
-        <form th:replace="~{fragments/report-form :: form}"></form>
-    </section>
+<div id="content" class="report-page">
+    <div class="report-head">
+        <h1>Report an item</h1>
+        <p>SDFO checks every report before it's posted on the board.</p>
+    </div>
+    <div class="report-layout">
+        <section class="report-sheet" aria-label="Report form">
+            <form th:replace="~{fragments/report-form :: form}"></form>
+        </section>
+        <aside th:replace="~{fragments/report-form :: preview}"></aside>
+    </div>
 </div>
 </body>
 </html>

@@ -3,9 +3,7 @@ package com.foundora.controller;
 import com.foundora.auth.FoundoraUser;
 import com.foundora.feed.FeedPost;
 import com.foundora.model.ClaimRecord;
-import com.foundora.model.ClaimStatus;
 import com.foundora.model.Item;
-import com.foundora.model.ReportStatus;
 import com.foundora.repository.ActivityLogRepository;
 import com.foundora.repository.ClaimRecordRepository;
 import com.foundora.service.AdminDetailsService;
@@ -55,12 +53,8 @@ public class PostController {
     public String post(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser user, Model model) {
         Item item = reports.findViewable(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        String claimant = item.getStatus() == ReportStatus.CLAIMED
-                ? claims.findFirstByItemIdAndStatusNot(item.getId(), ClaimStatus.REOPENED)
-                        .map(ClaimRecord::getClaimantName).orElse(null)
-                : null;
         boolean isReporter = access.isReporter(item, user);
-        model.addAttribute("post", FeedPost.from(item, claimant, claimRequests.stage(item)));
+        model.addAttribute("post", FeedPost.from(item, claimRequests.stage(item)));
         // Claim requests: your own (the proof is only ever shown to you and admins), and whether you can ask.
         model.addAttribute("myRequests", claimRequests.mine(item, user));
         model.addAttribute("canRequest", claimRequests.canRequest(item, user));

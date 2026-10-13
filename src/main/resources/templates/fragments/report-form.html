@@ -3,116 +3,190 @@
 <body>
 <!--/*
   The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}.
-  The location list comes from foundora.campus-locations (@campusLocations).
+  The location list comes from foundora.campus-locations (@campusLocations). Public fields first; the location
+  and identifying marks go in the "Only SDFO sees this" panel, which never reaches the feed.
 */-->
 <form th:fragment="form" class="report-form" th:action="@{/report}" method="post" enctype="multipart/form-data"
       th:object="${reportForm}" data-loading data-report-form>
 
     <div class="alert alert-error" role="alert" th:if="${#fields.hasAnyErrors() or photoError != null}">
         <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
-        <span>Please fix the highlighted fields below.</span>
+        <span th:with="n=${#fields.allErrors().size() + (photoError != null ? 1 : 0)}"
+              th:text="${n == 1} ? 'One field needs fixing. It’s highlighted below.' : |${n} fields need fixing. They’re highlighted below.|">Please fix the highlighted fields below.</span>
     </div>
 
-    <fieldset>
-        <legend>Did you lose or find something?</legend>
-        <div class="segmented">
+    <fieldset class="rf-section">
+        <legend class="rf-legend">Did you lose or find something?</legend>
+        <div class="type-tiles">
             <input type="radio" id="type-lost" th:field="*{type}" value="LOST" required
                    th:attr="aria-describedby=${#fields.hasErrors('type')} ? 'type-error' : null">
-            <label for="type-lost">I lost something</label>
+            <label for="type-lost" class="type-tile is-lost">
+                <span class="type-tile-stripe">Lost item</span>
+                <span class="type-tile-text">I lost something</span>
+            </label>
             <input type="radio" id="type-found" th:field="*{type}" value="FOUND">
-            <label for="type-found">I found something</label>
+            <label for="type-found" class="type-tile is-found">
+                <span class="type-tile-stripe">Found item</span>
+                <span class="type-tile-text">I found something</span>
+            </label>
         </div>
         <p class="field-error" id="type-error" th:if="${#fields.hasErrors('type')}" th:errors="*{type}"></p>
+        <p class="rf-dropoff sdfo-reminder" role="note">
+            <th:block th:replace="~{fragments/icons :: icon('pin')}"></th:block>
+            <span>Bring the item to the SDFO office<th:block th:if="${@sdfo.room() != null}" th:text="|, ${@sdfo.room()}|">, MB 3rd Floor</th:block><th:block th:if="${@sdfo.hours() != null}" th:text="| (${@sdfo.hours()})|"> (8:00 AM – 4:00 PM)</th:block>. Owners pick it up there.</span>
+        </p>
     </fieldset>
 
-    <p class="sdfo-note sdfo-reminder" role="note">
-        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
-        <span>Please bring the item to the SDFO office.</span>
-    </p>
+    <fieldset class="rf-section">
+        <legend class="rf-legend">The item</legend>
 
-    <div class="field">
-        <label for="itemName">Item name <span class="hint">For example: Blue umbrella, Hydro Flask, Calculator</span></label>
-        <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" required autocomplete="off"
-               th:attr="aria-invalid=${#fields.hasErrors('itemName')} ? 'true' : null,
-                        aria-describedby=${#fields.hasErrors('itemName')} ? 'itemName-error' : null">
-        <p class="field-error" id="itemName-error" th:if="${#fields.hasErrors('itemName')}" th:errors="*{itemName}"></p>
-    </div>
-
-    <div class="field">
-        <label for="description">Description <span class="hint">Color, brand, stickers, what was inside: anything that helps the owner recognise it. Don't write where it was lost or found here: put that in “Where?” below, which only SDFO admins see.</span></label>
-        <textarea id="description" th:field="*{description}" maxlength="1000" required rows="4"
-                  th:attr="aria-invalid=${#fields.hasErrors('description')} ? 'true' : null,
-                           aria-describedby=${#fields.hasErrors('description')} ? 'description-error' : null"></textarea>
-        <p class="field-error" id="description-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></p>
-    </div>
-
-    <div class="field">
-        <label for="category">Category</label>
-        <select id="category" th:field="*{category}" required
-                th:attr="aria-invalid=${#fields.hasErrors('category')} ? 'true' : null,
-                         aria-describedby=${#fields.hasErrors('category')} ? 'category-error' : null">
-            <option value="">Choose a category</option>
-            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label()}">Electronics</option>
-        </select>
-        <p class="field-error" id="category-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
-    </div>
-
-    <fieldset class="location-group">
-        <legend>Where? <span class="hint">Only SDFO admins see this. It's kept off the feed so that when someone claims the item, SDFO can ask them where they lost it.</span></legend>
         <div class="field">
-            <label for="location">Campus location</label>
-            <select id="location" th:field="*{location}" required
-                    th:attr="aria-invalid=${#fields.hasErrors('location')} ? 'true' : null,
-                             aria-describedby=${#fields.hasErrors('location')} ? 'location-error' : null">
-                <option value="">Choose a place</option>
-                <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}">Sentrum</option>
-            </select>
-            <p class="field-error" id="location-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></p>
+            <span class="label" id="photo-label">Photo <span class="hint">Optional, but it helps people spot their things. JPEG, PNG or WebP, up to 5 MB.</span></span>
+            <div class="photo-picker">
+                <div class="photo-frame" data-photo-preview>
+                    <img alt="Preview of the chosen photo">
+                    <span class="photo-frame-empty" aria-hidden="true" th:insert="~{fragments/icons :: icon('camera')}"></span>
+                </div>
+                <div class="photo-actions">
+                    <button type="button" class="btn btn-secondary btn-small" data-photo-camera hidden>
+                        <th:block th:replace="~{fragments/icons :: icon('camera')}"></th:block>Take a photo</button>
+                    <label class="btn btn-secondary btn-small" for="photo" data-photo-choose>
+                        <th:block th:replace="~{fragments/icons :: icon('image')}"></th:block>
+                        <span data-photo-button>Choose a photo</span>
+                    </label>
+                    <button type="button" class="btn btn-ghost btn-small" data-photo-clear hidden>Remove photo</button>
+                </div>
+                <input type="file" id="photo" name="photo" class="visually-hidden" accept="image/jpeg,image/png,image/webp"
+                       aria-labelledby="photo-label" data-photo-input
+                       th:attr="aria-invalid=${photoError != null} ? 'true' : null,
+                                aria-describedby=${photoError != null} ? 'photo-error' : null">
+                <p class="field-error" id="photo-error" data-photo-error th:text="${photoError}"
+                   th:hidden="${photoError == null}"></p>
+            </div>
         </div>
+
         <div class="field">
-            <label for="locationSpot">Specific spot <span class="hint">Exactly where, e.g. “3rd floor hallway near room 305” or “under the bleachers”. If you chose Other, say where.</span></label>
-            <input type="text" id="locationSpot" th:field="*{locationSpot}" maxlength="200" required autocomplete="off"
-                   th:attr="aria-invalid=${#fields.hasErrors('locationSpot')} ? 'true' : null,
-                            aria-describedby=${#fields.hasErrors('locationSpot')} ? 'locationSpot-error' : null">
-            <p class="field-error" id="locationSpot-error" th:if="${#fields.hasErrors('locationSpot')}" th:errors="*{locationSpot}"></p>
+            <label for="itemName">Item name <span class="hint">What it is, e.g. “Black umbrella”, “Casio calculator”, “Green Aquaflask”.</span></label>
+            <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" required autocomplete="off" data-preview="name"
+                   th:attr="aria-invalid=${#fields.hasErrors('itemName')} ? 'true' : null,
+                            aria-describedby=${#fields.hasErrors('itemName')} ? 'itemName-error' : null">
+            <p class="field-error" id="itemName-error" th:if="${#fields.hasErrors('itemName')}" th:errors="*{itemName}"></p>
+        </div>
+
+        <div class="rf-row">
+            <div class="field">
+                <label for="category">Category</label>
+                <select id="category" th:field="*{category}" required data-preview="category"
+                        th:attr="aria-invalid=${#fields.hasErrors('category')} ? 'true' : null,
+                                 aria-describedby=${#fields.hasErrors('category')} ? 'category-error' : null">
+                    <option value="">Choose a category</option>
+                    <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label()}">Electronics</option>
+                </select>
+                <p class="field-error" id="category-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
+            </div>
+            <div class="field">
+                <label for="dateLostFound">Date</label>
+                <input type="date" id="dateLostFound" th:field="*{dateLostFound}" required th:max="${today}" data-preview="date"
+                       th:attr="aria-invalid=${#fields.hasErrors('dateLostFound')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('dateLostFound')} ? 'dateLostFound-error dateLostFound-hint' : 'dateLostFound-hint'">
+                <p class="field-error" id="dateLostFound-error" th:if="${#fields.hasErrors('dateLostFound')}" th:errors="*{dateLostFound}"></p>
+                <p class="hint hint-below" id="dateLostFound-hint">When you lost or found it.</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="description">Public description
+                <span class="hint">Everyone signed in sees this. Keep it general: what it is, colour, brand, size. Leave out names, initials, stickers and what's inside: those go in the private box below.</span></label>
+            <textarea id="description" th:field="*{description}" maxlength="1000" required rows="3" data-count-chars
+                      placeholder="e.g. Green metal water bottle, about 32 oz."
+                      th:attr="aria-invalid=${#fields.hasErrors('description')} ? 'true' : null,
+                               aria-describedby=${#fields.hasErrors('description')} ? 'description-error' : null"></textarea>
+            <p class="field-error" id="description-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></p>
+            <p class="hint" aria-live="polite" data-char-count>Up to 1000 characters.</p>
         </div>
     </fieldset>
 
-    <div class="field">
-        <label for="dateLostFound">When? <span class="hint">The date you lost or found it.</span></label>
-        <input type="date" id="dateLostFound" th:field="*{dateLostFound}" required th:max="${today}"
-               th:attr="aria-invalid=${#fields.hasErrors('dateLostFound')} ? 'true' : null,
-                        aria-describedby=${#fields.hasErrors('dateLostFound')} ? 'dateLostFound-error' : null">
-        <p class="field-error" id="dateLostFound-error" th:if="${#fields.hasErrors('dateLostFound')}" th:errors="*{dateLostFound}"></p>
-    </div>
+    <fieldset class="rf-private" aria-describedby="private-note">
+        <legend class="rf-private-head">
+            <th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>Only SDFO sees this
+        </legend>
+        <p class="rf-private-note" id="private-note">Kept off the board. When someone says an item is theirs, SDFO asks them where and what marks it has, so only the real owner can answer.</p>
 
-    <div class="field">
-        <span class="label" id="photo-label">Photo <span class="hint">Optional. JPEG, PNG or WebP, up to 5 MB.</span></span>
-        <div class="photo-picker">
-            <div class="photo-preview" data-photo-preview>
-                <img alt="Preview of the chosen photo">
+        <div class="rf-row">
+            <div class="field">
+                <label for="location">Campus location</label>
+                <select id="location" th:field="*{location}" required
+                        th:attr="aria-invalid=${#fields.hasErrors('location')} ? 'true' : null,
+                                 aria-describedby=${#fields.hasErrors('location')} ? 'location-error' : null">
+                    <option value="">Choose a place</option>
+                    <option th:each="place : ${@campusLocations.all()}" th:value="${place}" th:text="${place}">Sentrum</option>
+                </select>
+                <p class="field-error" id="location-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></p>
             </div>
-            <div class="action-row">
-                <label class="btn btn-secondary btn-small" for="photo">
-                    <th:block th:replace="~{fragments/icons :: icon('camera')}"></th:block>
-                    <span data-photo-button>Choose a photo</span>
-                </label>
-                <button type="button" class="btn btn-ghost btn-small" data-photo-clear hidden>Remove photo</button>
+            <div class="field">
+                <label for="locationSpot">Specific spot</label>
+                <input type="text" id="locationSpot" th:field="*{locationSpot}" maxlength="200" required autocomplete="off"
+                       th:attr="aria-invalid=${#fields.hasErrors('locationSpot')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('locationSpot')} ? 'locationSpot-error locationSpot-hint' : 'locationSpot-hint'">
+                <p class="field-error" id="locationSpot-error" th:if="${#fields.hasErrors('locationSpot')}" th:errors="*{locationSpot}"></p>
+                <p class="hint hint-below" id="locationSpot-hint">e.g. “3rd floor hallway near room 305”. If you chose Other, say where.</p>
             </div>
-            <input type="file" id="photo" name="photo" class="visually-hidden" accept="image/jpeg,image/png,image/webp"
-                   aria-labelledby="photo-label" data-photo-input
-                   th:attr="aria-invalid=${photoError != null} ? 'true' : null,
-                            aria-describedby=${photoError != null} ? 'photo-error' : null">
-            <p class="field-error" id="photo-error" data-photo-error th:text="${photoError}"
-               th:hidden="${photoError == null}"></p>
         </div>
-    </div>
+
+        <div class="field">
+            <label for="privateDetails">Identifying details <span class="optional">Optional</span>
+                <span class="hint hint-found">Names, initials, stickers, scratches, what's inside. SDFO asks claimants about these.</span>
+                <span class="hint hint-lost">Marks only you would know, so SDFO can tell it's yours when it turns up.</span>
+                <span class="hint hint-none">Names, initials, stickers, scratches or contents that prove whose it is.</span></label>
+            <textarea id="privateDetails" th:field="*{privateDetails}" maxlength="500" rows="3"
+                      placeholder="e.g. Initials “JDC” scratched inside the lid; Hello Kitty sticker on the bottom."
+                      th:attr="aria-invalid=${#fields.hasErrors('privateDetails')} ? 'true' : null,
+                               aria-describedby=${#fields.hasErrors('privateDetails')} ? 'privateDetails-error' : null"></textarea>
+            <p class="field-error" id="privateDetails-error" th:if="${#fields.hasErrors('privateDetails')}" th:errors="*{privateDetails}"></p>
+        </div>
+    </fieldset>
 
     <div class="form-actions">
-        <button class="btn btn-primary" type="submit">Send report</button>
+        <button class="btn btn-primary" type="submit">Send to SDFO</button>
         <a class="btn btn-ghost" th:href="@{/}" data-close-dialog>Cancel</a>
     </div>
-    <p class="muted small">Your name is shown on the post. Your email, profile details and the location are seen only by SDFO admins. An admin reviews every report before it appears on the feed.</p>
+    <p class="rf-fineprint">Your name is shown on the post. Your email, profile, the location and the private details are seen only by SDFO admins. Nothing is posted until SDFO has checked it.</p>
 </form>
+
+<!--/*
+  The live preview beside the form on the /report page: the item's ID card as it will look on the board.
+  Filled in by app.js as the form changes; hidden (and pointless) without JavaScript.
+*/-->
+<aside th:fragment="preview" class="report-preview" data-report-preview hidden aria-hidden="true">
+    <p class="report-preview-label">How it will look on the board</p>
+    <div class="idcard is-unset is-stage-under-review" data-preview-card>
+        <div class="idcard-stripe">
+            <span class="idcard-type" data-preview-type>Lost or found?</span>
+            <span>just now</span>
+        </div>
+        <div class="idcard-body">
+            <div class="idcard-photo">
+                <img alt="" data-preview-photo hidden>
+                <span data-preview-photo-empty>
+                    <span data-preview-glyph="" th:insert="~{fragments/icons :: icon('camera')}"></span>
+                    <span th:each="c : ${categories}" th:attr="data-preview-glyph=${c.name()}" hidden><th:block
+                          th:replace="~{fragments/icons :: icon(|cat-${c.name()}|)}"></th:block></span>
+                </span>
+            </div>
+            <div class="idcard-facts">
+                <p class="idcard-title" data-preview-name data-empty="Your item's name">Your item's name</p>
+                <dl class="idcard-dl">
+                    <div><dt>Category</dt><dd data-preview-category data-empty="—">—</dd></div>
+                    <div><dt data-preview-date-label>Date</dt><dd data-preview-date data-empty="—">—</dd></div>
+                    <div><dt>Posted by</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd></div>
+                </dl>
+            </div>
+        </div>
+        <div class="idcard-foot">
+            <span th:replace="~{fragments/posts :: sticker(${underReview})}"></span>
+        </div>
+    </div>
+    <p class="report-preview-note">Location and private details never appear on the card.</p>
+</aside>
 </body>
 </html>

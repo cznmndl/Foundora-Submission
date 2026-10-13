@@ -16,7 +16,7 @@
                   commentCount=${commentCounts != null ? commentCounts.getOrDefault(post.id(), 0L) : null}">
     <div class="claimed-banner" th:if="${post.claimed()}">
         <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block>
-        <span th:text="${post.claimedBy() != null} ? |Claimed by ${post.claimedBy()} ✓| : 'Claimed / Returned ✓'">Claimed / Returned ✓</span>
+        <span>Returned to owner</span>
     </div>
     <div class="post-body">
         <header class="post-head">
@@ -104,9 +104,8 @@
         </div>
     </div>
     <footer class="idcard-foot">
-        <span class="idcard-note" th:if="${post.claimed()}"
-              th:text="${post.claimedBy() != null} ? |Returned to ${post.claimedBy()}| : 'Returned to its owner'">Returned to Pedro Reyes</span>
-        <span class="idcard-note" th:unless="${post.claimed()}"
+        <span class="idcard-note" th:if="${post.claimed()}">Returned to owner</span>
+        <span class="idcard-note" th:unless="${post.claimed() or post.stage().name() == 'UNDER_REVIEW'}"
               th:text="${post.found()} ? 'Held at the SDFO office' : 'Found it? Bring it to SDFO'">Held at the SDFO office</span>
         <a class="idcard-comments" th:if="${commentCount != null and commentCount > 0}"
            th:href="@{/posts/{id}(id=${post.id()})} + '#comments'"
@@ -177,6 +176,8 @@
         <dt>Location</dt>
         <dd><span th:text="${ad.location()}">Sentrum</span>
             <span th:if="${ad.locationSpot() != null}" th:text="| · ${ad.locationSpot()}|"> · near the stairs</span></dd>
+        <dt th:if="${ad.privateDetails() != null}">Private details</dt>
+        <dd th:if="${ad.privateDetails() != null}" th:text="${ad.privateDetails()}">Initials “JDC” inside the lid</dd>
         <dt>Reporter</dt>
         <dd><span th:text="${ad.reporterEmail()}">email</span>
             <span class="muted" th:if="${ad.reporterProfile() != null and !ad.reporterProfile().summary().isBlank()}"

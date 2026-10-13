@@ -146,10 +146,52 @@ class ReportSubmissionTest extends WebTestBase {
     @Test
     void sentPageRemindsFinderToBringTheItemToSdfo() throws Exception {
         mvc.perform(get("/report/sent").with(as(STUDENT)).flashAttr("sentType", ReportType.FOUND))
-                .andExpect(content().string(containsString("Your report was sent!")))
-                .andExpect(content().string(containsString("Please bring the item to the SDFO office.")));
+                .andExpect(content().string(containsString("Sent to SDFO")))
+                .andExpect(content().string(containsString("Bring the item to the SDFO office")));
         mvc.perform(get("/report/sent").with(as(STUDENT)))
                 .andExpect(redirectedUrl("/my-reports"));
+    }
+
+    @Test
+    void theSentPageShowsTheReportersCardUnderReview() throws Exception {
+        var result = mvc.perform(validReport("FOUND").with(as(STUDENT)).with(csrf()))
+                .andExpect(redirectedUrl("/report/sent")).andReturn();
+        mvc.perform(get("/report/sent").with(as(STUDENT)).flashAttrs(result.getFlashMap()))
+                .andExpect(content().string(containsString("Navy umbrella")))
+                .andExpect(content().string(containsString("Under review")));
+    }
+
+    @Test
+    void privateDetailsAreSavedAndShownOnlyToTheReporterAndAdmins() throws Exception {
+        mvc.perform(validReport("FOUND").param("privateDetails", "  Initials JDC carved in the handle ")
+                .with(as(STUDENT)).with(csrf())).andExpect(redirectedUrl("/report/sent"));
+        Item saved = items.findAll().get(0);
+        assertThat(saved.getPrivateDetails()).isEqualTo("Initials JDC carved in the handle");
+
+        saved.setStatus(ReportStatus.APPROVED);
+        items.save(saved);
+        feedIndex.rebuild();
+        for (String url : new String[]{"/", "/posts/" + saved.getId()}) {
+            assertThat(mvc.perform(get(url).with(as(STAFF))).andReturn().getResponse().getContentAsString())
+                    .as(url).doesNotContain("carved in the handle").contains("Navy umbrella");
+        }
+        // Not searchable either: searching for its words finds nothing.
+        assertThat(mvc.perform(get("/?q=carved").with(as(STAFF))).andReturn().getResponse().getContentAsString())
+                .doesNotContain("Navy umbrella");
+        assertThat(mvc.perform(get("/my-reports").with(as(STUDENT))).andReturn().getResponse()
+                .getContentAsString()).contains("Initials JDC carved in the handle");
+        assertThat(mvc.perform(get("/posts/" + saved.getId()).with(as(com.foundora.support.TestData.ADMIN)))
+                .andReturn().getResponse().getContentAsString()).contains("Initials JDC carved in the handle");
+    }
+
+    @Test
+    void privateDetailsAreOptionalAndBlankMeansNone() throws Exception {
+        mvc.perform(validReport("LOST").param("privateDetails", "   ").with(as(STUDENT)).with(csrf()))
+                .andExpect(redirectedUrl("/report/sent"));
+        assertThat(items.findAll().get(0).getPrivateDetails()).isNull();
+        mvc.perform(validReport("LOST").param("privateDetails", "x".repeat(501)).with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Keep the private details to 500 characters")));
     }
 
     @Test
