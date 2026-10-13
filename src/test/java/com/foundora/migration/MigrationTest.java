@@ -48,6 +48,14 @@ class MigrationTest {
                     values ('22222222-2222-2222-2222-222222222222', 'Calculator', 'CLAIMED', 'ana.cruz@dlsl.edu.ph',
                             'Ana', now())""");
         }
+        // A profile as V7–V12 stored it (a course, no community), for V13's backfill.
+        flyway("12").migrate();
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
+            s.execute("""
+                    insert into public.user_profiles (uid, email, full_name, role, course, year_level, section)
+                    values ('uid-old', 'old_student@dlsl.edu.ph', 'Old Student', 'STUDENT', 'BS CpE', 2, 'O2A'),
+                           ('uid-staff', 'some.staff@dlsl.edu.ph', 'Some Staff', 'STAFF', null, null, null)""");
+        }
         flyway(null).migrate();
     }
 
@@ -69,7 +77,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("12");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("13");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -139,6 +147,18 @@ class MigrationTest {
         assertThatThrownBy(() -> exec("update public.items set archived_at = now() "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).as("only claimed reports are archived")
                 .isInstanceOf(SQLException.class);
+        // V13: communities. A profile with a course became College, staff stayed without one; grades must fit.
+        assertThat(query("select community from public.user_profiles where uid = 'uid-old'")).isEqualTo("COLLEGE");
+        assertThat(query("select coalesce(community, '-') from public.user_profiles where uid = 'uid-staff'"))
+                .isEqualTo("-");
+        exec("insert into public.user_profiles (uid, email, full_name, role, community, grade_level, section) "
+                + "values ('uid-j', 'j_h@dlsl.edu.ph', 'J H', 'STUDENT', 'JUNIOR_HIGH', 8, 'Rizal')");
+        assertThatThrownBy(() -> exec("insert into public.user_profiles (uid, email, full_name, role, community, "
+                + "grade_level) values ('uid-k', 'k_h@dlsl.edu.ph', 'K', 'STUDENT', 'JUNIOR_HIGH', 11)"))
+                .as("grade outside the community").isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec("insert into public.user_profiles (uid, email, full_name, role, community) "
+                + "values ('uid-m', 'm_h@dlsl.edu.ph', 'M', 'STUDENT', 'KINDER')")).isInstanceOf(SQLException.class);
+
         exec("update public.items set private_details = 'Initials JDC' "
                 + "where id = '11111111-1111-1111-1111-111111111111'");
         assertThatThrownBy(() -> exec("update public.items set private_details = repeat('x', 501) "

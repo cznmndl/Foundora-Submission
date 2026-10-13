@@ -255,17 +255,41 @@
     update();
   }
 
-  // ---------- Profile: show the "Other" program box only when Other is chosen ----------
-  function setupOtherToggle(select) {
-    const field = document.getElementById(select.dataset.otherToggle);
-    if (!field) return;
-    const input = field.querySelector("input");
-    const sync = () => {
-      const other = select.value === "Other";
-      field.hidden = !other;
-      if (input) input.required = other;
-    };
-    select.addEventListener("change", sync);
+  // ---------- Profile: show only the chosen community's fields ----------
+  // College: course and year level. Elementary, JHS, SHS: grade level, with only that community's grades.
+  // Hidden fields are disabled too, so they're not sent; the server ignores them anyway.
+  function setupCommunityFields(form) {
+    const radios = form.querySelectorAll('input[name="community"]');
+    if (!radios.length) return;
+    const grade = form.querySelector("#gradeLevel");
+    document.documentElement.classList.add("has-community-js");
+
+    function sync() {
+      const chosen = form.querySelector('input[name="community"]:checked');
+      const value = chosen ? chosen.value : null;
+      const kind = !value ? null : value === "COLLEGE" ? "COLLEGE" : "BASIC";
+      form.querySelectorAll("[data-community]").forEach((field) => {
+        const show = kind === field.dataset.community;
+        field.hidden = !show;
+        field.querySelectorAll("select, input").forEach((control) => {
+          control.disabled = !show;
+          control.required = show;
+        });
+      });
+      if (grade && kind === "BASIC") {
+        grade.querySelectorAll("optgroup").forEach((group) => {
+          const mine = group.dataset.gradesFor === value;
+          group.hidden = !mine;
+          group.disabled = !mine;
+        });
+        const selected = grade.selectedOptions[0];
+        if (selected && selected.parentElement.tagName === "OPTGROUP" && selected.parentElement.disabled) {
+          grade.value = "";
+        }
+      }
+    }
+
+    radios.forEach((radio) => radio.addEventListener("change", sync));
     sync();
   }
 
@@ -418,7 +442,7 @@
     document.querySelectorAll(".report-sheet form[data-report-form]").forEach(setupReportPreview);
     document.querySelectorAll("input[data-suggest-people]").forEach(setupPeopleSuggestions);
     document.querySelectorAll("textarea[data-count-chars]").forEach(setupCharCount);
-    document.querySelectorAll("select[data-other-toggle]").forEach(setupOtherToggle);
+    document.querySelectorAll("form[data-profile-form]").forEach(setupCommunityFields);
     document.querySelectorAll("input[data-suggest-search]").forEach((input) =>
       setupSuggestions(input, "/api/suggest/search", true));
     document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);

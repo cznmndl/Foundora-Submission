@@ -1,5 +1,6 @@
 package com.foundora.controller;
 
+import com.foundora.model.Community;
 import com.foundora.model.UserProfile;
 import com.foundora.support.WebTestBase;
 import org.junit.jupiter.api.Test;
@@ -30,24 +31,20 @@ class ProfileAndOfficeTest extends WebTestBase {
                 .andExpect(content().string(containsString("value=\"O1A\"")))
                 .andExpect(content().string(not(containsString("id=\"department\""))));
 
-        // "Other" needs the program typed in.
-        mvc.perform(post("/profile").param("course", "Other").param("yearLevel", "3").param("section", "O3A")
-                        .with(as(STUDENT)).with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("so type your program")));
-
-        mvc.perform(post("/profile").param("course", "Other").param("courseOther", "BS Marine Transportation")
+        mvc.perform(post("/profile").param("community", "COLLEGE").param("course", "BS Computer Science")
                         .param("yearLevel", "3").param("section", "o3a").with(as(STUDENT)).with(csrf()))
                 .andExpect(redirectedUrl("/profile"))
                 .andExpect(flash().attribute("flashSuccess", "Your profile was updated."));
 
         UserProfile saved = profileRepository.findById(STUDENT.uid()).orElseThrow();
-        assertThat(saved.getCourse()).isEqualTo("BS Marine Transportation");
+        assertThat(saved.getCommunity()).isEqualTo(Community.COLLEGE);
+        assertThat(saved.getCourse()).isEqualTo("BS Computer Science");
         assertThat(saved.getYearLevel()).isEqualTo(3);
         assertThat(saved.getSection()).isEqualTo("O3A");
-        // The edit form shows "Other" with the typed program.
+        // The edit form shows the saved course selected, inside its college's group.
         mvc.perform(get("/profile").with(as(STUDENT)))
-                .andExpect(content().string(containsString("value=\"BS Marine Transportation\"")));
+                .andExpect(content().string(containsString("<optgroup label=\"College of Information Technology and Engineering\"")))
+                .andExpect(content().string(containsString("value=\"BS Computer Science\" selected=\"selected\"")));
     }
 
     @Test
@@ -62,7 +59,8 @@ class ProfileAndOfficeTest extends WebTestBase {
 
     @Test
     void invalidYearLevelsAndSectionsAreRefused() throws Exception {
-        mvc.perform(post("/profile").param("course", "BS Nursing").param("yearLevel", "9").param("section", "A;B")
+        mvc.perform(post("/profile").param("community", "COLLEGE").param("course", "BS Psychology")
+                        .param("yearLevel", "9").param("section", "A;B")
                         .with(as(STUDENT)).with(csrf()))
                 .andExpect(content().string(containsString("Choose your year level.")))
                 .andExpect(content().string(containsString("letters, numbers and dashes")));

@@ -2,81 +2,109 @@ package com.foundora.service;
 
 import com.foundora.auth.UserRole;
 import com.foundora.config.ProfileOptions;
+import com.foundora.model.Community;
 import com.foundora.model.UserProfile;
 import org.springframework.validation.Errors;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * What the profile form submits. Which fields are required depends on the signed-in role: students give
- * course, year level and section; staff and admins give a department or office. Name and email always come
- * from the Google account, never from this form.
+ * What the profile form submits. Which fields are required depends on the signed-in role and, for students, on
+ * their community: College needs course, year level and section; Elementary, Junior High and Senior High need
+ * grade level and section. Staff and admins give a department or office. The form shows only the fields the
+ * community needs when JavaScript runs, but sends everything without it, so the server checks every rule and
+ * ignores the fields the community doesn't use. Name and email always come from the Google account.
  */
 public class ProfileForm {
 
     private static final Pattern SECTION = Pattern.compile("[A-Za-z0-9 -]+");
 
+    private String community;
     private String course;
-    private String courseOther;
     private Integer yearLevel;
+    private Integer gradeLevel;
     private String section;
     private String department;
+
+    /** Set when the saved course isn't in today's list, so the form can say so instead of silently dropping it. */
+    private String unlistedCourse;
 
     public static ProfileForm from(UserProfile profile, ProfileOptions options) {
         ProfileForm form = new ProfileForm();
         if (profile == null) {
             return form;
         }
+        Community c = profile.effectiveCommunity();
+        form.community = c == null ? null : c.name();
         if (profile.getCourse() != null) {
             if (options.isListedCourse(profile.getCourse())) {
                 form.course = profile.getCourse();
             } else {
-                form.course = ProfileOptions.OTHER;
-                form.courseOther = profile.getCourse();
+                form.unlistedCourse = profile.getCourse();
             }
         }
         form.yearLevel = profile.getYearLevel();
+        form.gradeLevel = profile.getGradeLevel();
         form.section = profile.getSection();
         form.department = profile.getDepartment();
         return form;
     }
 
     public void validate(UserRole role, ProfileOptions options, Errors errors) {
-        if (role == UserRole.STUDENT) {
-            if (course == null || course.isBlank()) {
-                errors.rejectValue("course", "required", "Choose your course.");
-            } else if (!options.courses().contains(course)) {
-                errors.rejectValue("course", "unknown", "Choose a course from the list, or “Other”.");
-            } else if (ProfileOptions.OTHER.equals(course)) {
-                if (courseOther == null || courseOther.isBlank()) {
-                    errors.rejectValue("courseOther", "required", "You chose “Other”, so type your program.");
-                } else if (courseOther.length() > UserProfile.MAX_COURSE) {
-                    errors.rejectValue("courseOther", "length",
-                            "Keep the program to " + UserProfile.MAX_COURSE + " characters or fewer.");
-                }
-            }
-            if (yearLevel == null || yearLevel < 1 || yearLevel > ProfileOptions.MAX_YEAR) {
-                errors.rejectValue("yearLevel", "required", "Choose your year level.");
-            }
-            if (section == null || section.isBlank()) {
-                errors.rejectValue("section", "required", "Enter your section, e.g. O1A.");
-            } else if (section.length() > UserProfile.MAX_SECTION || !SECTION.matcher(section).matches()) {
-                errors.rejectValue("section", "format",
-                        "Use letters, numbers and dashes only, up to " + UserProfile.MAX_SECTION + " characters.");
-            }
-        } else {
+        if (role != UserRole.STUDENT) {
             if (department == null || department.isBlank()) {
                 errors.rejectValue("department", "required", "Enter your department or office.");
             } else if (department.length() > UserProfile.MAX_DEPARTMENT) {
                 errors.rejectValue("department", "length",
                         "Keep it to " + UserProfile.MAX_DEPARTMENT + " characters or fewer.");
             }
+            return;
+        }
+        Community c = resolvedCommunity();
+        if (c == null) {
+            errors.rejectValue("community", "required", "Choose your community.");
+        } else if (c.isCollege()) {
+            if (course == null || course.isBlank()) {
+                errors.rejectValue("course", "required", "Choose your course.");
+            } else if (!options.isListedCourse(course)) {
+                errors.rejectValue("course", "unknown", "Choose a course from the list.");
+            }
+            if (yearLevel == null || yearLevel < 1 || yearLevel > ProfileOptions.MAX_YEAR) {
+                errors.rejectValue("yearLevel", "required", "Choose your year level.");
+            }
+        } else if (!c.hasGrade(gradeLevel)) {
+            errors.rejectValue("gradeLevel", "range", c.label() + " is Grades " + c.grades().get(0) + "–"
+                    + c.grades().get(c.grades().size() - 1) + ". Choose your grade.");
+        }
+        if (section == null || section.isBlank()) {
+            errors.rejectValue("section", "required", c != null && !c.isCollege()
+                    ? "Enter your section, e.g. Rizal." : "Enter your section, e.g. O1A.");
+        } else if (section.length() > UserProfile.MAX_SECTION || !SECTION.matcher(section).matches()) {
+            errors.rejectValue("section", "format",
+                    "Use letters, numbers and dashes only, up to " + UserProfile.MAX_SECTION + " characters.");
         }
     }
 
-    /** The course to store: the listed course, or what the student typed for "Other". */
-    public String resolvedCourse() {
-        return ProfileOptions.OTHER.equals(course) ? courseOther : course;
+    public Community resolvedCommunity() {
+        return Community.fromName(community);
+    }
+
+    /** College sections are codes (O1A), so they're upper-cased; basic education sections are names (Rizal). */
+    public String resolvedSection() {
+        if (section == null) {
+            return null;
+        }
+        Community c = resolvedCommunity();
+        return c != null && c.isCollege() ? section.toUpperCase(Locale.ROOT) : section;
+    }
+
+    public String getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(String community) {
+        this.community = trim(community);
     }
 
     public String getCourse() {
@@ -87,14 +115,6 @@ public class ProfileForm {
         this.course = trim(course);
     }
 
-    public String getCourseOther() {
-        return courseOther;
-    }
-
-    public void setCourseOther(String courseOther) {
-        this.courseOther = trim(courseOther);
-    }
-
     public Integer getYearLevel() {
         return yearLevel;
     }
@@ -103,12 +123,20 @@ public class ProfileForm {
         this.yearLevel = yearLevel;
     }
 
+    public Integer getGradeLevel() {
+        return gradeLevel;
+    }
+
+    public void setGradeLevel(Integer gradeLevel) {
+        this.gradeLevel = gradeLevel;
+    }
+
     public String getSection() {
         return section;
     }
 
     public void setSection(String section) {
-        this.section = section == null ? null : section.trim().toUpperCase(java.util.Locale.ROOT);
+        this.section = trim(section);
     }
 
     public String getDepartment() {
@@ -117,6 +145,10 @@ public class ProfileForm {
 
     public void setDepartment(String department) {
         this.department = trim(department);
+    }
+
+    public String getUnlistedCourse() {
+        return unlistedCourse;
     }
 
     private static String trim(String value) {

@@ -228,6 +228,8 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   body { padding-bottom: 0; }
   .tabbar { display: none; }
   .shell { grid-template-columns: 220px minmax(0, 1fr); padding: 1.5rem 1rem; }
+  /* First-time setup has no side navigation: one column, so the page centres. */
+  .shell:not(:has(> .sidenav)) { grid-template-columns: minmax(0, 1fr); }
   .sidenav { display: block; position: sticky; top: 92px; align-self: start; }
 }
 @media (min-width: 1200px) {
@@ -961,6 +963,55 @@ table.data th.col-status, table.data td.col-status { width: 10rem; }
 }
 .link-button::-webkit-details-marker { display: none; }
 .link-button:hover { color: var(--danger); }
+
+/* ---------- Profile (setup and My Profile): one centred card ---------- */
+.profile-page { width: 100%; max-width: 640px; margin: 0 auto; }
+.profile-head { text-align: center; margin-bottom: var(--s5); }
+.profile-head h1 { margin-bottom: var(--s2); }
+.profile-head p { color: var(--ink-2); margin: 0 auto; max-width: 52ch; }
+.profile-info {
+  display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: var(--s2) var(--s4); margin: 0;
+  padding-bottom: var(--s4); border-bottom: 1px solid var(--line);
+}
+.profile-info dt { color: var(--ink-3); font-size: var(--text-meta); font-weight: 600; padding-top: .1rem; }
+.profile-info dd { margin: 0; font-weight: 600; overflow-wrap: break-word; min-width: 0; }
+.profile-info .profile-email { overflow-wrap: anywhere; }
+.profile-info-note { margin: var(--s2) 0 var(--s5); }
+
+.community-field { margin-bottom: var(--s5); }
+.community-field > legend { padding: 0; }
+.community-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.community-tiles input { position: absolute; opacity: 0; pointer-events: none; }
+.community-tile {
+  display: flex; align-items: center; min-height: var(--control-h); padding: var(--s2) var(--s3);
+  border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface);
+  font-weight: 600; cursor: pointer; line-height: 1.25;
+  transition: border-color .15s, box-shadow .2s cubic-bezier(.2, .8, .2, 1);
+}
+.community-tile:hover { border-color: var(--ink-3); }
+.community-tiles input:focus-visible + .community-tile { box-shadow: var(--focus); }
+.community-tiles input:checked + .community-tile { border-color: var(--green-700); box-shadow: 0 0 0 1.5px var(--green-700); }
+.community-tiles input:checked + .community-tile::after {
+  content: ""; margin-left: auto; width: 20px; height: 20px; flex: none; border-radius: 50%;
+  background: var(--green-700) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 13px no-repeat;
+}
+
+/* Paired fields: same label height, same input top; helpers sit below the inputs. */
+.profile-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s4); }
+@media (min-width: 560px) { .profile-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.profile-row > .field[hidden] { display: none; }
+/* Without JavaScript every student field shows, tagged with who it's for; with it, only the right ones show. */
+.community-tag {
+  margin-left: .35rem; font-size: .75rem; font-weight: 600; color: var(--ink-3);
+}
+.has-community-js .community-tag { display: none; }
+.hint-college, .hint-basic { display: none; }
+.profile-card:has(#community-COLLEGE:checked) .hint-college { display: inline; }
+.profile-card:has(.community-tiles input:not(#community-COLLEGE):checked) .hint-basic { display: inline; }
+.profile-card:has(.community-tiles input:checked) .hint-any { display: none; }
+
+.profile-privacy { color: var(--ink-3); font-size: var(--text-meta); margin: var(--s2) 0 var(--s4); }
+.profile-actions { margin-top: 0; }
 
 /* ---------- Header profile link ---------- */
 .user-link { display: flex; align-items: center; gap: .6rem; color: inherit; text-decoration: none; border-radius: var(--radius-sm); }

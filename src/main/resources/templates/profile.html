@@ -3,51 +3,65 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title th:text="${setupMode} ? 'Set up your profile · Foundora' : 'My Profile · Foundora'">My Profile · Foundora</title></head>
 <body>
-<!--/* First-time setup (${setupMode}: no navigation until it's done) and the My Profile page. */-->
-<div id="content" class="content-narrow">
-    <div class="page-head">
+<!--/*
+  First-time setup (${setupMode}: no navigation until it's done) and the My Profile page: the same centred card.
+  Students choose a community first; app.js then shows only that community's fields (data-community). Without
+  JavaScript every student field is shown, tagged with who it's for, and the server checks and ignores the rest.
+*/-->
+<div id="content" class="profile-page">
+    <div class="profile-head">
         <h1 th:text="${setupMode} ? 'Set up your profile' : 'My Profile'">My Profile</h1>
+        <p th:if="${setupMode}">Welcome to Foundora! Tell us a little about yourself. You only need to do this once.</p>
+        <p th:unless="${setupMode}">Keep these details up to date. SDFO uses them to confirm who posted, lost or found an item.</p>
     </div>
-    <p class="lead" th:if="${setupMode}">Welcome to Foundora! Before you start, tell us a little about yourself. You only need to do this once.</p>
-    <p class="lead" th:unless="${setupMode}">Keep these details up to date. SDFO uses them to confirm who posted, lost or found an item.</p>
 
-    <form class="card" method="post" th:action="@{/profile}" th:object="${profileForm}" data-loading>
+    <form class="card profile-card" method="post" th:action="@{/profile}" th:object="${profileForm}" data-loading
+          data-profile-form>
         <div class="alert alert-error" role="alert" th:if="${#fields.hasAnyErrors()}">
             <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
             <span>Please fix the highlighted fields below.</span>
         </div>
 
-        <div class="reporter-box" style="margin:0 0 1rem">
-            <dl>
-                <dt>Name</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd>
-                <dt>Email</dt><dd th:text="${currentUser.email}">email</dd>
-                <dt>Role</dt><dd th:text="${currentUser.role.label()}">Student</dd>
-            </dl>
-            <p class="hint" style="margin:.5rem 0 0">Your name and email come from your Google account.</p>
-        </div>
+        <dl class="profile-info">
+            <dt>Name</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd>
+            <dt>Email</dt><dd class="profile-email" th:text="${currentUser.email}">juan_delacruz@dlsl.edu.ph</dd>
+            <dt>Role</dt><dd th:text="${currentUser.role.label()}">Student</dd>
+        </dl>
+        <p class="hint profile-info-note">Your name and email come from your Google account.</p>
 
         <th:block th:if="${isStudent}">
-            <div class="field">
-                <label for="course">Course</label>
-                <select id="course" th:field="*{course}" required data-other-toggle="course-other-field"
+            <fieldset class="field community-field"
+                      th:attr="aria-describedby=${#fields.hasErrors('community')} ? 'community-error' : null">
+                <legend>Community</legend>
+                <div class="community-tiles">
+                    <th:block th:each="c : ${@profileOptions.communities()}">
+                        <input type="radio" th:id="|community-${c.name()}|" name="community" th:value="${c.name()}"
+                               th:checked="${profileForm.community == c.name()}" required>
+                        <label class="community-tile" th:for="|community-${c.name()}|" th:text="${c.label()}">College</label>
+                    </th:block>
+                </div>
+                <p class="field-error" id="community-error" th:if="${#fields.hasErrors('community')}" th:errors="*{community}"></p>
+            </fieldset>
+
+            <div class="field" data-community="COLLEGE">
+                <label for="course">Course <span class="community-tag">College only</span></label>
+                <select id="course" th:field="*{course}"
                         th:attr="aria-invalid=${#fields.hasErrors('course')} ? 'true' : null,
-                                 aria-describedby=${#fields.hasErrors('course')} ? 'course-error' : null">
+                                 aria-describedby=${#fields.hasErrors('course')} ? 'course-error' : (${profileForm.unlistedCourse != null} ? 'course-unlisted' : null)">
                     <option value="">Choose your course</option>
-                    <option th:each="c : ${@profileOptions.courses()}" th:value="${c}" th:text="${c}">BSIT</option>
+                    <optgroup th:each="g : ${@profileOptions.courseGroups()}" th:label="${g.college()}">
+                        <option th:each="c : ${g.courses()}" th:value="${c}" th:text="${c}">BS Information Technology</option>
+                    </optgroup>
                 </select>
                 <p class="field-error" id="course-error" th:if="${#fields.hasErrors('course')}" th:errors="*{course}"></p>
+                <p class="hint hint-below" id="course-unlisted" th:if="${profileForm.unlistedCourse != null and !#fields.hasErrors('course')}"
+                   th:text="|Your saved course, “${profileForm.unlistedCourse}”, isn't in the list any more. Choose yours when you next save.|">Saved course</p>
             </div>
-            <div class="field" id="course-other-field">
-                <label for="courseOther">If “Other”: your program</label>
-                <input type="text" id="courseOther" th:field="*{courseOther}" maxlength="120" autocomplete="off"
-                       th:attr="aria-invalid=${#fields.hasErrors('courseOther')} ? 'true' : null,
-                                aria-describedby=${#fields.hasErrors('courseOther')} ? 'courseOther-error' : null">
-                <p class="field-error" id="courseOther-error" th:if="${#fields.hasErrors('courseOther')}" th:errors="*{courseOther}"></p>
-            </div>
-            <div class="filter-grid" style="margin-top:0">
-                <div class="field">
-                    <label for="yearLevel">Year level</label>
-                    <select id="yearLevel" th:field="*{yearLevel}" required
+
+            <div class="profile-row">
+                <div class="field" data-community="COLLEGE">
+                    <label for="yearLevel">Year level <span class="community-tag">College only</span></label>
+                    <select id="yearLevel" th:field="*{yearLevel}"
                             th:attr="aria-invalid=${#fields.hasErrors('yearLevel')} ? 'true' : null,
                                      aria-describedby=${#fields.hasErrors('yearLevel')} ? 'yearLevel-error' : null">
                         <option value="">Choose</option>
@@ -55,26 +69,45 @@
                     </select>
                     <p class="field-error" id="yearLevel-error" th:if="${#fields.hasErrors('yearLevel')}" th:errors="*{yearLevel}"></p>
                 </div>
+                <div class="field" data-community="BASIC">
+                    <label for="gradeLevel">Grade level <span class="community-tag">Elementary, JHS, SHS</span></label>
+                    <select id="gradeLevel" th:field="*{gradeLevel}"
+                            th:attr="aria-invalid=${#fields.hasErrors('gradeLevel')} ? 'true' : null,
+                                     aria-describedby=${#fields.hasErrors('gradeLevel')} ? 'gradeLevel-error' : null">
+                        <option value="">Choose</option>
+                        <optgroup th:each="c : ${@profileOptions.basicEducation()}" th:label="${c.label()}"
+                                  th:attr="data-grades-for=${c.name()}">
+                            <option th:each="g : ${c.grades()}" th:value="${g}" th:text="|Grade ${g}|">Grade 7</option>
+                        </optgroup>
+                    </select>
+                    <p class="field-error" id="gradeLevel-error" th:if="${#fields.hasErrors('gradeLevel')}" th:errors="*{gradeLevel}"></p>
+                </div>
                 <div class="field">
-                    <label for="section">Section <span class="hint">For example: O1A</span></label>
+                    <label for="section">Section</label>
                     <input type="text" id="section" th:field="*{section}" maxlength="20" required autocomplete="off"
                            th:attr="aria-invalid=${#fields.hasErrors('section')} ? 'true' : null,
-                                    aria-describedby=${#fields.hasErrors('section')} ? 'section-error' : null">
+                                    aria-describedby=${#fields.hasErrors('section')} ? 'section-error section-hint' : 'section-hint'">
                     <p class="field-error" id="section-error" th:if="${#fields.hasErrors('section')}" th:errors="*{section}"></p>
+                    <p class="hint hint-below" id="section-hint">
+                        <span class="hint-college">For example: O1A</span>
+                        <span class="hint-basic">For example: Rizal</span>
+                        <span class="hint-any">For example: O1A (College) or Rizal</span>
+                    </p>
                 </div>
             </div>
         </th:block>
 
         <div class="field" th:unless="${isStudent}">
-            <label for="department">Department or office <span class="hint">For example: SDFO, Registrar's Office, College of IT</span></label>
+            <label for="department">Department or office</label>
             <input type="text" id="department" th:field="*{department}" maxlength="120" required autocomplete="off"
                    th:attr="aria-invalid=${#fields.hasErrors('department')} ? 'true' : null,
-                            aria-describedby=${#fields.hasErrors('department')} ? 'department-error' : null">
+                            aria-describedby=${#fields.hasErrors('department')} ? 'department-error department-hint' : 'department-hint'">
             <p class="field-error" id="department-error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}"></p>
+            <p class="hint hint-below" id="department-hint">For example: SDFO, Registrar's Office, College of IT</p>
         </div>
 
-        <p class="muted small">Only SDFO admins see these details, next to your posts and comments. Other users see only your name.</p>
-        <div class="form-actions">
+        <p class="profile-privacy">Only SDFO admins see these details, next to your posts and comments. Other users see only your name.</p>
+        <div class="form-actions profile-actions">
             <button class="btn btn-primary" type="submit" th:text="${setupMode} ? 'Save and continue' : 'Save changes'">Save</button>
         </div>
     </form>
