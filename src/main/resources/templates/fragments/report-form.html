@@ -66,7 +66,7 @@
         </div>
 
         <div class="field">
-            <label for="itemName">Item name <span class="hint">What it is, e.g. “Black umbrella”, “Casio calculator”, “Green Aquaflask”.</span></label>
+            <label for="itemName">Item name <span class="hint">E.g. "Black umbrella", "Casio calculator"</span></label>
             <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" required autocomplete="off" data-preview="name"
                    th:attr="aria-invalid=${#fields.hasErrors('itemName')} ? 'true' : null,
                             aria-describedby=${#fields.hasErrors('itemName')} ? 'itemName-error' : null">

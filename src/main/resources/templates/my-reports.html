@@ -8,8 +8,7 @@
         <h1>My Reports</h1>
         <a class="btn btn-primary btn-small" th:href="@{/report}">Report an item</a>
     </div>
-    <p class="lead">Everything you've reported, with where it stands. Check back here for updates.</p>
-    <p class="muted small">The location and private details of each report are shown only to you here and to SDFO admins.</p>
+    <p class="page-note">The location and private details of each report are shown only to you here and to SDFO admins.</p>
 
     <section th:unless="${myClaims.isEmpty()}" id="claims" aria-labelledby="claims-heading" style="margin-bottom:1.5rem">
         <h2 id="claims-heading">My claim requests</h2>

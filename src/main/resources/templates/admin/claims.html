@@ -5,9 +5,7 @@
 <body>
 <div id="content" class="content-narrow">
     <div class="page-head"><h1>Claim requests</h1></div>
-    <p class="lead">Items people say are theirs, the one waiting longest first. Compare each person's answer with
-        where the item was really found, then verify one, ask a question, or deny.</p>
-    <p class="muted small" th:text="|A verified request gets a pickup pass for ${passDays} days. If it isn't collected, the item goes back on the feed.|">7 days</p>
+    <p class="page-note" th:text="|A verified request gets a pickup pass for ${passDays} days. If it isn't collected, the item goes back on the feed.|">7 days</p>
 
     <section class="card empty" th:if="${queue.isEmpty()}">
         <h2>No claim requests</h2>

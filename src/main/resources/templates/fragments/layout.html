@@ -10,6 +10,7 @@
     <title th:replace="${title}">Foundora</title>
     <meta name="theme-color" content="#063d22">
     <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+    <link rel="preload" th:href="@{/fonts/inter-latin-wght-normal.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" th:href="@{/fonts/archivo-latin-wdth-normal.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script th:src="@{/js/app.js}" defer></script>
@@ -102,7 +103,7 @@
 </div>
 
 <footer class="footer">
-    <p>Foundora · Lost and Found for the De La Salle Lipa community. Items are turned in and picked up at the SDFO office.</p>
+    <p>Foundora · Lost and Found for the De La Salle Lipa community.</p>
 </footer>
 
 <nav class="tabbar" aria-label="Main" th:if="${currentUser != null and setupMode != true}">
