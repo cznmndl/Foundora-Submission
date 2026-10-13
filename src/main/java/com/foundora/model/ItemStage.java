@@ -29,6 +29,18 @@ public enum ItemStage {
         return name().toLowerCase().replace('_', '-');
     }
 
+    /** The icon on its status sticker (fragments/icons.html). */
+    public String icon() {
+        return switch (this) {
+            case UNDER_REVIEW -> "review";
+            case POSTED -> "posted";
+            case CLAIM_PENDING -> "clock";
+            case VERIFIED -> "shield-check";
+            case RETURNED -> "check";
+            case NOT_POSTED, REMOVED -> "x";
+        };
+    }
+
     /** Position on the five-step track (1-5), or 0 for reports that left it (not posted, removed). */
     public int step() {
         return switch (this) {

@@ -73,7 +73,7 @@ class ProfileAndOfficeTest extends WebTestBase {
     void sdfoOfficeDetailsAreShown() throws Exception {
         mvc.perform(get("/").with(as(STUDENT)))
                 .andExpect(content().string(containsString("SDFO office")))
-                .andExpect(content().string(containsString("Found items are turned in here, and owners claim them here.")))
+                .andExpect(content().string(containsString("Found items are turned in here, and owners pick them up here.")))
                 .andExpect(content().string(containsString("MB 3rd Floor")))
                 .andExpect(content().string(containsString("8:00 AM – 4:00 PM")))
                 .andExpect(content().string(not(containsString("placeholder)"))));

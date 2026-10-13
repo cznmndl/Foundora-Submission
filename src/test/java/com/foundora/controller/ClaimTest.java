@@ -104,7 +104,7 @@ class ClaimTest extends WebTestBase {
         approved("Unclaimed umbrella");
 
         String student = html("/?show=claimed", as(STUDENT));
-        assertThat(student).contains("Blue tumbler").contains("Claimed by Pedro Reyes")
+        assertThat(student).contains("Blue tumbler").contains("Returned to Pedro Reyes")
                 .doesNotContain("Unclaimed umbrella").doesNotContain("Verified with school ID")
                 .doesNotContain("Grade 11");
         assertThat(html("/posts/" + claimed.getId(), as(STAFF))).contains("Claimed by Pedro Reyes")
@@ -155,7 +155,7 @@ class ClaimTest extends WebTestBase {
         assertThat(after.getClaimedAt()).isNull();
         assertThat(claimRepository.findById(first.getId()).orElseThrow().getStatus()).isEqualTo(ClaimStatus.REOPENED);
         assertThat(lastAction()).isEqualTo(ActivityAction.CLAIM_REOPENED);
-        assertThat(html("/", as(STUDENT))).contains("Blue tumbler").doesNotContain("Claimed by");
+        assertThat(html("/", as(STUDENT))).contains("Blue tumbler").doesNotContain("Returned to");
 
         // It can be claimed again; both records are kept.
         claim(after);

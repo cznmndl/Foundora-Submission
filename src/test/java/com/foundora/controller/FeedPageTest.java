@@ -36,7 +36,7 @@ class FeedPageTest extends WebTestBase {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Approved umbrella")))
                 .andExpect(content().string(containsString("Claimed tumbler")))
-                .andExpect(content().string(containsString("Claimed / Returned")))
+                .andExpect(content().string(containsString("Returned to its owner")))
                 .andExpect(content().string(not(containsString("Pending wallet"))))
                 .andExpect(content().string(not(containsString("Rejected keys"))))
                 .andExpect(content().string(not(containsString("Removed calculator"))));
@@ -61,8 +61,8 @@ class FeedPageTest extends WebTestBase {
         save(item("Lost bag", ReportType.LOST, ReportStatus.APPROVED, OTHER_STUDENT));
 
         mvc.perform(get("/").with(as(STUDENT)))
-                .andExpect(content().string(containsString("Claim this item at the SDFO office.")))
-                .andExpect(content().string(containsString("Found this? Bring it to the SDFO office.")));
+                .andExpect(content().string(containsString("Held at the SDFO office")))
+                .andExpect(content().string(containsString("Found it? Bring it to SDFO")));
     }
 
     @Test
@@ -109,7 +109,7 @@ class FeedPageTest extends WebTestBase {
         feedIndex.rebuild();
 
         String first = html("/");
-        assertThat(first).contains("12 posts").contains("Item number 12x").contains("Item number 3x")
+        assertThat(first).contains("12 items").contains("Item number 12x").contains("Item number 3x")
                 .doesNotContain("Item number 2x").contains("data-load-more").contains("/feed/posts?page=1");
 
         String more = html("/feed/posts?page=1");
@@ -119,7 +119,7 @@ class FeedPageTest extends WebTestBase {
 
     @Test
     void emptyStatesExplainWhatToDo() throws Exception {
-        assertThat(html("/")).contains("No posts yet").contains("Report an item");
+        assertThat(html("/")).contains("Nothing on the board yet").contains("Report an item");
         assertThat(html("/?type=found")).contains("No found items yet").contains("Clear filters");
     }
 

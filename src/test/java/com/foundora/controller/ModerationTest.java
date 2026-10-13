@@ -88,7 +88,7 @@ class ModerationTest extends WebTestBase {
         assertThat(after.getClaimedAt()).isNotNull();
         mvc.perform(get("/").with(as(OTHER_STUDENT)))
                 .andExpect(content().string(containsString("Navy umbrella")))
-                .andExpect(content().string(containsString("is-claimed")));
+                .andExpect(content().string(containsString("stage-returned")));
         mvc.perform(get("/?hideClaimed=on").with(as(OTHER_STUDENT)))
                 .andExpect(content().string(not(containsString("Navy umbrella"))));
     }

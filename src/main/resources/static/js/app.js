@@ -272,9 +272,9 @@
         if (!response.ok) throw new Error(String(response.status));
         const template = document.createElement("template");
         template.innerHTML = await response.text();
-        const added = template.content.querySelectorAll("article.post").length;
+        const added = template.content.querySelectorAll("article[data-post]").length;
         container.replaceWith(template.content);
-        announce(`Loaded ${added} more ${added === 1 ? "post" : "posts"}.`);
+        announce(`Loaded ${added} more ${added === 1 ? "item" : "items"}.`);
         document.querySelectorAll("[data-load-more]").forEach(setupLoadMore);
       } catch (e) {
         loading = false;

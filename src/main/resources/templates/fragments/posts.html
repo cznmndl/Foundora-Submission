@@ -71,6 +71,63 @@
     </div>
 </article>
 
+<!--/*
+  One item on the feed, as an ID card: type stripe, photo window, the facts, and a status sticker in a fixed
+  corner. Same privacy rule as card(): rendered from a FeedPost, so no email and no location; admin details come
+  from ${adminDetails} only for admins. The whole card opens the item; admin controls sit above that link.
+*/-->
+<article th:fragment="idcard(post, controls, returnTo)" class="idcard" data-post
+         th:classappend="${(post.found() ? 'is-found' : 'is-lost') + ' is-stage-' + post.stage().slug()}"
+         th:id="|post-${post.id()}|" th:attr="aria-labelledby=|title-${post.id()}|"
+         th:with="ad=${adminDetails != null ? adminDetails.get(post.id()) : null},
+                  commentCount=${commentCounts != null ? commentCounts.getOrDefault(post.id(), 0L) : null}">
+    <header class="idcard-stripe">
+        <span class="idcard-type" th:text="${post.found()} ? 'Found item' : 'Lost item'">Found item</span>
+        <time th:datetime="${@fmt.iso(post.createdAt())}" th:title="|Posted ${@fmt.dateTime(post.createdAt())}|"
+              th:text="${@fmt.ago(post.createdAt())}">2 hours ago</time>
+    </header>
+    <div class="idcard-body">
+        <div class="idcard-photo" aria-hidden="true">
+            <img th:if="${post.hasPhoto()}" th:src="@{/photos/{id}(id=${post.id()})}" alt="" loading="lazy" decoding="async">
+            <th:block th:unless="${post.hasPhoto()}" th:insert="~{fragments/icons :: icon(|cat-${post.category().name()}|)}"></th:block>
+        </div>
+        <div class="idcard-facts">
+            <h2 class="idcard-title" th:id="|title-${post.id()}|">
+                <a class="idcard-link" th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Green Aquaflask, 32 oz</a>
+            </h2>
+            <dl class="idcard-dl">
+                <div><dt>Category</dt><dd th:text="${post.category().label()}">Tumblers &amp; Bottles</dd></div>
+                <div><dt th:text="${post.found()} ? 'Found' : 'Lost'">Found</dt>
+                    <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}" th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd></div>
+                <div><dt>Posted by</dt><dd th:text="${post.reporterName()}">Juan Dela Cruz</dd></div>
+            </dl>
+        </div>
+    </div>
+    <footer class="idcard-foot">
+        <span class="idcard-note" th:if="${post.claimed()}"
+              th:text="${post.claimedBy() != null} ? |Returned to ${post.claimedBy()}| : 'Returned to its owner'">Returned to Pedro Reyes</span>
+        <span class="idcard-note" th:unless="${post.claimed()}"
+              th:text="${post.found()} ? 'Held at the SDFO office' : 'Found it? Bring it to SDFO'">Held at the SDFO office</span>
+        <a class="idcard-comments" th:if="${commentCount != null and commentCount > 0}"
+           th:href="@{/posts/{id}(id=${post.id()})} + '#comments'"
+           th:attr="aria-label=${commentCount == 1} ? '1 comment' : |${commentCount} comments|">
+            <th:block th:replace="~{fragments/icons :: icon('comment')}"></th:block>
+            <span aria-hidden="true" th:text="${commentCount}">2</span></a>
+        <span th:replace="~{fragments/posts :: sticker(${post.stage()})}"></span>
+    </footer>
+    <div class="idcard-admin" th:if="${ad != null or controls}">
+        <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
+        <div th:if="${controls}"
+             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo})}"></div>
+    </div>
+</article>
+
+<!--/* The status sticker: an icon, a word and a colour, never colour alone. stage is an ItemStage. */-->
+<span th:fragment="sticker(stage)" class="sticker" th:classappend="|sticker-${stage.slug()}|">
+    <th:block th:replace="~{fragments/icons :: icon(${stage.icon()})}"></th:block>
+    <span th:text="${stage.label()}">Posted</span>
+</span>
+
 <!--/* Admin buttons for an item, each with a confirmation step (a <details> panel: no JavaScript needed). */-->
 <div th:fragment="adminActions(id, name, status, returnTo)" class="action-row">
     <th:block th:if="${status == 'PENDING'}">
@@ -143,11 +200,11 @@
 <!--/* A page of feed posts plus the "Load more" control. Also returned alone by /feed/posts. */-->
 <th:block th:fragment="page">
     <th:block th:each="post : ${feedPage.posts()}">
-        <article th:replace="~{fragments/posts :: card(${post}, ${currentUser.isAdmin()}, ${filters.pageUrl(0)}, true)}"></article>
+        <article th:replace="~{fragments/posts :: idcard(${post}, ${currentUser.isAdmin()}, ${filters.pageUrl(0)})}"></article>
     </th:block>
     <div th:if="${feedPage.hasMore()}" class="load-more" data-load-more
          th:attr="data-next=${filters.moreUrl(feedPage.page() + 1)}">
-        <a class="btn btn-secondary" th:href="${filters.pageUrl(feedPage.page() + 1)}">Load more posts</a>
+        <a class="btn btn-secondary" th:href="${filters.pageUrl(feedPage.page() + 1)}">Load more items</a>
     </div>
     <p th:if="${!feedPage.hasMore() and feedPage.page() > 0}"
        class="end-of-feed">You're all caught up.</p>
