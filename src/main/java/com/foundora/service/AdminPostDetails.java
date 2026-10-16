@@ -11,7 +11,8 @@ import com.foundora.model.UserProfile;
  * @param privateDetails  identifying marks the reporter kept off the public description; null if none
  * @param reporterProfile null if the reporter has no profile yet (e.g. reported before profiles existed)
  * @param claim           the current (not reopened) claim record, or null
+ * @param money           amount, denominations, container and time for a money report; null otherwise
  */
 public record AdminPostDetails(String location, String locationSpot, String privateDetails, String reporterEmail,
-                               UserProfile reporterProfile, ClaimRecord claim) {
+                               UserProfile reporterProfile, ClaimRecord claim, MoneyDetails money) {
 }

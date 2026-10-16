@@ -1,5 +1,6 @@
 package com.foundora.repository;
 
+import com.foundora.model.Category;
 import com.foundora.model.Item;
 import com.foundora.model.ReportStatus;
 import com.foundora.model.ReportType;
@@ -18,6 +19,9 @@ public interface ItemRepository extends JpaRepository<Item, UUID>, JpaSpecificat
     List<Item> findByStatusOrderByCreatedAtAsc(ReportStatus status);
 
     List<Item> findByReporterEmailOrderByCreatedAtDesc(String reporterEmail);
+
+    List<Item> findByCategoryAndReportTypeAndStatusIn(Category category, ReportType type,
+                                                      Collection<ReportStatus> statuses);
 
     long countByStatus(ReportStatus status);
 

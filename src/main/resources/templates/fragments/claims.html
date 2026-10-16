@@ -3,7 +3,8 @@
 <body>
 <!--/*
   Claim request pieces. Plain for now: the School ID redesign restyles them screen by screen.
-  A request's proof is shown only to its requester and to admins.
+  A request's proof is shown only to its requester and to admins. So are a money claim's answers (amount,
+  denominations, where and when, container), which admins see beside the finder's private details.
 */-->
 
 <!--/* The requester's side, on the post page: their latest request, or the "This is mine" form. */-->
@@ -51,7 +52,14 @@
 
         <details class="small" style="margin-top:.5rem">
             <summary>What you told SDFO</summary>
-            <p style="white-space:pre-line;margin:.5rem 0 0" th:text="${r.proof}">Proof</p>
+            <div class="reporter-box" th:if="${r.isMoney()}" style="margin:.5rem 0 0"><dl>
+                <dt>Amount</dt><dd th:text="${@fmt.money(r.moneyAmount)}">₱500.00</dd>
+                <dt>Denominations</dt><dd th:text="${r.moneyDenominations ?: '—'}">5 × ₱100</dd>
+                <dt>Where</dt><dd th:text="${r.moneyWhere}">Library</dd>
+                <dt>When</dt><dd th:text="${@fmt.dateAndTime(r.moneyLostOn, r.moneyLostTime)}">Oct 3, 2026</dd>
+                <dt>Container</dt><dd th:text="${r.moneyContainer.label()}">Envelope</dd>
+            </dl></div>
+            <p style="white-space:pre-line;margin:.5rem 0 0" th:if="${!r.proof.isEmpty()}" th:text="${r.proof}">Proof</p>
             <p th:if="${r.infoReply != null}" style="white-space:pre-line;margin:.5rem 0 0"
                th:text="|Your answer: ${r.infoReply}|">Answer</p>
             <img th:if="${r.hasPhoto()}" th:src="@{/claim-requests/{id}/photo(id=${r.id})}" alt="Your photo" class="thumb" style="margin-top:.5rem">
@@ -62,7 +70,56 @@
         </form>
     </th:block>
 
-    <form th:if="${canRequest}" method="post" enctype="multipart/form-data"
+    <!--/* Money: cash can't be told apart by looking, so the claimant describes it the way the finder did. */-->
+    <form th:if="${canRequest and post.money()}" method="post" th:action="@{/posts/{id}/claim-requests(id=${post.id()})}"
+          data-loading style="margin-top:.75rem" th:with="d=${moneyDraft}">
+        <p class="small">Tell SDFO about the money you lost. Only SDFO sees this, and compares it with what the finder reported.</p>
+        <div class="rf-row">
+            <div class="field">
+                <label for="moneyAmount">Amount in pesos</label>
+                <input type="number" id="moneyAmount" name="moneyAmount" min="0.01" step="0.01" inputmode="decimal" required
+                       th:value="${d?.amount()}" placeholder="e.g. 500">
+            </div>
+            <div class="field">
+                <label for="moneyContainer">What it was in</label>
+                <select id="moneyContainer" name="moneyContainer" required>
+                    <option value="">Choose one</option>
+                    <option th:each="c : ${containers}" th:value="${c.name()}" th:text="${c.label()}"
+                            th:selected="${d?.container() == c.name()}">Envelope</option>
+                </select>
+            </div>
+        </div>
+        <div class="field">
+            <label for="moneyDenominations">Denominations <span class="optional">Optional</span></label>
+            <input type="text" id="moneyDenominations" name="moneyDenominations" maxlength="200" autocomplete="off"
+                   th:value="${d?.denominations()}" placeholder="e.g. 2 × ₱500, 3 coins">
+        </div>
+        <div class="field">
+            <label for="moneyWhere">Where you lost it <span class="hint">The building and the spot, as best you remember.</span></label>
+            <input type="text" id="moneyWhere" name="moneyWhere" maxlength="200" required autocomplete="off"
+                   th:value="${d?.where()}">
+        </div>
+        <div class="rf-row">
+            <div class="field">
+                <label for="moneyLostOn">Date you lost it</label>
+                <input type="date" id="moneyLostOn" name="moneyLostOn" required th:max="${today}"
+                       th:value="${d?.lostOn()}">
+            </div>
+            <div class="field">
+                <label for="moneyLostTime">Time <span class="optional">Optional</span></label>
+                <input type="time" id="moneyLostTime" name="moneyLostTime" th:value="${d?.lostTime()}">
+            </div>
+        </div>
+        <div class="field">
+            <label for="proof">Anything else <span class="optional">Optional</span>
+                <span class="hint">E.g. a note, receipt or rubber band with it.</span></label>
+            <textarea id="proof" name="proof" rows="3" maxlength="1000" th:text="${proofDraft}"></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit">Send claim request</button>
+        <p class="muted small" style="margin-top:.5rem" th:text="|If SDFO verifies it, you'll have ${passDays} days to pick it up.|">7 days</p>
+    </form>
+
+    <form th:if="${canRequest and !post.money()}" method="post" enctype="multipart/form-data"
           th:action="@{/posts/{id}/claim-requests(id=${post.id()})}" data-loading style="margin-top:.75rem">
         <div class="field">
             <label for="proof">This is mine
@@ -86,7 +143,33 @@
         <span class="muted small" th:text="|${@fmt.ago(r.createdAt)}|">2 hours ago</span>
     </p>
     <p class="muted small" style="margin:0" th:text="|${r.requesterEmail}${r.requesterAffiliation != null ? ' · ' + r.requesterAffiliation : ''}|">email · course</p>
-    <p style="white-space:pre-line;margin:.5rem 0 0" th:text="${r.proof}">Proof</p>
+    <!--/* Money: what the claimant says, beside what the finder privately reported. */-->
+    <table class="money-compare" th:if="${item.money and r.isMoney()}">
+        <caption class="visually-hidden">The claimant's description beside the finder's private details</caption>
+        <thead><tr><th scope="col"></th><th scope="col">Claimant says</th><th scope="col">Finder reported</th></tr></thead>
+        <tbody>
+        <tr><th scope="row">Amount</th>
+            <td><span class="amount" th:text="${@fmt.money(r.moneyAmount)}">₱500.00</span>
+                <span class="money-same" th:if="${item.moneyAmount != null and item.moneyAmount.compareTo(r.moneyAmount) == 0}"><th:block
+                      th:replace="~{fragments/icons :: icon('check')}"></th:block>Same</span></td>
+            <td class="amount" th:text="${@fmt.money(item.moneyAmount)}">₱500.00</td></tr>
+        <tr><th scope="row">Denominations</th>
+            <td th:text="${r.moneyDenominations ?: '—'}">5 × ₱100</td>
+            <td th:text="${item.moneyDenominations ?: '—'}">5 × ₱100</td></tr>
+        <tr><th scope="row">Where</th>
+            <td th:text="${r.moneyWhere}">Library</td>
+            <td th:text="${item.locationSpot != null ? item.location + ' · ' + item.locationSpot : item.location}">Library · 2nd floor</td></tr>
+        <tr><th scope="row">When</th>
+            <td th:text="${@fmt.dateAndTime(r.moneyLostOn, r.moneyLostTime)}">Oct 3, 2026</td>
+            <td th:text="${@fmt.dateAndTime(item.dateLostFound, item.timeLostFound)}">Oct 3, 2026</td></tr>
+        <tr><th scope="row">Container</th>
+            <td><span th:text="${r.moneyContainer.label()}">Envelope</span>
+                <span class="money-same" th:if="${item.moneyContainer == r.moneyContainer}"><th:block
+                      th:replace="~{fragments/icons :: icon('check')}"></th:block>Same</span></td>
+            <td th:text="${item.moneyContainer != null ? item.moneyContainer.label() : '—'}">Envelope</td></tr>
+        </tbody>
+    </table>
+    <p style="white-space:pre-line;margin:.5rem 0 0" th:if="${!r.proof.isEmpty()}" th:text="${r.proof}">Proof</p>
     <p class="small" th:if="${r.adminNote != null and r.status.name() == 'NEEDS_INFO'}" style="margin:.5rem 0 0"
        th:text="|Asked: ${r.adminNote}|">Asked</p>
     <p class="small" th:if="${r.infoReply != null}" style="white-space:pre-line;margin:.25rem 0 0"

@@ -50,7 +50,7 @@ public class AdminDetailsService {
         for (Item item : page) {
             details.put(item.getId(), new AdminPostDetails(item.getLocation(), item.getLocationSpot(),
                     item.getPrivateDetails(), item.getReporterEmail(), reporters.get(item.getReporterEmail().toLowerCase(Locale.ROOT)),
-                    openClaims.get(item.getId())));
+                    openClaims.get(item.getId()), MoneyDetails.of(item)));
         }
         return details;
     }

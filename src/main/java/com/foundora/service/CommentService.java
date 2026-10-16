@@ -68,9 +68,10 @@ public class CommentService {
         this.cooldown = cooldown;
     }
 
-    /** Comments are open on posts that are on the feed: Approved, or Claimed and not yet archived. */
+    /** Comments are open on posts that are on the feed (Approved, or Claimed and not yet archived), except money. */
     public boolean isOpen(Item item) {
-        return item.isOnFeed();
+        // Money has no comments: a public "I lost ₱500 in an envelope" would hand the answers to anyone claiming it.
+        return item.isOnFeed() && !item.isMoney();
     }
 
     /** All comments on the post, oldest first, as this viewer may see them. */

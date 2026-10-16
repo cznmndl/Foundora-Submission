@@ -217,6 +217,29 @@ public class ModerationService {
         return move(id, ReportStatus.REMOVED, admin, trimmed);
     }
 
+    /**
+     * The final action for found money nobody claimed: SDFO dealt with it under its own policy. A note saying
+     * what was done is required; it goes on the report and in the activity log. Open claim requests are closed.
+     */
+    @Transactional
+    public Item markHandled(UUID id, FoundoraUser admin, String note) {
+        Item item = find(id);
+        if (!item.isFoundMoney()) {
+            throw new ModerationException("Only found money can be marked as handled by SDFO.");
+        }
+        String text = note == null ? "" : note.strip();
+        if (text.isEmpty()) {
+            throw new ModerationException("Write what SDFO did with the money, for the record.");
+        }
+        if (text.length() > Item.MAX_REASON) {
+            throw new ModerationException("Keep the note to " + Item.MAX_REASON + " characters or fewer.");
+        }
+        if (item.getStatus().canMoveTo(ReportStatus.HANDLED)) {
+            item.markHandled(text, admin.name(), clock.instant());
+        }
+        return move(item, ReportStatus.HANDLED, admin, text);
+    }
+
     private Item find(UUID id) {
         return items.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
@@ -279,7 +302,7 @@ public class ModerationService {
         if (next == ReportStatus.CLAIMED) {
             item.setClaimedAt(now);
         }
-        if (next == ReportStatus.REMOVED) {
+        if (next == ReportStatus.REMOVED || next == ReportStatus.HANDLED) {
             claimRequests.closeOpen(item, now);
         }
         if ((next == ReportStatus.REJECTED || next == ReportStatus.REMOVED) && item.hasPhoto()) {
@@ -300,6 +323,7 @@ public class ModerationService {
             case REJECTED -> ActivityAction.REJECTED;
             case CLAIMED -> ActivityAction.CLAIMED;
             case REMOVED -> ActivityAction.REMOVED;
+            case HANDLED -> ActivityAction.HANDLED_BY_SDFO;
             case PENDING -> throw new IllegalArgumentException("No action moves a report back to pending");
         };
     }
@@ -310,6 +334,7 @@ public class ModerationService {
             case REJECTED -> "rejected";
             case CLAIMED -> "marked as claimed";
             case REMOVED -> "removed";
+            case HANDLED -> "marked as handled by SDFO";
             case PENDING -> "reopened";
         };
     }

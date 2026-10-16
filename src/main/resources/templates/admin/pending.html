@@ -47,14 +47,29 @@
                 <dd th:text="${r.admin() != null and r.admin().reporterProfile() != null ? r.admin().reporterProfile().summary() : 'No profile yet'}">BSIT</dd>
                 <dt>Location</dt><dd th:text="${r.item().location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${r.item().locationSpot != null ? r.item().locationSpot : '—'}">spot</dd>
+                <th:block th:if="${r.admin() != null and r.admin().money() != null}" th:with="m=${r.admin().money()}">
+                    <dt>Amount</dt><dd th:text="${@fmt.money(m.amount())}">₱500.00</dd>
+                    <dt>Denominations</dt><dd th:text="${m.denominations() ?: '—'}">5 × ₱100</dd>
+                    <dt>Container</dt><dd th:text="${m.container().label()}">Envelope</dd>
+                    <dt th:text="${r.item().reportType.name() == 'FOUND'} ? 'Found' : 'Lost'">Found</dt>
+                    <dd th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026, 1:30 PM</dd>
+                </th:block>
                 <dt>Private details</dt><dd th:text="${r.item().privateDetails != null ? r.item().privateDetails : '—'}">marks</dd>
                 <dt>Submitted</dt>
                 <dd><span th:text="${@fmt.dateTime(r.item().createdAt)}">date</span>
                     (<span th:text="${@fmt.ago(r.item().createdAt)}">2 hours ago</span>)</dd>
             </dl>
         </div>
+        <p class="sdfo-note" th:if="${r.item().foundMoney}">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span>Approve once the money is at the SDFO office. The board shows the approval time as when it was surrendered.</span>
+        </p>
+        <p class="sdfo-note is-lost" th:if="${r.item().lostMoney}">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span>Lost money is never posted on the board. Approving it adds it to Lost money, where you can compare it with money turned in.</span>
+        </p>
         <div style="margin-top:.75rem"
-             th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending')}"></div>
+             th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending', false)}"></div>
     </div>
 </div>
 </body>

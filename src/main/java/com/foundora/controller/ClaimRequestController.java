@@ -5,6 +5,7 @@ import com.foundora.model.ClaimRequest;
 import com.foundora.service.ClaimRequestException;
 import com.foundora.service.ClaimRequestService;
 import com.foundora.service.InvalidImageException;
+import com.foundora.service.MoneyClaimInput;
 import com.foundora.service.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,18 +41,28 @@ public class ClaimRequestController {
         this.storage = storage;
     }
 
+    /** The money fields are sent only by the form on a money post; anywhere else they're ignored. */
     @PostMapping("/posts/{id}/claim-requests")
     public String request(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser user,
                           @RequestParam(required = false) String proof,
                           @RequestParam(value = "photo", required = false) MultipartFile photo,
+                          @RequestParam(required = false) String moneyAmount,
+                          @RequestParam(required = false) String moneyDenominations,
+                          @RequestParam(required = false) String moneyWhere,
+                          @RequestParam(required = false) String moneyLostOn,
+                          @RequestParam(required = false) String moneyLostTime,
+                          @RequestParam(required = false) String moneyContainer,
                           RedirectAttributes redirect) {
+        MoneyClaimInput money = new MoneyClaimInput(moneyAmount, moneyDenominations, moneyWhere, moneyLostOn,
+                moneyLostTime, moneyContainer);
         try {
-            claimRequests.request(id, user, proof, photo);
+            claimRequests.request(id, user, proof, photo, money);
             redirect.addFlashAttribute("flashSuccess",
                     "Request sent. SDFO will review it and you'll see the result on this page and in My Reports.");
         } catch (ClaimRequestException | InvalidImageException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
             redirect.addFlashAttribute("proofDraft", proof);
+            redirect.addFlashAttribute("moneyDraft", money);
         }
         return "redirect:/posts/" + id + "#claim";
     }

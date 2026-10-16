@@ -10,7 +10,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 /**
@@ -25,6 +28,7 @@ public class ClaimRequest {
     public static final int MAX_PROOF = 1000;
     public static final int MAX_NOTE = 500;
     public static final int MAX_REPLY = 1000;
+    public static final int MAX_MONEY_WHERE = 200;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -50,6 +54,16 @@ public class ClaimRequest {
 
     /** Optional photo in the private bucket, under {@code claims/}. */
     private String imagePath;
+
+    // Money claims only (V14): the claimant's description, compared with the finder's private details.
+    @Column(precision = 12, scale = 2)
+    private BigDecimal moneyAmount;
+    private String moneyDenominations;
+    private String moneyWhere;
+    private LocalDate moneyLostOn;
+    private LocalTime moneyLostTime;
+    @Enumerated(EnumType.STRING)
+    private MoneyContainer moneyContainer;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -93,6 +107,21 @@ public class ClaimRequest {
         this.imagePath = imagePath;
         this.createdAt = now;
         this.updatedAt = now;
+    }
+
+    /** Records what the claimant says about the money they lost (money items only). */
+    public void describeMoney(BigDecimal amount, String denominations, String where, LocalDate lostOn,
+                              LocalTime lostTime, MoneyContainer container) {
+        this.moneyAmount = amount;
+        this.moneyDenominations = denominations;
+        this.moneyWhere = where;
+        this.moneyLostOn = lostOn;
+        this.moneyLostTime = lostTime;
+        this.moneyContainer = container;
+    }
+
+    public boolean isMoney() {
+        return moneyAmount != null;
     }
 
     public boolean isOpen() {
@@ -173,6 +202,30 @@ public class ClaimRequest {
 
     public String getImagePath() {
         return imagePath;
+    }
+
+    public BigDecimal getMoneyAmount() {
+        return moneyAmount;
+    }
+
+    public String getMoneyDenominations() {
+        return moneyDenominations;
+    }
+
+    public String getMoneyWhere() {
+        return moneyWhere;
+    }
+
+    public LocalDate getMoneyLostOn() {
+        return moneyLostOn;
+    }
+
+    public LocalTime getMoneyLostTime() {
+        return moneyLostTime;
+    }
+
+    public MoneyContainer getMoneyContainer() {
+        return moneyContainer;
     }
 
     public ClaimRequestStatus getStatus() {

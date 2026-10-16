@@ -17,12 +17,13 @@
             <h2 style="margin-bottom:.25rem"><a th:href="@{/posts/{id}(id=${item.id})}" th:text="${item.itemName}">Item</a></h2>
             <p class="muted small" style="margin:0"
                th:text="|${item.category.label()} · found ${@fmt.date(item.dateLostFound)} · reported by ${item.reporterName}|">details</p>
+            <p class="small" th:if="${item.money}" style="margin:.5rem 0 0">Each claimant's answers are shown beside what the finder reported.</p>
             <div class="reporter-box">
                 <dl>
                     <dt>Found at</dt><dd th:text="${item.location}">Sentrum</dd>
                     <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
                     <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
-                    <dt>Description</dt><dd th:text="${item.description}">desc</dd>
+                    <dt th:unless="${item.money}">Description</dt><dd th:unless="${item.money}" th:text="${item.description}">desc</dd>
                 </dl>
             </div>
             <h3 style="margin-top:1rem" th:text="${e.openRequests().size() == 1} ? '1 open request' : |${e.openRequests().size()} open requests|">2 open requests</h3>

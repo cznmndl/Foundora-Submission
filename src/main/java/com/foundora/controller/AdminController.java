@@ -23,6 +23,7 @@ import com.foundora.service.ClaimRequestException;
 import com.foundora.service.ClaimRequestService;
 import com.foundora.service.ModerationException;
 import com.foundora.service.ModerationService;
+import com.foundora.service.MoneyReports;
 import com.foundora.service.ProfileService;
 import com.foundora.service.ReportSearch;
 import jakarta.servlet.http.HttpServletRequest;
@@ -76,12 +77,14 @@ public class AdminController {
     private final ArchiveService archive;
     private final CampusLocations campusLocations;
     private final ClaimRequestService claimRequests;
+    private final MoneyReports moneyReports;
     private final Clock clock;
 
     public AdminController(ModerationService moderation, ReportSearch reportSearch,
                            ActivityLogRepository activityLog, ItemRepository items,
                            AdminDetailsService adminDetails, ProfileService profiles, ArchiveService archive,
-                           CampusLocations campusLocations, ClaimRequestService claimRequests, Clock clock) {
+                           CampusLocations campusLocations, ClaimRequestService claimRequests,
+                           MoneyReports moneyReports, Clock clock) {
         this.moderation = moderation;
         this.reportSearch = reportSearch;
         this.activityLog = activityLog;
@@ -91,6 +94,7 @@ public class AdminController {
         this.archive = archive;
         this.campusLocations = campusLocations;
         this.claimRequests = claimRequests;
+        this.moneyReports = moneyReports;
         this.clock = clock;
     }
 
@@ -169,6 +173,22 @@ public class AdminController {
         model.addAttribute("nav", "admin");
         model.addAttribute("adminNav", "claims");
         return "admin/claims";
+    }
+
+    /**
+     * Lost money reports, which never go on the feed, beside the found money SDFO is holding, with possible
+     * matches by amount and date. Sorted by date (newest first) or by amount (?sort=amount).
+     */
+    @GetMapping("/money")
+    public String money(@RequestParam(required = false) String sort, Model model) {
+        MoneyReports.Sort order = MoneyReports.Sort.fromSlug(sort);
+        model.addAttribute("board", moneyReports.board(order));
+        model.addAttribute("sort", order);
+        model.addAttribute("matchDays", MoneyReports.MATCH_DAYS);
+        model.addAttribute("matchPercent", MoneyReports.MATCH_PERCENT);
+        model.addAttribute("nav", "admin");
+        model.addAttribute("adminNav", "money");
+        return "admin/money";
     }
 
     @PostMapping("/claim-requests/{id}/verify")
@@ -317,6 +337,15 @@ public class AdminController {
                          @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
         return act(() -> moderation.remove(id, admin, reason).getItemName(), "Removed", returnTo,
                 "/admin/reports", redirect);
+    }
+
+    /** Found money nobody claimed, dealt with under SDFO policy. The note is required and goes in the activity log. */
+    @PostMapping("/reports/{id}/handle")
+    public String handle(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
+                         @RequestParam(required = false) String note,
+                         @RequestParam(required = false) String returnTo, RedirectAttributes redirect) {
+        return act(() -> moderation.markHandled(id, admin, note).getItemName(), "Marked as handled by SDFO:",
+                returnTo, "/admin/money", redirect);
     }
 
     /** Registered people matching the text, for the claimant picker's suggestions. */

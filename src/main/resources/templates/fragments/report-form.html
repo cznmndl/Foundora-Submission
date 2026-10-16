@@ -5,6 +5,9 @@
   The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}.
   The location list comes from foundora.campus-locations (@campusLocations). Public fields first; the location
   and identifying marks go in the "Only SDFO sees this" panel, which never reaches the feed.
+  Money (category MONEY) has no photo, name or public description: .rf-not-money fields hide and the
+  .rf-money-only ones (amount, container, denominations, time) show, by CSS alone. The server checks the right
+  ones are filled in; app.js only marks them required in the browser.
 */-->
 <form th:fragment="form" class="report-form" th:action="@{/report}" method="post" enctype="multipart/form-data"
       th:object="${reportForm}" data-loading data-report-form>
@@ -40,7 +43,14 @@
     <fieldset class="rf-section">
         <legend class="rf-legend">The item</legend>
 
-        <div class="field">
+        <p class="rf-money-note rf-money-only" role="note">
+            <th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>
+            <span class="hint-found">The board shows only “Money” and when it was surrendered. No photo or description: the amount and the rest go in the private panel, so only the real owner can answer SDFO’s questions.</span>
+            <span class="hint-lost">Lost money is never posted on the board. Only you and SDFO see this report.</span>
+            <span class="hint-none">Money never appears on the board with its amount, photo or description. Those go in the private panel.</span>
+        </p>
+
+        <div class="field rf-not-money">
             <span class="label" id="photo-label">Photo <span class="hint">Optional, but it helps people spot their things. JPEG, PNG or WebP, up to 5 MB.</span></span>
             <div class="photo-picker">
                 <div class="photo-frame" data-photo-preview>
@@ -65,9 +75,9 @@
             </div>
         </div>
 
-        <div class="field">
+        <div class="field rf-not-money">
             <label for="itemName">Item name <span class="hint">E.g. "Black umbrella", "Casio calculator"</span></label>
-            <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" required autocomplete="off" data-preview="name"
+            <input type="text" id="itemName" th:field="*{itemName}" maxlength="80" data-required autocomplete="off" data-preview="name"
                    th:attr="aria-invalid=${#fields.hasErrors('itemName')} ? 'true' : null,
                             aria-describedby=${#fields.hasErrors('itemName')} ? 'itemName-error' : null">
             <p class="field-error" id="itemName-error" th:if="${#fields.hasErrors('itemName')}" th:errors="*{itemName}"></p>
@@ -76,13 +86,14 @@
         <div class="rf-row">
             <div class="field">
                 <label for="category">Category</label>
-                <select id="category" th:field="*{category}" required data-preview="category"
+                <select id="category" th:field="*{category}" required data-preview="category" data-category
                         th:attr="aria-invalid=${#fields.hasErrors('category')} ? 'true' : null,
-                                 aria-describedby=${#fields.hasErrors('category')} ? 'category-error' : null">
+                                 aria-describedby=${#fields.hasErrors('category')} ? 'category-error category-hint' : 'category-hint'">
                     <option value="">Choose a category</option>
                     <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label()}">Electronics</option>
                 </select>
                 <p class="field-error" id="category-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></p>
+                <p class="hint hint-below" id="category-hint">Money is for loose cash, envelopes and coin purses. Wallets go under <th:block th:each="c : ${categories}" th:if="${c.name() == 'BAGS_WALLETS'}" th:text="${c.label()}">Bags &amp; Wallets</th:block>.</p>
             </div>
             <div class="field">
                 <label for="dateLostFound">Date</label>
@@ -90,14 +101,14 @@
                        th:attr="aria-invalid=${#fields.hasErrors('dateLostFound')} ? 'true' : null,
                                 aria-describedby=${#fields.hasErrors('dateLostFound')} ? 'dateLostFound-error dateLostFound-hint' : 'dateLostFound-hint'">
                 <p class="field-error" id="dateLostFound-error" th:if="${#fields.hasErrors('dateLostFound')}" th:errors="*{dateLostFound}"></p>
-                <p class="hint hint-below" id="dateLostFound-hint">When you lost or found it.</p>
+                <p class="hint hint-below" id="dateLostFound-hint">When you lost or found it.<span class="rf-money-only"> For money, only SDFO sees this.</span></p>
             </div>
         </div>
 
-        <div class="field">
+        <div class="field rf-not-money">
             <label for="description">Public description
                 <span class="hint">Everyone signed in sees this. Keep it general: what it is, colour, brand, size. Leave out names, initials, stickers and what's inside: those go in the private box below.</span></label>
-            <textarea id="description" th:field="*{description}" maxlength="1000" required rows="3" data-count-chars
+            <textarea id="description" th:field="*{description}" maxlength="1000" data-required rows="3" data-count-chars
                       placeholder="e.g. Green metal water bottle, about 32 oz."
                       th:attr="aria-invalid=${#fields.hasErrors('description')} ? 'true' : null,
                                aria-describedby=${#fields.hasErrors('description')} ? 'description-error' : null"></textarea>
@@ -133,6 +144,47 @@
             </div>
         </div>
 
+        <!--/* Money: what SDFO compares a claimant's answers with. */-->
+        <div class="rf-row rf-money-only">
+            <div class="field">
+                <label for="moneyAmount">Amount in pesos</label>
+                <input type="number" id="moneyAmount" th:field="*{moneyAmount}" min="0.01" step="0.01" inputmode="decimal"
+                       data-required data-money placeholder="e.g. 500"
+                       th:attr="aria-invalid=${#fields.hasErrors('moneyAmount')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('moneyAmount')} ? 'moneyAmount-error moneyAmount-hint' : 'moneyAmount-hint'">
+                <p class="field-error" id="moneyAmount-error" th:if="${#fields.hasErrors('moneyAmount')}" th:errors="*{moneyAmount}"></p>
+                <p class="hint hint-below" id="moneyAmount-hint">Count it once. If you're not sure, give your best count.</p>
+            </div>
+            <div class="field">
+                <label for="moneyContainer">What it was in</label>
+                <select id="moneyContainer" th:field="*{moneyContainer}" data-required data-money
+                        th:attr="aria-invalid=${#fields.hasErrors('moneyContainer')} ? 'true' : null,
+                                 aria-describedby=${#fields.hasErrors('moneyContainer')} ? 'moneyContainer-error' : null">
+                    <option value="">Choose one</option>
+                    <option th:each="c : ${containers}" th:value="${c.name()}" th:text="${c.label()}">Envelope</option>
+                </select>
+                <p class="field-error" id="moneyContainer-error" th:if="${#fields.hasErrors('moneyContainer')}" th:errors="*{moneyContainer}"></p>
+            </div>
+        </div>
+        <div class="rf-row rf-money-only">
+            <div class="field">
+                <label for="moneyDenominations">Denominations <span class="optional">Optional</span></label>
+                <input type="text" id="moneyDenominations" th:field="*{moneyDenominations}" maxlength="200" autocomplete="off" data-money
+                       placeholder="e.g. 2 × ₱500, 3 coins"
+                       th:attr="aria-invalid=${#fields.hasErrors('moneyDenominations')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('moneyDenominations')} ? 'moneyDenominations-error' : null">
+                <p class="field-error" id="moneyDenominations-error" th:if="${#fields.hasErrors('moneyDenominations')}" th:errors="*{moneyDenominations}"></p>
+            </div>
+            <div class="field">
+                <label for="timeLostFound">Time <span class="optional">Optional</span></label>
+                <input type="time" id="timeLostFound" th:field="*{timeLostFound}" data-money
+                       th:attr="aria-invalid=${#fields.hasErrors('timeLostFound')} ? 'true' : null,
+                                aria-describedby=${#fields.hasErrors('timeLostFound')} ? 'timeLostFound-error timeLostFound-hint' : 'timeLostFound-hint'">
+                <p class="field-error" id="timeLostFound-error" th:if="${#fields.hasErrors('timeLostFound')}" th:errors="*{timeLostFound}"></p>
+                <p class="hint hint-below" id="timeLostFound-hint">Roughly when you lost or found it, on the date above.</p>
+            </div>
+        </div>
+
         <div class="field">
             <label for="privateDetails">Identifying details <span class="optional">Optional</span>
                 <span class="hint hint-found">Names, initials, stickers, scratches, what's inside. SDFO asks claimants about these.</span>
@@ -150,7 +202,7 @@
         <button class="btn btn-primary" type="submit">Send to SDFO</button>
         <a class="btn btn-ghost" th:href="@{/}" data-close-dialog>Cancel</a>
     </div>
-    <p class="rf-fineprint">Your name is shown on the post. Your email, profile, the location and the private details are seen only by SDFO admins. Nothing is posted until SDFO has checked it.</p>
+    <p class="rf-fineprint">Your name is shown on the post (not on money). Your email, profile, the location and the private details are seen only by SDFO admins. Nothing is posted until SDFO has checked it.</p>
 </form>
 
 <!--/*
@@ -176,9 +228,9 @@
             <div class="idcard-facts">
                 <p class="idcard-title" data-preview-name data-empty="Your item's name">Your item's name</p>
                 <dl class="idcard-dl">
-                    <div><dt>Category</dt><dd data-preview-category data-empty="—">—</dd></div>
+                    <div data-preview-row="category"><dt>Category</dt><dd data-preview-category data-empty="—">—</dd></div>
                     <div><dt data-preview-date-label>Date</dt><dd data-preview-date data-empty="—">—</dd></div>
-                    <div><dt>Posted by</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd></div>
+                    <div data-preview-row="by"><dt>Posted by</dt><dd th:text="${currentUser.name}">Juan Dela Cruz</dd></div>
                 </dl>
             </div>
         </div>
@@ -186,7 +238,7 @@
             <span th:replace="~{fragments/posts :: sticker(${underReview})}"></span>
         </div>
     </div>
-    <p class="report-preview-note">Location and private details never appear on the card.</p>
+    <p class="report-preview-note" data-preview-note>Location and private details never appear on the card.</p>
 </aside>
 </body>
 </html>

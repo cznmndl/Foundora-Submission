@@ -6,6 +6,7 @@ import com.foundora.feed.FeedPost;
 import com.foundora.model.Category;
 import com.foundora.model.Item;
 import com.foundora.model.ItemStage;
+import com.foundora.model.MoneyContainer;
 import com.foundora.model.ReportType;
 import com.foundora.service.InvalidImageException;
 import com.foundora.service.ReportForm;
@@ -55,6 +56,7 @@ public class ReportController {
             errors.rejectValue("dateLostFound", "future", "The date can’t be in the future.");
         }
         checkLocation(form, errors);
+        checkItemFields(form, errors);
         if (errors.hasErrors()) {
             if (photo != null && !photo.isEmpty()) {
                 model.addAttribute("photoError", "Please choose the photo again.");
@@ -70,6 +72,7 @@ public class ReportController {
         }
         redirect.addFlashAttribute("sentType", form.getType());
         redirect.addFlashAttribute("sentId", saved.getId());
+        redirect.addFlashAttribute("sentMoney", saved.isMoney());
         return "redirect:/report/sent";
     }
 
@@ -88,6 +91,28 @@ public class ReportController {
         return "report-sent";
     }
 
+    /**
+     * Money asks for the amount and container instead of a name and public description (it has neither on the
+     * board); everything else needs both.
+     */
+    private void checkItemFields(ReportForm form, BindingResult errors) {
+        if (form.isMoney()) {
+            if (form.getMoneyAmount() == null && !errors.hasFieldErrors("moneyAmount")) {
+                errors.rejectValue("moneyAmount", "required", "Enter the amount, e.g. 500.");
+            }
+            if (form.getMoneyContainer() == null && !errors.hasFieldErrors("moneyContainer")) {
+                errors.rejectValue("moneyContainer", "required", "Choose what the money was in.");
+            }
+            return;
+        }
+        if (form.getItemName() == null || form.getItemName().isBlank()) {
+            errors.rejectValue("itemName", "required", ReportForm.NAME_REQUIRED);
+        }
+        if (form.getDescription() == null || form.getDescription().isBlank()) {
+            errors.rejectValue("description", "required", ReportForm.DESCRIPTION_REQUIRED);
+        }
+    }
+
     /** The place must come from the list; the specific spot is always required, and says where when it's "Other". */
     private void checkLocation(ReportForm form, BindingResult errors) {
         if (form.getLocation() != null && !form.getLocation().isBlank()
@@ -104,6 +129,7 @@ public class ReportController {
 
     private String formPage(Model model) {
         model.addAttribute("categories", Category.values());
+        model.addAttribute("containers", MoneyContainer.values());
         model.addAttribute("today", reports.today());
         model.addAttribute("underReview", ItemStage.UNDER_REVIEW);
         model.addAttribute("nav", "report");

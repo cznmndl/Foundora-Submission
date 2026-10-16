@@ -18,6 +18,13 @@
             <p class="small" style="margin:0">This claimed item is no longer on the feed. Its record is kept by SDFO. Comments are closed.</p>
         </div>
     </div>
+    <div class="alert alert-neutral" role="status" th:if="${post.money() and !post.found()}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <div>
+            <strong>Not posted on the board</strong>
+            <p class="small" style="margin:0">Cash is hard to identify. SDFO will contact you if money matching your description is turned in. Only you and SDFO can see this report.</p>
+        </div>
+    </div>
     <div class="alert alert-info" role="status"
          th:if="${!archived and !post.status().name().equals('APPROVED') and !post.claimed()}">
         <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
@@ -27,6 +34,7 @@
             <p th:if="${post.status().name() == 'REJECTED' and reviewReason != null}" class="small" style="margin:0"
                th:text="|Reason: ${reviewReason}|">Reason</p>
             <p th:if="${post.status().name() == 'REMOVED'}" class="small" style="margin:0">Removed from the feed by an admin.</p>
+            <p th:if="${post.status().name() == 'HANDLED'}" class="small" style="margin:0">Nobody claimed this money, so SDFO dealt with it under its policy for unclaimed cash.</p>
         </div>
     </div>
 
@@ -37,7 +45,7 @@
     <section th:replace="~{fragments/claims :: requester(${post}, ${myRequests}, ${canRequest}, ${passDays})}"></section>
 
     <!--/* ---------- Comments ---------- */-->
-    <section class="card comments" id="comments" aria-labelledby="comments-heading">
+    <section class="card comments" id="comments" aria-labelledby="comments-heading" th:unless="${post.money()}">
         <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
 
         <p class="muted small" th:if="${comments.isEmpty() and commentsOpen}">No comments yet. Know something about this item? Say so here.</p>
@@ -120,7 +128,16 @@
                 <dd th:text="${admin.reporterProfile() != null ? admin.reporterProfile().summary() : 'No profile yet'}">BSIT · 2nd year</dd>
                 <dt>Location</dt><dd th:text="${item.location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
+                <th:block th:if="${admin.money() != null}" th:with="m=${admin.money()}">
+                    <dt>Amount</dt><dd th:text="${@fmt.money(m.amount())}">₱500.00</dd>
+                    <dt>Denominations</dt><dd th:text="${m.denominations() ?: '—'}">5 × ₱100</dd>
+                    <dt>Container</dt><dd th:text="${m.container().label()}">Envelope</dd>
+                    <dt th:text="${item.reportType.name() == 'FOUND'} ? 'Found' : 'Lost'">Found</dt>
+                    <dd th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026, 1:30 PM</dd>
+                </th:block>
                 <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
+                <dt th:if="${item.handledAt != null}">Handled by SDFO</dt>
+                <dd th:if="${item.handledAt != null}" th:text="|${item.handledByName}, ${@fmt.dateTime(item.handledAt)}: ${item.handledNote}|">note</dd>
                 <dt>Submitted</dt><dd th:text="${@fmt.dateTime(item.createdAt)}">date</dd>
                 <dt th:if="${item.reviewedByName != null}">Reviewed by</dt>
                 <dd th:if="${item.reviewedByName != null}" th:text="|${item.reviewedByName}, ${@fmt.dateTime(item.reviewedAt)}|">admin</dd>
@@ -129,7 +146,7 @@
             </dl>
         </div>
         <div style="margin-top:1rem" th:if="${post.status().name() == 'PENDING'}">
-            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|)}"></div>
+            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|, false)}"></div>
         </div>
 
         <th:block th:unless="${claimRequests.isEmpty()}">

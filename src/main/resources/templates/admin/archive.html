@@ -64,8 +64,7 @@
     <div class="stack" th:if="${results.totalElements > 0}">
         <article class="card" th:each="r : ${results.content}" th:with="d=${details.get(r.id)}">
             <div class="action-row">
-                <span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
-                      th:text="${r.reportType.label()}">Found</span>
+                <span th:replace="~{fragments/status :: badge(${r.reportType.name()})}"></span>
                 <span class="status" th:classappend="|status-${r.status.slug()}|" th:text="${r.status.label()}">Claimed</span>
                 <span class="muted small" th:text="|Archived ${@fmt.dateTime(r.archivedAt)}|">Archived</span>
             </div>

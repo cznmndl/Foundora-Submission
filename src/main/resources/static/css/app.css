@@ -53,9 +53,6 @@
   --bg: #f3f6f4;
   --surface: #ffffff;
 
-  --lost: #b3400e;        /* white text 5.6:1 */
-  --lost-bg: #fdede4;
-  --found: #0b6b3a;
   --found-bg: #e3f3e8;
   --pending-bg: #fff3d1;
   --pending-ink: #6e4600;
@@ -182,6 +179,7 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   background: var(--green-100); color: var(--green-900); font-weight: 700;
 }
 .avatar-sm { width: 32px; height: 32px; font-size: var(--text-meta); }
+.avatar .icon { width: 22px; height: 22px; }
 
 /* ---------- Page shell ---------- */
 .shell {
@@ -328,13 +326,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.badge {
-  display: inline-flex; align-items: center; gap: .3rem;
-  padding: .15rem .6rem; border-radius: 999px;
-  font-size: .75rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-}
-.badge-lost { background: var(--lost); color: #fff; }
-.badge-found { background: var(--found); color: #fff; }
 .status { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 700; }
 .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
 .status-approved { background: var(--found-bg); color: var(--green-900); }
@@ -365,6 +356,8 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .alert-success { background: var(--found-bg); color: var(--green-900); border: 1px solid var(--green-100); }
 .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #f6c9c9; }
 .alert-info { background: var(--pending-bg); color: var(--pending-ink); border: 1px solid #f3dfa6; }
+/* Information, not a warning or a status: Muted Fog with Muted Ink. */
+.alert-neutral { background: var(--muted-bg); color: var(--muted-ink); border: 1px solid var(--line); }
 
 /* ---------- Feed ---------- */
 /* Kept for older pages that still use the round composer. */
@@ -469,6 +462,9 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
   text-transform: uppercase; padding-top: .15rem;
 }
 .idcard-dl dd { margin: 0; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Money has one fact, "Surrendered", too long for the label column: the label sits above its value. */
+.idcard-dl.is-money div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.idcard-dl.is-money dd { white-space: normal; overflow: visible; }
 .idcard-foot {
   display: flex; align-items: center; gap: .75rem; margin-top: auto; padding: .4rem .85rem .6rem;
 }
@@ -501,6 +497,7 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .sticker-returned { background: var(--stage-returned); border-color: var(--stage-returned); color: #fff; }
 .sticker-under-review { border-style: dashed; border-color: #5f6d65; color: var(--ink-2); }
 .sticker-not-posted, .sticker-removed { border-color: var(--danger); color: var(--danger); }
+.sticker-handled { background: var(--stage-returned); border-color: var(--stage-returned); color: #fff; }
 .is-stage-claim-pending .sticker, .is-stage-verified .sticker { transform: rotate(-2deg); }
 
 /* Empty board: one blank ID card, waiting. */
@@ -525,13 +522,21 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .feed-empty-lines i:nth-child(3) { width: 50%; }
 
 .post { padding: 0; overflow: hidden; }
-.post-body { padding: 1rem; }
-.post-head { display: flex; align-items: center; gap: .65rem; margin-bottom: .75rem; }
+/* One column, s2 between each piece (header, chip, title, description, date row), so a missing piece leaves no gap. */
+.post-body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); padding: var(--s4); }
+.post-body > * { margin: 0; }
+/* With no photo between them, the two halves read as one: the s2 gap carries on across the seam. */
+.post-body:has(+ .post-body) { padding-bottom: var(--s2); }
+.post-body + .post-body { padding-top: 0; }
+.post-photo + .post-body { padding-top: var(--s4); }
+.post-head { display: flex; align-items: center; gap: var(--s3); align-self: stretch; }
+/* The admin details and the SDFO note follow the facts: s2 gap + s1 = s3 above each. */
+.post-body > .admin-box, .post-body > .sdfo-note { align-self: stretch; margin-top: var(--s1); }
 .post-who { min-width: 0; flex: 1; line-height: 1.25; }
 .post-author { font-weight: 700; display: block; }
 .post-time { color: var(--ink-3); font-size: var(--text-meta); text-decoration: none; }
 .post-time:hover { text-decoration: underline; color: var(--ink-2); }
-.post-title { font-size: 1.15rem; margin: .4rem 0 .35rem; }
+.post-title { font-size: 1.15rem; }
 .post-title a { color: var(--ink); text-decoration: none; }
 .post-title a:hover { color: var(--green-800); text-decoration: underline; }
 .post-desc { color: var(--ink-2); white-space: pre-line; overflow-wrap: anywhere; }
@@ -542,9 +547,9 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .post-photo img { width: 100%; max-height: 460px; object-fit: cover; }
 .post-detail .post-photo img { max-height: none; object-fit: contain; }
 .post-meta {
-  display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: .75rem 0 0; color: var(--ink-2); font-size: .92rem;
+  display: flex; flex-wrap: wrap; gap: var(--s1) var(--s5); color: var(--ink-2); font-size: .92rem;
 }
-.post-meta div { display: flex; align-items: center; gap: .35rem; }
+.post-meta div { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) .35rem; }
 .post-meta dt { font-weight: 700; }
 .post-meta dd { margin: 0; }
 .post-meta .icon { width: 18px; height: 18px; color: var(--ink-3); }
@@ -554,7 +559,7 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
   border-radius: var(--radius-sm); background: var(--green-50); color: var(--green-900);
   font-size: .9rem; font-weight: 600;
 }
-.sdfo-note.is-lost { background: var(--lost-bg); color: #7a2b08; }
+.sdfo-note.is-lost { background: var(--muted-bg); color: var(--muted-ink); }
 .claimed-banner {
   display: flex; align-items: center; gap: .5rem; padding: .55rem 1rem;
   background: var(--muted-bg); color: var(--muted-ink); font-weight: 800; border-bottom: 1px solid var(--line);
@@ -617,12 +622,14 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
   display: block; color: var(--ink-3); font-size: var(--text-meta); font-weight: 400; line-height: 1.45;
   margin-top: var(--s1);
 }
-input[type="text"], input[type="search"], input[type="date"], input[type="email"], select, textarea {
+input[type="text"], input[type="search"], input[type="date"], input[type="email"], input[type="number"],
+input[type="time"], select, textarea {
   width: 100%; min-height: var(--control-h); padding: 0 var(--s3);
   font: inherit; color: var(--ink); background: var(--surface);
   border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
 }
-input[type="text"], input[type="search"], input[type="date"], input[type="email"], select {
+input[type="text"], input[type="search"], input[type="date"], input[type="email"], input[type="number"],
+input[type="time"], select {
   height: var(--control-h); line-height: 1.2;
 }
 textarea { padding: var(--s3); line-height: 1.5; }
@@ -748,6 +755,15 @@ fieldset { border: 0; padding: 0; margin: 0 0 1rem; }
 .report-form:has(#type-lost:checked) .hint-lost { display: block; }
 .report-form:has(#type-found:checked) .hint-none,
 .report-form:has(#type-lost:checked) .hint-none { display: none; }
+
+/* Money: no photo, name or public description on the board; its private details show in the panel instead. */
+.report-form:not(:has(#category option[value="MONEY"]:checked)) .rf-money-only { display: none; }
+.report-form:has(#category option[value="MONEY"]:checked) .rf-not-money { display: none; }
+.rf-money-note {
+  display: flex; gap: .5rem; align-items: flex-start; margin: 0 0 1rem; padding: .6rem .75rem;
+  border-radius: var(--radius-sm); background: var(--green-50); color: var(--green-900); font-size: var(--text-meta); font-weight: 600;
+}
+.rf-money-note .icon { width: 18px; height: 18px; margin-top: .1rem; flex: none; }
 
 .rf-fineprint { color: var(--ink-3); font-size: var(--text-meta); margin: .75rem 0 0; max-width: 60ch; }
 dialog .report-preview { display: none !important; }
@@ -875,6 +891,11 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 .sbadge-done { background: #d6dfda; color: var(--ink); }
 .sbadge-info { background: #e3ebf8; color: #1f3f80; }
 .sbadge-claim { background: #fbe8dc; color: #8a3510; }
+/* Lost / Found, as on the ID card stripes: Lost Ink and DLSL Green with white text. */
+.sbadge-lost { background: var(--stripe-lost); color: #fff; }
+.sbadge-found { background: var(--green-700); color: #fff; }
+/* A type label, not a status column: as wide as its word. */
+.sbadge-lost, .sbadge-found { width: auto; }
 
 /* ---------- Activity timeline: badge column, divider, entry (overview and activity log) ---------- */
 .atl { list-style: none; margin: 0; padding: 0; position: relative; }
@@ -921,9 +942,10 @@ table.data th.col-status, table.data td.col-status { width: 10rem; }
   font-size: .68rem; font-weight: 700; font-stretch: 82%; letter-spacing: .12em; text-transform: uppercase; color: var(--green-900);
 }
 .admin-box-label .icon { width: 14px; height: 14px; }
-.admin-box dl { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .75rem; margin: 0; }
+.admin-box dl { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--s2) var(--s4); margin: 0; }
 .admin-box dt { font-weight: 700; color: var(--ink-3); }
-.admin-box dd { margin: 0; overflow-wrap: anywhere; color: var(--ink); }
+.admin-box dd { margin: 0; overflow-wrap: anywhere; color: var(--ink); min-width: 0; }
+.admin-box .admin-box-label { margin-bottom: var(--s3); }
 
 .claim-record {
   padding: .75rem; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--line);
@@ -1038,3 +1060,14 @@ table.data th.col-status, table.data td.col-status { width: 10rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- Money: the claimant's answers beside the finder's private details (admins only) ---------- */
+.money-compare { width: 100%; border-collapse: collapse; margin-top: var(--s3); font-size: var(--text-meta); }
+.money-compare th, .money-compare td { text-align: left; padding: var(--s2); border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.money-compare thead th { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.money-compare tbody th { font-weight: 700; color: var(--ink-3); width: 7rem; }
+.money-same { display: inline-flex; align-items: center; gap: .25rem; margin-left: .35rem; color: var(--green-800); font-weight: 700; }
+.money-same .icon { width: 14px; height: 14px; stroke-width: 2.6; }
+.amount { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.money-matches { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s1); }
+.money-sort { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s4); }

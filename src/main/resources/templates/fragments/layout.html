@@ -76,6 +76,8 @@
                     <th:block th:replace="~{fragments/icons :: icon('check')}"></th:block>Claims
                     <span class="nav-count" th:if="${claimsWaiting > 0}" th:text="${claimsWaiting}">0</span>
                     <span class="visually-hidden" th:if="${claimsWaiting > 0}"> claim requests waiting</span></a></li>
+                <li><a th:href="@{/admin/money}" th:attr="aria-current=${adminNav == 'money'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('cat-MONEY')}"></th:block>Lost money</a></li>
                 <li><a th:href="@{/admin/reports}" th:attr="aria-current=${adminNav == 'reports'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('list')}"></th:block>All reports</a></li>
                 <li><a th:href="@{/admin/archive}" th:attr="aria-current=${adminNav == 'archive'} ? 'page' : null">

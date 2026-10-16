@@ -21,7 +21,9 @@ public enum ActivityAction {
     CLAIM_DENIED("Denied a claim request", Group.CLAIM_REQUESTS, "Denied"),
     CLAIM_WITHDRAWN("Withdrew a claim request", Group.CLAIM_REQUESTS, "Withdrew"),
     CLAIM_PASS_EXTENDED("Extended a pickup pass", Group.CLAIM_REQUESTS, "Extended a pickup pass"),
-    CLAIM_PASS_EXPIRED("Pickup pass expired", Group.CLAIM_REQUESTS, "Pickup pass expired");
+    CLAIM_PASS_EXPIRED("Pickup pass expired", Group.CLAIM_REQUESTS, "Pickup pass expired"),
+    // Unclaimed found money dealt with under SDFO policy: the report's final status.
+    HANDLED_BY_SDFO("Marked as handled by SDFO", Group.REPORTS, "Handled by SDFO");
 
     /** The activity log's category tabs. */
     public enum Group {

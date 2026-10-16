@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Lost money · Foundora</title></head>
+<body>
+<!--/*
+  Admins only (everything under /admin). Lost money never goes on the feed, so this is where SDFO compares it
+  with the found money it's holding. ${board} has every open money report (Pending or Approved) with its
+  private amount, and for each lost report the found money that could be it.
+*/-->
+<div id="content">
+    <div class="page-head"><h1>Lost money</h1></div>
+    <p class="page-note" th:text="|Lost money is never posted on the board. A possible match is found money within ${matchDays} days and ${matchPercent}% of the amount.|">
+        Lost money is never posted on the board.</p>
+
+    <nav class="money-sort" aria-label="Sort">
+        <a class="chip" th:href="@{/admin/money}" th:attr="aria-current=${sort.name() == 'DATE'} ? 'true' : null">Newest date first</a>
+        <a class="chip" th:href="@{/admin/money(sort='amount')}" th:attr="aria-current=${sort.name() == 'AMOUNT'} ? 'true' : null">Largest amount first</a>
+    </nav>
+
+    <section class="card" aria-labelledby="lost-heading">
+        <div class="card-head">
+            <h2 id="lost-heading" th:text="|Lost money reports (${board.lost().size()})|">Lost money reports</h2>
+        </div>
+        <p class="muted" th:if="${board.lost().isEmpty()}">Nobody has reported losing money.</p>
+        <div class="table-wrap" th:unless="${board.lost().isEmpty()}">
+            <table class="data">
+                <caption class="visually-hidden">Lost money reports, with possible matches among the money turned in</caption>
+                <thead>
+                <tr><th scope="col">Lost</th><th scope="col">Amount</th><th scope="col">Details</th>
+                    <th scope="col">Reporter</th><th scope="col" class="col-status">Status</th><th scope="col">Possible matches</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${board.lost()}" th:with="m=${e.money()}">
+                    <td data-label="Lost"><a th:href="@{/posts/{id}(id=${e.item().id})}"
+                                             th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026</a></td>
+                    <td data-label="Amount"><span class="amount" th:text="${@fmt.money(m.amount())}">₱500.00</span></td>
+                    <td data-label="Details">
+                        <span th:text="${m.container().label()}">Envelope</span><span th:if="${m.denominations() != null}"
+                              th:text="| · ${m.denominations()}|"> · 5 × ₱100</span>
+                        <div class="muted small" th:text="${m.where()}">Library · 2nd floor</div>
+                    </td>
+                    <td data-label="Reporter"><span th:text="${e.item().reporterName}">Name</span>
+                        <div class="muted small" th:text="${e.item().reporterEmail}">email</div></td>
+                    <td data-label="Status" class="col-status">
+                        <span th:replace="~{fragments/status :: badge(${e.item().status.name()})}"></span></td>
+                    <td data-label="Possible matches">
+                        <span class="muted small" th:if="${e.matches().isEmpty()}">None yet</span>
+                        <ul class="money-matches" th:unless="${e.matches().isEmpty()}">
+                            <li th:each="f : ${e.matches()}">
+                                <a th:href="@{/posts/{id}(id=${f.item().id})}">
+                                    <span class="amount" th:text="${@fmt.money(f.money().amount())}">₱500.00</span>
+                                    <span th:text="|found ${@fmt.date(f.money().date())}, ${f.money().container().label().toLowerCase()}|">found Oct 3, envelope</span></a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card" aria-labelledby="found-heading" style="margin-top:var(--s4)">
+        <div class="card-head">
+            <h2 id="found-heading" th:text="|Found money held (${board.found().size()})|">Found money held</h2>
+        </div>
+        <p class="muted" th:if="${board.found().isEmpty()}">SDFO isn't holding any found money.</p>
+        <div class="table-wrap" th:unless="${board.found().isEmpty()}">
+            <table class="data">
+                <caption class="visually-hidden">Found money that hasn't been claimed or handled</caption>
+                <thead>
+                <tr><th scope="col">Found</th><th scope="col">Amount</th><th scope="col">Details</th>
+                    <th scope="col">Finder</th><th scope="col" class="col-status">Status</th><th scope="col">Actions</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${board.found()}" th:with="m=${e.money()}">
+                    <td data-label="Found"><a th:href="@{/posts/{id}(id=${e.item().id})}"
+                                              th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026</a></td>
+                    <td data-label="Amount"><span class="amount" th:text="${@fmt.money(m.amount())}">₱500.00</span></td>
+                    <td data-label="Details">
+                        <span th:text="${m.container().label()}">Envelope</span><span th:if="${m.denominations() != null}"
+                              th:text="| · ${m.denominations()}|"> · 5 × ₱100</span>
+                        <div class="muted small" th:text="${m.where()}">Library · 2nd floor</div>
+                    </td>
+                    <td data-label="Finder"><span th:text="${e.item().reporterName}">Name</span>
+                        <div class="muted small" th:text="${e.item().reporterEmail}">email</div></td>
+                    <td data-label="Status" class="col-status">
+                        <span th:replace="~{fragments/status :: badge(${e.item().status.name()})}"></span></td>
+                    <td data-label="Actions">
+                        <a class="btn btn-secondary btn-small" th:if="${e.item().status.name() == 'PENDING'}"
+                           th:href="@{/admin/pending}">Review</a>
+                        <div th:unless="${e.item().status.name() == 'PENDING'}"
+                             th:replace="~{fragments/posts :: adminActions(${e.item().id}, ${e.item().itemName}, ${e.item().status.name()}, '/admin/money', true)}"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+</body>
+</html>

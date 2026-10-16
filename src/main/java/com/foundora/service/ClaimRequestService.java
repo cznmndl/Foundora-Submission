@@ -162,12 +162,20 @@ public class ClaimRequestService {
 
     // ---------- The requester ----------
 
+    public ClaimRequest request(UUID itemId, FoundoraUser user, String proofText, MultipartFile photo) {
+        return request(itemId, user, proofText, photo, MoneyClaimInput.EMPTY);
+    }
+
     /**
      * "This is mine": opens a claim request on a found item. Throws {@link ClaimRequestException} or
      * {@link InvalidImageException} with a message for the person. The photo is uploaded before the
      * transaction and deleted again if saving fails.
+     *
+     * <p>Money can't be told apart by looking, so a claim on it must say how much, where and when it was lost,
+     * and what it was in; the free-text proof is then optional and there's no photo.
      */
-    public ClaimRequest request(UUID itemId, FoundoraUser user, String proofText, MultipartFile photo) {
+    public ClaimRequest request(UUID itemId, FoundoraUser user, String proofText, MultipartFile photo,
+                                MoneyClaimInput moneyInput) {
         Item item = items.findById(itemId).filter(Item::isOnFeed)
                 .orElseThrow(() -> new ClaimRequestException("That item isn't available."));
         if (!claimable(item)) {
@@ -179,7 +187,8 @@ public class ClaimRequestService {
             throw new ClaimRequestException("You reported this item, so you can't claim it.");
         }
         String proof = proofText == null ? "" : proofText.strip();
-        if (proof.length() < ClaimRequest.MIN_PROOF) {
+        MoneyClaim money = item.isMoney() ? MoneyClaim.parse(moneyInput, clock) : null;
+        if (money == null && proof.length() < ClaimRequest.MIN_PROOF) {
             throw new ClaimRequestException("Tell SDFO how you know it's yours: where and when you lost it, "
                     + "and anything only the owner would know.");
         }
@@ -191,12 +200,17 @@ public class ClaimRequestService {
         }
         String affiliation = profiles.find(user).map(p -> p.summary().isBlank() ? null : p.summary()).orElse(null);
         Instant now = clock.instant();
-        boolean hasPhoto = photo != null && !photo.isEmpty();
+        boolean hasPhoto = money == null && photo != null && !photo.isEmpty();
         String photoPath = hasPhoto ? storage.storePhoto(StorageService.CLAIMS, imageProcessor.toJpeg(photo)) : null;
         try {
             return transaction.execute(status -> {
-                ClaimRequest saved = requests.save(new ClaimRequest(item.getId(), user.uid(), user.email(),
-                        user.name(), affiliation, proof, photoPath, now));
+                ClaimRequest request = new ClaimRequest(item.getId(), user.uid(), user.email(), user.name(),
+                        affiliation, proof, photoPath, now);
+                if (money != null) {
+                    request.describeMoney(money.amount(), money.denominations(), money.where(), money.lostOn(),
+                            money.lostTime(), money.container());
+                }
+                ClaimRequest saved = requests.save(request);
                 activityLog.save(new ActivityLogEntry(item, ActivityAction.CLAIM_REQUESTED, user.email(),
                         user.name(), null, now));
                 events.publishEvent(new ItemChangedEvent(item.getId()));

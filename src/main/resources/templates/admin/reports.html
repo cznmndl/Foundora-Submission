@@ -83,8 +83,7 @@
                     <div class="muted small" th:if="${r.locationSpot != null}" th:text="${r.locationSpot}">spot</div>
 
                 </td>
-                <td data-label="Type"><span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
-                                            th:text="${r.reportType.label()}">Lost</span></td>
+                <td data-label="Type"><span th:replace="~{fragments/status :: badge(${r.reportType.name()})}"></span></td>
                 <td data-label="Status" class="col-status">
                     <span th:replace="~{fragments/status :: badge(${r.archivedAt != null ? 'ARCHIVED' : r.status.name()})}"></span></td>
                 <td data-label="Reporter"><span th:text="${r.reporterName}">Name</span>
@@ -94,7 +93,7 @@
                     <a class="btn btn-secondary btn-small" th:if="${r.status.name() == 'PENDING'}"
                        th:href="@{/admin/pending}">Review</a>
                     <div th:unless="${r.status.name() == 'PENDING'}"
-                         th:replace="~{fragments/posts :: adminActions(${r.id}, ${r.itemName}, ${r.status.name()}, ${currentUrl})}"></div>
+                         th:replace="~{fragments/posts :: adminActions(${r.id}, ${r.itemName}, ${r.status.name()}, ${currentUrl}, ${r.foundMoney})}"></div>
                 </td>
             </tr>
             </tbody>

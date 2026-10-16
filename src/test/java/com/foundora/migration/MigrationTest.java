@@ -77,7 +77,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("13");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("14");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -165,6 +165,28 @@ class MigrationTest {
                 + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
         assertThatThrownBy(() -> exec("update public.items set location_spot = repeat('x', 201) "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
+
+        // V14: money needs an amount and container; HANDLED needs a note.
+        String money = "insert into public.items (item_name, description, category, location, date_lost_found, "
+                + "report_type, status, reporter_name, reporter_email, money_amount, money_container) values "
+                + "('Money', '', 'MONEY', 'Sentrum', '2026-10-01', 'FOUND', '%s', 'Juan', 'j@dlsl.edu.ph', %s, %s)";
+        exec(money.formatted("APPROVED", "500.00", "'ENVELOPE'"));
+        assertThatThrownBy(() -> exec(money.formatted("APPROVED", "null", "'ENVELOPE'"))).as("no amount")
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec(money.formatted("APPROVED", "0", "'ENVELOPE'"))).as("zero amount")
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec(money.formatted("APPROVED", "500", "null"))).as("no container")
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec(money.formatted("APPROVED", "500", "'SOCK'"))).as("unknown container")
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec(money.formatted("HANDLED", "500", "'LOOSE'"))).as("handled without a note")
+                .isInstanceOf(SQLException.class);
+        exec("update public.items set status = 'HANDLED', handled_note = 'Turned over to Finance' "
+                + "where category = 'MONEY'");
+        exec("insert into public.activity_log (item_name, action, actor_email, actor_name, reason) values "
+                + "('Money', 'HANDLED_BY_SDFO', 'a', 'A', 'Turned over to Finance')");
+        assertThatThrownBy(() -> exec("update public.claim_requests set money_amount = -1")).as("negative claim")
+                .isInstanceOf(SQLException.class);
     }
 
     private static void exec(String sql) throws SQLException {
