@@ -29,7 +29,7 @@
             <h2>Recent activity</h2>
             <a class="btn btn-ghost btn-small" th:href="@{/admin/activity}">Full activity log</a>
         </div>
-        <p class="muted" th:if="${recent.isEmpty()}">Nothing has happened yet.</p>
+        <p class="empty-note" th:if="${recent.isEmpty()}">Nothing has happened yet.</p>
         <ol class="atl" th:unless="${recent.isEmpty()}">
             <th:block th:each="e : ${recent}"><li th:replace="~{admin/activity :: entry(${e})}"></li></th:block>
         </ol>

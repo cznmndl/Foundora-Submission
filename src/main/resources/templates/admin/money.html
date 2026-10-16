@@ -22,7 +22,7 @@
         <div class="card-head">
             <h2 id="lost-heading" th:text="|Lost money reports (${board.lost().size()})|">Lost money reports</h2>
         </div>
-        <p class="muted" th:if="${board.lost().isEmpty()}">Nobody has reported losing money.</p>
+        <p class="empty-note" th:if="${board.lost().isEmpty()}">Nobody has reported losing money.</p>
         <div class="table-wrap" th:unless="${board.lost().isEmpty()}">
             <table class="data">
                 <caption class="visually-hidden">Lost money reports, with possible matches among the money turned in</caption>
@@ -32,7 +32,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="e : ${board.lost()}" th:with="m=${e.money()}">
-                    <td data-label="Lost"><a th:href="@{/posts/{id}(id=${e.item().id})}"
+                    <td data-label="Lost" class="col-nowrap"><a th:href="@{/posts/{id}(id=${e.item().id})}"
                                              th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026</a></td>
                     <td data-label="Amount"><span class="amount" th:text="${@fmt.money(m.amount())}">₱500.00</span></td>
                     <td data-label="Details">
@@ -60,11 +60,11 @@
         </div>
     </section>
 
-    <section class="card" aria-labelledby="found-heading" style="margin-top:var(--s4)">
+    <section class="card" aria-labelledby="found-heading">
         <div class="card-head">
             <h2 id="found-heading" th:text="|Found money held (${board.found().size()})|">Found money held</h2>
         </div>
-        <p class="muted" th:if="${board.found().isEmpty()}">SDFO isn't holding any found money.</p>
+        <p class="empty-note" th:if="${board.found().isEmpty()}">SDFO isn't holding any found money.</p>
         <div class="table-wrap" th:unless="${board.found().isEmpty()}">
             <table class="data">
                 <caption class="visually-hidden">Found money that hasn't been claimed or handled</caption>
@@ -74,7 +74,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="e : ${board.found()}" th:with="m=${e.money()}">
-                    <td data-label="Found"><a th:href="@{/posts/{id}(id=${e.item().id})}"
+                    <td data-label="Found" class="col-nowrap"><a th:href="@{/posts/{id}(id=${e.item().id})}"
                                               th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026</a></td>
                     <td data-label="Amount"><span class="amount" th:text="${@fmt.money(m.amount())}">₱500.00</span></td>
                     <td data-label="Details">
@@ -89,8 +89,8 @@
                     <td data-label="Actions">
                         <a class="btn btn-secondary btn-small" th:if="${e.item().status.name() == 'PENDING'}"
                            th:href="@{/admin/pending}">Review</a>
-                        <div th:unless="${e.item().status.name() == 'PENDING'}"
-                             th:replace="~{fragments/posts :: adminActions(${e.item().id}, ${e.item().itemName}, ${e.item().status.name()}, '/admin/money', true)}"></div>
+                        <th:block th:unless="${e.item().status.name() == 'PENDING'}"><div
+                             th:replace="~{fragments/posts :: adminActions(${e.item().id}, ${e.item().itemName}, ${e.item().status.name()}, '/admin/money', true)}"></div></th:block>
                     </td>
                 </tr>
                 </tbody>

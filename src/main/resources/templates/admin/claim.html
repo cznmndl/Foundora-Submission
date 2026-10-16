@@ -6,11 +6,11 @@
 <div id="content" class="content-narrow">
     <p><a th:href="${returnTo}">← Back</a></p>
     <div class="page-head"><h1>Mark as claimed</h1></div>
-    <p class="lead">Record who the item was released to. The record is kept for disputes, even after the post is archived.</p>
+    <p class="page-note">Record who the item was released to. The record is kept for disputes, even after the post is archived.</p>
 
-    <section class="card">
-        <h2 style="margin-bottom:.25rem" th:text="${item.itemName}">Item</h2>
-        <p class="muted small" style="margin:0"
+    <section class="card flow">
+        <h2 class="card-title" th:text="${item.itemName}">Item</h2>
+        <p class="muted small"
            th:text="|${item.reportType.label()} · ${item.category.label()} · reported by ${item.reporterName}|">details</p>
         <div th:replace="~{fragments/posts :: adminBox(${admin})}"></div>
     </section>
@@ -41,7 +41,7 @@
         </div>
         <div class="field">
             <label>Released by</label>
-            <p style="margin:0"><strong th:text="${currentUser.name}">Admin</strong>
+            <p><strong th:text="${currentUser.name}">Admin</strong>
                 <span class="muted" th:text="|(${currentUser.email}). Recorded automatically.|">(email)</span></p>
         </div>
         <div class="field">

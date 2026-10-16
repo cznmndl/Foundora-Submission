@@ -5,10 +5,10 @@
 <body>
 <div id="content">
     <div class="page-head"><h1>Archive</h1></div>
-    <p class="lead" th:text="|Claimed items are archived ${archiveDays} days after they are claimed. They are off the feed, but kept here with their photos, comments and claim records, for disputes.|">Archived items</p>
+    <p class="page-note" th:text="|Claimed items are archived ${archiveDays} days after they are claimed. They are off the feed, but kept here with their photos, comments and claim records, for disputes.|">Archived items</p>
 
     <form class="card" method="get" th:action="@{/admin/archive}" role="search" aria-label="Search the archive">
-        <div class="filter-grid">
+        <div class="form-grid">
             <div class="field span-2">
                 <label for="q">Search <span class="hint">Item, description, place, spot, reporter name or email</span></label>
                 <input id="q" type="search" name="q" maxlength="100" th:value="${filter.text()}">
@@ -45,14 +45,14 @@
                 <label for="to">to</label>
                 <input id="to" type="date" name="to" th:value="${filter.to()}" data-range-to>
             </div>
-            <div class="span-2 action-row">
+            <div class="span-2 action-row form-actions">
                 <button class="btn btn-primary btn-small" type="submit">Search</button>
                 <a class="btn btn-ghost btn-small" th:href="@{/admin/archive}">Clear</a>
             </div>
         </div>
     </form>
 
-    <p class="muted small" role="status" style="margin-top:1rem"
+    <p class="muted small result-count" role="status"
        th:text="${results.totalElements == 1} ? '1 archived item' : |${results.totalElements} archived items|">0 archived items</p>
 
     <section class="card empty" th:if="${results.totalElements == 0}">
@@ -62,19 +62,19 @@
     </section>
 
     <div class="stack" th:if="${results.totalElements > 0}">
-        <article class="card" th:each="r : ${results.content}" th:with="d=${details.get(r.id)}">
+        <article class="card flow archive-item" th:each="r : ${results.content}" th:with="d=${details.get(r.id)}">
             <div class="action-row">
                 <span th:replace="~{fragments/status :: badge(${r.reportType.name()})}"></span>
-                <span class="status" th:classappend="|status-${r.status.slug()}|" th:text="${r.status.label()}">Claimed</span>
+                <span th:replace="~{fragments/status :: badge(${r.status.name() == 'CLAIMED' ? 'RETURNED' : r.status.name()})}"></span>
                 <span class="muted small" th:text="|Archived ${@fmt.dateTime(r.archivedAt)}|">Archived</span>
             </div>
-            <h2 style="margin:.4rem 0"><a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a></h2>
-            <p class="muted small" style="margin:0"
+            <h2><a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a></h2>
+            <p class="muted small"
                th:text="|${r.category.label()} · ${r.location}${r.locationSpot != null ? ' · ' + r.locationSpot : ''} · reported by ${r.reporterName} (${r.reporterEmail})|">details</p>
-            <div style="margin-top:.75rem" th:if="${d != null and d.claim() != null}">
+            <th:block th:if="${d != null and d.claim() != null}">
                 <div th:replace="~{admin/archive :: claimRecord(${d.claim()}, ${currentUrl})}"></div>
-            </div>
-            <p class="muted small" th:if="${d == null or d.claim() == null}" style="margin-top:.5rem">No claim record (claimed before claim records were kept).</p>
+            </th:block>
+            <p class="muted small" th:if="${d == null or d.claim() == null}">No claim record (claimed before claim records were kept).</p>
         </article>
         <nav class="pager" aria-label="Pages" th:if="${results.totalPages > 1}">
             <a class="btn btn-secondary btn-small" th:if="${results.hasPrevious()}" th:href="${newerUrl}">← Newer</a>
@@ -105,7 +105,7 @@
         <dt th:if="${cr.statusChangedAt != null}">Last change</dt>
         <dd th:if="${cr.statusChangedAt != null}" th:text="|${cr.status.label()} by ${cr.statusChangedBy}, ${@fmt.dateTime(cr.statusChangedAt)}|">change</dd>
     </dl>
-    <div class="action-row" style="margin-top:.5rem" th:if="${cr.status.name() != 'REOPENED'}">
+    <div class="action-row" th:if="${cr.status.name() != 'REOPENED'}">
         <details class="confirm" th:if="${cr.status.name() == 'ACTIVE'}">
             <summary class="btn btn-secondary btn-small">Mark as disputed</summary>
             <form class="confirm-panel" method="post" th:action="@{/admin/claims/{id}/dispute(id=${cr.id})}" data-loading>

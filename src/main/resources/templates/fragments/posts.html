@@ -33,8 +33,8 @@
         </header>
         <!--/* Money's title is already "Money", so no category chip repeating it. */-->
         <span class="chip chip-quiet" th:unless="${post.money()}" th:text="${post.category().label()}">Umbrellas</span>
-        <span class="status" th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"
-              th:classappend="|stage-${post.stage().slug()}|" th:text="${post.stage().label()}">Claim pending</span>
+        <th:block th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"><span
+              th:replace="~{fragments/posts :: sticker(${post.stage()})}"></span></th:block>
         <h2 class="post-title" th:id="|title-${post.id()}|">
             <a th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Blue umbrella</a>
         </h2>
@@ -129,8 +129,8 @@
     </footer>
     <div class="idcard-admin" th:if="${ad != null or controls}">
         <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
-        <div th:if="${controls}"
-             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div>
+        <th:block th:if="${controls}"><div
+             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div></th:block>
     </div>
 </article>
 

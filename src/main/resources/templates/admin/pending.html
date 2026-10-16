@@ -8,7 +8,7 @@
         <h1>Pending reports</h1>
         <a class="btn btn-primary btn-small" href="#next" th:if="${next != null}">Review next</a>
     </div>
-    <p class="lead" th:if="${queueSize > 0}"
+    <p class="page-note" th:if="${queueSize > 0}"
        th:text="${queueSize == 1} ? '1 report is waiting. Oldest first, so nobody waits behind newer reports.'
                                   : |${queueSize} reports are waiting. Oldest first, so nobody waits behind newer reports.|">3 waiting</p>
 
@@ -24,8 +24,8 @@
         <div th:replace="~{admin/pending :: review(${next})}"></div>
     </section>
 
-    <section th:if="${!waiting.isEmpty()}" style="margin-top:1.5rem" aria-labelledby="waiting-heading">
-        <h2 id="waiting-heading">Waiting after it</h2>
+    <section th:if="${!waiting.isEmpty()}" class="pending-later" aria-labelledby="waiting-heading">
+        <h2 id="waiting-heading" class="section-title">Waiting after it</h2>
         <div class="stack">
             <th:block th:each="r : ${waiting}"><div th:replace="~{admin/pending :: review(${r})}"></div></th:block>
         </div>
@@ -36,10 +36,10 @@
   One submission, previewed as its feed post will look to students (no location, no email: the card gets no
   admin details here), plus what only admins see below it.
 */-->
-<div th:fragment="review(r)" class="review-card card" style="padding:0">
+<div th:fragment="review(r)" class="review-card card">
     <article th:replace="~{fragments/posts :: card(${r.post()}, false, '/admin/pending', false)}"></article>
     <div class="post-foot">
-        <div class="reporter-box" style="margin-top:0">
+        <div class="reporter-box">
             <dl>
                 <dt>Reporter</dt><dd th:text="${r.item().reporterName}">Name</dd>
                 <dt>Email</dt><dd th:text="${r.item().reporterEmail}">email</dd>
@@ -68,8 +68,7 @@
             <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
             <span>Lost money is never posted on the board. Approving it adds it to Lost money, where you can compare it with money turned in.</span>
         </p>
-        <div style="margin-top:.75rem"
-             th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending', false)}"></div>
+        <div th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending', false)}"></div>
     </div>
 </div>
 </body>
