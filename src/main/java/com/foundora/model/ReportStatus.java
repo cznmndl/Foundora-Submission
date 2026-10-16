@@ -6,14 +6,16 @@ import java.util.Set;
 /**
  * Where a report is in its lifecycle. Only admins move a report between statuses:
  * PENDING -> APPROVED or REJECTED; APPROVED -> CLAIMED or REMOVED; CLAIMED -> REMOVED, or back to
- * APPROVED when an admin reopens the claim (e.g. it went to the wrong person).
+ * APPROVED when an admin reopens the claim (e.g. it went to the wrong person). Found money that nobody claims
+ * goes APPROVED -> HANDLED when SDFO deals with it under its own policy; like REMOVED, that's final.
  */
 public enum ReportStatus {
     PENDING("Pending"),
     APPROVED("Approved"),
     REJECTED("Rejected"),
     CLAIMED("Claimed / Returned"),
-    REMOVED("Removed");
+    REMOVED("Removed"),
+    HANDLED("Handled by SDFO");
 
     /** Statuses that appear on the public feed (claimed ones only until they're archived). */
     public static final Set<ReportStatus> ON_FEED = EnumSet.of(APPROVED, CLAIMED);
@@ -35,9 +37,9 @@ public enum ReportStatus {
     public boolean canMoveTo(ReportStatus next) {
         return switch (this) {
             case PENDING -> next == APPROVED || next == REJECTED;
-            case APPROVED -> next == CLAIMED || next == REMOVED;
+            case APPROVED -> next == CLAIMED || next == REMOVED || next == HANDLED;
             case CLAIMED -> next == REMOVED || next == APPROVED;
-            case REJECTED, REMOVED -> false;
+            case REJECTED, REMOVED, HANDLED -> false;
         };
     }
 

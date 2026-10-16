@@ -49,10 +49,12 @@ public class ReportService {
     /**
      * Saves a new Pending report from {@code reporter}. The photo, if any, is checked and re-encoded first
      * ({@link InvalidImageException} if it's refused); if saving then fails, the uploaded photo is deleted.
+     * Money reports keep no photo, name or description: only the private money details.
      */
     public Item submit(FoundoraUser reporter, ReportForm form, MultipartFile photo) {
+        boolean money = form.isMoney();
         String photoPath = null;
-        if (photo != null && !photo.isEmpty()) {
+        if (!money && photo != null && !photo.isEmpty()) {
             photoPath = storage.storePhoto(imageProcessor.toJpeg(photo));
         }
         String storedPath = photoPath;
@@ -61,9 +63,15 @@ public class ReportService {
                 Instant now = clock.instant();
                 Item item = new Item();
                 item.setReportType(form.getType());
-                item.setItemName(form.getItemName());
-                item.setDescription(form.getDescription());
+                item.setItemName(money ? Item.MONEY_NAME : form.getItemName());
+                item.setDescription(money ? "" : form.getDescription());
                 item.setCategory(form.getCategory());
+                if (money) {
+                    item.setMoneyAmount(form.getMoneyAmount());
+                    item.setMoneyDenominations(form.getMoneyDenominations());
+                    item.setMoneyContainer(form.getMoneyContainer());
+                    item.setTimeLostFound(form.getTimeLostFound());
+                }
                 item.setLocation(form.getLocation());
                 item.setLocationSpot(form.getLocationSpot());
                 item.setPrivateDetails(form.getPrivateDetails());

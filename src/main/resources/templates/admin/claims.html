@@ -8,24 +8,26 @@
     <p class="page-note" th:text="|A verified request gets a pickup pass for ${passDays} days. If it isn't collected, the item goes back on the feed.|">7 days</p>
 
     <section class="card empty" th:if="${queue.isEmpty()}">
+        <div class="empty-icon" th:insert="~{fragments/icons :: icon('check')}"></div>
         <h2>No claim requests</h2>
         <p class="muted">Nobody is waiting for a decision.</p>
     </section>
 
     <div class="stack">
-        <section class="card" th:each="e : ${queue}" th:with="item=${e.item()}, ad=${details.get(e.item().id)}">
-            <h2 style="margin-bottom:.25rem"><a th:href="@{/posts/{id}(id=${item.id})}" th:text="${item.itemName}">Item</a></h2>
-            <p class="muted small" style="margin:0"
+        <section class="card flow" th:each="e : ${queue}" th:with="item=${e.item()}, ad=${details.get(e.item().id)}">
+            <h2 class="card-title"><a th:href="@{/posts/{id}(id=${item.id})}" th:text="${item.itemName}">Item</a></h2>
+            <p class="muted small"
                th:text="|${item.category.label()} · found ${@fmt.date(item.dateLostFound)} · reported by ${item.reporterName}|">details</p>
+            <p class="small" th:if="${item.money}">Each claimant's answers are shown beside what the finder reported.</p>
             <div class="reporter-box">
                 <dl>
                     <dt>Found at</dt><dd th:text="${item.location}">Sentrum</dd>
                     <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
                     <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
-                    <dt>Description</dt><dd th:text="${item.description}">desc</dd>
+                    <dt th:unless="${item.money}">Description</dt><dd th:unless="${item.money}" th:text="${item.description}">desc</dd>
                 </dl>
             </div>
-            <h3 style="margin-top:1rem" th:text="${e.openRequests().size() == 1} ? '1 open request' : |${e.openRequests().size()} open requests|">2 open requests</h3>
+            <h3 class="section-title" th:text="${e.openRequests().size() == 1} ? '1 open request' : |${e.openRequests().size()} open requests|">2 open requests</h3>
             <div class="stack">
                 <th:block th:each="r : ${e.openRequests()}">
                     <div th:replace="~{fragments/claims :: adminRequest(${r}, ${item}, '/admin/claims')}"></div>

@@ -8,7 +8,7 @@
         <h1>Pending reports</h1>
         <a class="btn btn-primary btn-small" href="#next" th:if="${next != null}">Review next</a>
     </div>
-    <p class="lead" th:if="${queueSize > 0}"
+    <p class="page-note" th:if="${queueSize > 0}"
        th:text="${queueSize == 1} ? '1 report is waiting. Oldest first, so nobody waits behind newer reports.'
                                   : |${queueSize} reports are waiting. Oldest first, so nobody waits behind newer reports.|">3 waiting</p>
 
@@ -24,8 +24,8 @@
         <div th:replace="~{admin/pending :: review(${next})}"></div>
     </section>
 
-    <section th:if="${!waiting.isEmpty()}" style="margin-top:1.5rem" aria-labelledby="waiting-heading">
-        <h2 id="waiting-heading">Waiting after it</h2>
+    <section th:if="${!waiting.isEmpty()}" class="pending-later" aria-labelledby="waiting-heading">
+        <h2 id="waiting-heading" class="section-title">Waiting after it</h2>
         <div class="stack">
             <th:block th:each="r : ${waiting}"><div th:replace="~{admin/pending :: review(${r})}"></div></th:block>
         </div>
@@ -36,10 +36,10 @@
   One submission, previewed as its feed post will look to students (no location, no email: the card gets no
   admin details here), plus what only admins see below it.
 */-->
-<div th:fragment="review(r)" class="review-card card" style="padding:0">
+<div th:fragment="review(r)" class="review-card card">
     <article th:replace="~{fragments/posts :: card(${r.post()}, false, '/admin/pending', false)}"></article>
     <div class="post-foot">
-        <div class="reporter-box" style="margin-top:0">
+        <div class="reporter-box">
             <dl>
                 <dt>Reporter</dt><dd th:text="${r.item().reporterName}">Name</dd>
                 <dt>Email</dt><dd th:text="${r.item().reporterEmail}">email</dd>
@@ -47,14 +47,28 @@
                 <dd th:text="${r.admin() != null and r.admin().reporterProfile() != null ? r.admin().reporterProfile().summary() : 'No profile yet'}">BSIT</dd>
                 <dt>Location</dt><dd th:text="${r.item().location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${r.item().locationSpot != null ? r.item().locationSpot : '—'}">spot</dd>
+                <th:block th:if="${r.admin() != null and r.admin().money() != null}" th:with="m=${r.admin().money()}">
+                    <dt>Amount</dt><dd th:text="${@fmt.money(m.amount())}">₱500.00</dd>
+                    <dt>Denominations</dt><dd th:text="${m.denominations() ?: '—'}">5 × ₱100</dd>
+                    <dt>Container</dt><dd th:text="${m.container().label()}">Envelope</dd>
+                    <dt th:text="${r.item().reportType.name() == 'FOUND'} ? 'Found' : 'Lost'">Found</dt>
+                    <dd th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026, 1:30 PM</dd>
+                </th:block>
                 <dt>Private details</dt><dd th:text="${r.item().privateDetails != null ? r.item().privateDetails : '—'}">marks</dd>
                 <dt>Submitted</dt>
                 <dd><span th:text="${@fmt.dateTime(r.item().createdAt)}">date</span>
                     (<span th:text="${@fmt.ago(r.item().createdAt)}">2 hours ago</span>)</dd>
             </dl>
         </div>
-        <div style="margin-top:.75rem"
-             th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending')}"></div>
+        <p class="sdfo-note" th:if="${r.item().foundMoney}">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span>Approve once the money is at the SDFO office. The board shows the approval time as when it was surrendered.</span>
+        </p>
+        <p class="sdfo-note is-lost" th:if="${r.item().lostMoney}">
+            <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+            <span>Lost money is never posted on the board. Approving it adds it to Lost money, where you can compare it with money turned in.</span>
+        </p>
+        <div th:replace="~{fragments/posts :: adminActions(${r.item().id}, ${r.item().itemName}, 'PENDING', '/admin/pending', false)}"></div>
     </div>
 </div>
 </body>

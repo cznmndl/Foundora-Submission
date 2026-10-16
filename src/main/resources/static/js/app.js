@@ -333,6 +333,23 @@
     }
   }
 
+  // ---------- Report form: money swaps the name, description and photo for private money fields ----------
+  // CSS already shows and hides them; this marks the visible ones required so the browser checks them too.
+  // (The server checks them either way, which is why the markup has no "required" on them.)
+  function setupMoneyFields(form) {
+    const category = form.querySelector("[data-category]");
+    if (!category) return;
+    const sync = () => {
+      const money = category.value === "MONEY";
+      form.querySelectorAll("[data-required]").forEach((input) => {
+        const moneyField = input.hasAttribute("data-money");
+        input.required = moneyField === money;
+      });
+    };
+    category.addEventListener("change", sync);
+    sync();
+  }
+
   // ---------- Report page: the item's ID card fills in as the form is completed ----------
   function setupReportPreview(form) {
     const preview = document.querySelector("[data-report-preview]");
@@ -356,15 +373,27 @@
       card.classList.toggle("is-found", Boolean(type) && !lost);
       out("type").textContent = !type ? "Lost or found?" : lost ? "Lost item" : "Found item";
       out("date-label").textContent = !type ? "Date" : lost ? "Lost" : "Found";
-      setText(out("name"), field("name").value.trim());
       const category = field("category");
+      // Money's card is only "Money" and when SDFO took it in; lost money never reaches the board.
+      const money = category.value === "MONEY";
+      setText(out("name"), money ? "Money" : field("name").value.trim());
       setText(out("category"), category.value ? category.options[category.selectedIndex].text : "");
+      preview.querySelectorAll("[data-preview-row]").forEach((row) => { row.hidden = money; });
+      card.querySelector(".idcard-dl").classList.toggle("is-money", money);
+      out("note").textContent = !money ? "Location and private details never appear on the card."
+        : lost ? "Lost money is never posted on the board. Only you and SDFO see it."
+        : "The amount, place, date and container never appear on the card.";
       // No photo: the board shows the category's glyph, so the preview does too.
       preview.querySelectorAll("[data-preview-glyph]").forEach((glyph) => {
         glyph.hidden = glyph.dataset.previewGlyph !== category.value;
       });
       const date = field("date").value;
-      setText(out("date"), date ? dateFormat.format(new Date(date + "T00:00")) : "");
+      if (money) {
+        out("date-label").textContent = lost ? "Reported" : "Surrendered";
+        setText(out("date"), lost ? "When you send this" : "When SDFO takes it in");
+      } else {
+        setText(out("date"), date ? dateFormat.format(new Date(date + "T00:00")) : "");
+      }
     }
 
     form.addEventListener("input", update);
@@ -440,6 +469,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("form[data-report-form], form[data-comment-form]").forEach(setupPhotoPicker);
     document.querySelectorAll(".report-sheet form[data-report-form]").forEach(setupReportPreview);
+    document.querySelectorAll("form[data-report-form]").forEach(setupMoneyFields);
     document.querySelectorAll("input[data-suggest-people]").forEach(setupPeopleSuggestions);
     document.querySelectorAll("textarea[data-count-chars]").forEach(setupCharCount);
     document.querySelectorAll("form[data-profile-form]").forEach(setupCommunityFields);

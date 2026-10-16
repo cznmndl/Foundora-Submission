@@ -24,6 +24,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -41,7 +42,9 @@ import java.util.stream.Collectors;
  * search fast.
  *
  * <p>Locations are secret (only admins see them), so the search index holds item names and descriptions
- * only: nobody can find a post, or guess its location, by searching for a place. The location of each post is
+ * only: nobody can find a post, or guess its location, by searching for a place. Money posts are indexed as
+ * just "Money" ({@link FeedPost}), so amounts and money details can't be searched for either. Lost money is
+ * never on the feed at all. The location of each post is
  * kept in a separate map used only by the admin's location filter.
  *
  * <ul>
@@ -199,10 +202,10 @@ public class FeedIndex {
                 if (query.location() != null && !query.location().equals(snapshot.locationById.get(post.id()))) {
                     continue;
                 }
-                if (query.from() != null && post.dateLostFound().isBefore(query.from())) {
+                if (query.from() != null && filterDate(post).isBefore(query.from())) {
                     continue;
                 }
-                if (query.to() != null && post.dateLostFound().isAfter(query.to())) {
+                if (query.to() != null && filterDate(post).isAfter(query.to())) {
                     continue;
                 }
                 matches.add(post);
@@ -250,6 +253,11 @@ public class FeedIndex {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    /** The date the from/to filter compares: for money, the day it was surrendered (its date found is secret). */
+    private LocalDate filterDate(FeedPost post) {
+        return post.money() ? LocalDate.ofInstant(post.surrenderedAt(), clock.getZone()) : post.dateLostFound();
     }
 
     /** Statuses of the open claim requests on the approved items among these, by item ID. */

@@ -5,7 +5,7 @@
 <body>
 <div id="content" class="content-narrow">
     <div class="page-head"><h1>Activity log</h1></div>
-    <p class="lead">Who did what to which report, newest first.</p>
+    <p class="page-note">Who did what to which report, newest first.</p>
 
     <div class="log-filters">
         <nav class="log-tabs" aria-label="Filter by category">
@@ -35,7 +35,7 @@
     </div>
 
     <section class="card">
-        <p class="muted" th:if="${entries.totalElements == 0}">No activity yet.</p>
+        <p class="empty-note" th:if="${entries.totalElements == 0}">No activity yet.</p>
         <ol class="atl" th:if="${entries.totalElements > 0}">
             <th:block th:each="e : ${entries.content}"><li th:replace="~{admin/activity :: entry(${e})}"></li></th:block>
         </ol>

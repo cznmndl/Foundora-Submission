@@ -4,6 +4,7 @@ import com.foundora.auth.FoundoraUser;
 import com.foundora.feed.FeedPost;
 import com.foundora.model.ClaimRecord;
 import com.foundora.model.Item;
+import com.foundora.model.MoneyContainer;
 import com.foundora.repository.ActivityLogRepository;
 import com.foundora.repository.ClaimRecordRepository;
 import com.foundora.service.AdminDetailsService;
@@ -59,6 +60,10 @@ public class PostController {
         model.addAttribute("myRequests", claimRequests.mine(item, user));
         model.addAttribute("canRequest", claimRequests.canRequest(item, user));
         model.addAttribute("passDays", claimRequests.passValidFor().toDays());
+        if (item.isMoney()) {
+            model.addAttribute("containers", MoneyContainer.values());
+            model.addAttribute("today", reports.today());
+        }
         model.addAttribute("isReporter", isReporter);
         model.addAttribute("archived", item.isArchived());
         if (isReporter || user.isAdmin()) {

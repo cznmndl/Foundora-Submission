@@ -13,7 +13,8 @@ public enum ItemStage {
     VERIFIED("Verified"),
     RETURNED("Returned"),
     NOT_POSTED("Not posted"),
-    REMOVED("Removed");
+    REMOVED("Removed"),
+    HANDLED("Handled by SDFO");
 
     private final String label;
 
@@ -38,10 +39,11 @@ public enum ItemStage {
             case VERIFIED -> "shield-check";
             case RETURNED -> "check";
             case NOT_POSTED, REMOVED -> "x";
+            case HANDLED -> "shield";
         };
     }
 
-    /** Position on the five-step track (1-5), or 0 for reports that left it (not posted, removed). */
+    /** Position on the five-step track (1-5), or 0 for reports that left it (not posted, removed, handled). */
     public int step() {
         return switch (this) {
             case UNDER_REVIEW -> 1;
@@ -49,7 +51,7 @@ public enum ItemStage {
             case CLAIM_PENDING -> 3;
             case VERIFIED -> 4;
             case RETURNED -> 5;
-            case NOT_POSTED, REMOVED -> 0;
+            case NOT_POSTED, REMOVED, HANDLED -> 0;
         };
     }
 
@@ -59,6 +61,7 @@ public enum ItemStage {
             case PENDING -> UNDER_REVIEW;
             case REJECTED -> NOT_POSTED;
             case REMOVED -> REMOVED;
+            case HANDLED -> HANDLED;
             case CLAIMED -> RETURNED;
             case APPROVED -> openRequests.contains(ClaimRequestStatus.VERIFIED) ? VERIFIED
                     : openRequests.isEmpty() ? POSTED : CLAIM_PENDING;

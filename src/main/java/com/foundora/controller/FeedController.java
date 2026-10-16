@@ -6,6 +6,7 @@ import com.foundora.feed.FeedIndex;
 import com.foundora.feed.FeedPage;
 import com.foundora.feed.FeedPost;
 import com.foundora.model.Category;
+import com.foundora.model.MoneyContainer;
 import com.foundora.service.AdminDetailsService;
 import com.foundora.service.CommentService;
 import com.foundora.service.ReportForm;
@@ -58,6 +59,7 @@ public class FeedController {
         addPage(model, filters, Params.page(page), user);
         model.addAttribute("stats", feed.stats());
         model.addAttribute("categories", Category.values());
+        model.addAttribute("containers", MoneyContainer.values());
         model.addAttribute("reportForm", new ReportForm());
         model.addAttribute("today", reports.today());
         model.addAttribute("nav", "feed");

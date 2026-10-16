@@ -10,23 +10,23 @@
     </div>
     <p class="page-note">The location and private details of each report are shown only to you here and to SDFO admins.</p>
 
-    <section th:unless="${myClaims.isEmpty()}" id="claims" aria-labelledby="claims-heading" style="margin-bottom:1.5rem">
-        <h2 id="claims-heading">My claim requests</h2>
+    <section th:unless="${myClaims.isEmpty()}" id="claims" class="page-section" aria-labelledby="claims-heading">
+        <h2 id="claims-heading" class="section-title">My claim requests</h2>
         <div class="stack">
             <article class="card report-row" th:each="c : ${myClaims}">
                 <div class="grow">
                     <span class="status" th:classappend="|claim-${c.request().status.slug()}|" th:text="${c.request().status.label()}">Waiting</span>
-                    <h3 style="margin:.25rem 0"><a th:href="@{/posts/{id}(id=${c.item().id})} + '#claim'" th:text="${c.item().itemName}">Item</a></h3>
-                    <p class="muted small" style="margin:0" th:text="|Sent ${@fmt.ago(c.request().createdAt)}|">Sent</p>
-                    <p class="small" style="margin:.4rem 0 0" th:if="${c.request().status.name() == 'NEEDS_INFO'}">
+                    <h3><a th:href="@{/posts/{id}(id=${c.item().id})} + '#claim'" th:text="${c.item().itemName}">Item</a></h3>
+                    <p class="muted small" th:text="|Sent ${@fmt.ago(c.request().createdAt)}|">Sent</p>
+                    <p class="small" th:if="${c.request().status.name() == 'NEEDS_INFO'}">
                         <strong>SDFO asked you something.</strong> Open the item to answer.</p>
-                    <p class="small" style="margin:.4rem 0 0" th:if="${c.request().status.name() == 'VERIFIED'}"
+                    <p class="small" th:if="${c.request().status.name() == 'VERIFIED'}"
                        th:text="|Pick it up at SDFO before ${@fmt.dateTime(c.request().expiresAt)}. Bring your school ID.|">Pick up</p>
                 </div>
             </article>
         </div>
-        <h2 style="margin-top:1.5rem">My reports</h2>
     </section>
+    <h2 class="section-title" th:unless="${myClaims.isEmpty()}">My reports</h2>
 
     <section class="card empty" th:if="${reports.isEmpty()}">
         <div class="empty-icon" th:insert="~{fragments/icons :: icon('list')}"></div>
@@ -40,33 +40,39 @@
             <img th:if="${r.hasPhoto()}" class="thumb" th:src="@{/photos/{id}(id=${r.id})}" alt="" loading="lazy">
             <div class="grow">
                 <div class="action-row">
-                    <span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
-                          th:text="${r.reportType.label()}">Lost</span>
-                    <span class="status" th:classappend="|status-${r.status.slug()}|" th:text="${r.status.label()}">Pending</span>
+                    <span th:replace="~{fragments/status :: badge(${r.reportType.name()})}"></span>
+                    <span th:replace="~{fragments/status :: badge(${r.status.name() == 'CLAIMED' ? 'RETURNED' : r.status.name()})}"></span>
                 </div>
                 <h2>
                     <a th:if="${r.status.name() != 'REMOVED'}" th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
                     <span th:if="${r.status.name() == 'REMOVED'}" th:text="${r.itemName}">Item</span>
                 </h2>
-                <p class="muted small" style="margin:0">
+                <p class="muted small">
                     <span th:text="${r.category.label()}">Category</span> ·
                     <span th:text="${r.location}">Location</span><span th:if="${r.locationSpot != null}" th:text="| (${r.locationSpot})|"> (spot)</span> ·
                     <span th:text="|Sent ${@fmt.ago(r.createdAt)}|">Sent 2 hours ago</span>
                 </p>
-                <p class="muted small" style="margin:.2rem 0 0" th:if="${r.privateDetails != null}"
+                <p class="muted small" th:if="${r.money and r.moneyAmount != null}"
+                   th:text="|${@fmt.money(r.moneyAmount)} · ${r.moneyContainer.label()}${r.moneyDenominations != null ? ' · ' + r.moneyDenominations : ''} · ${@fmt.dateAndTime(r.dateLostFound, r.timeLostFound)}|">₱500.00 · Envelope</p>
+                <p class="muted small" th:if="${r.privateDetails != null}"
                    th:text="|Private details: ${r.privateDetails}|">Private details</p>
-                <p class="small" style="margin:.4rem 0 0" th:switch="${r.status.name()}">
+                <p class="small" th:switch="${r.status.name()}">
                     <span th:case="'PENDING'">Waiting for an admin to review it.</span>
-                    <span th:case="'APPROVED'">On the feed now.</span>
+                    <span th:case="'APPROVED'" th:text="${r.lostMoney} ? 'Cash is hard to identify. SDFO will contact you if money matching your description is turned in.' : 'On the feed now.'">On the feed now.</span>
                     <span th:case="'CLAIMED'" th:text="${r.archivedAt != null} ? 'Claimed or returned, and now archived. Thanks for helping!' : 'Claimed or returned. Thanks for helping!'">Claimed or returned. Thanks for helping!</span>
                     <span th:case="'REMOVED'">Removed from the feed by an admin.</span>
+                    <span th:case="'HANDLED'">Nobody claimed it, so SDFO dealt with it under its policy for unclaimed cash.</span>
                 </p>
                 <div class="reason" th:if="${r.status.name() == 'REJECTED'}">
                     <strong>Not approved.</strong> <span th:text="${r.reviewReason}">Reason</span>
                 </div>
                 <p class="sdfo-note" th:if="${r.reportType.name() == 'FOUND' and r.status.name() == 'PENDING'}">
                     <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
-                    <span>Please bring the item to the SDFO office.</span>
+                    <span th:text="${r.money} ? 'Please bring the money to the SDFO office.' : 'Please bring the item to the SDFO office.'">Please bring the item to the SDFO office.</span>
+                </p>
+                <p class="sdfo-note is-lost" th:if="${r.lostMoney}">
+                    <th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>
+                    <span>Never posted on the board. Only you and SDFO see this report.</span>
                 </p>
             </div>
         </article>

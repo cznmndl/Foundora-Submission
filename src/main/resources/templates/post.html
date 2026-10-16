@@ -15,7 +15,14 @@
         <th:block th:replace="~{fragments/icons :: icon('archive')}"></th:block>
         <div>
             <strong>Archived</strong>
-            <p class="small" style="margin:0">This claimed item is no longer on the feed. Its record is kept by SDFO. Comments are closed.</p>
+            <p class="small">This claimed item is no longer on the feed. Its record is kept by SDFO. Comments are closed.</p>
+        </div>
+    </div>
+    <div class="alert alert-neutral" role="status" th:if="${post.money() and !post.found()}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <div>
+            <strong>Not posted on the board</strong>
+            <p class="small">Cash is hard to identify. SDFO will contact you if money matching your description is turned in. Only you and SDFO can see this report.</p>
         </div>
     </div>
     <div class="alert alert-info" role="status"
@@ -23,10 +30,11 @@
         <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
         <div>
             <strong th:text="|Status: ${post.status().label()}|">Status: Pending</strong>
-            <p th:if="${post.status().name() == 'PENDING'}" class="small" style="margin:0">Only you and the admins can see this report until it's approved.</p>
-            <p th:if="${post.status().name() == 'REJECTED' and reviewReason != null}" class="small" style="margin:0"
+            <p th:if="${post.status().name() == 'PENDING'}" class="small">Only you and the admins can see this report until it's approved.</p>
+            <p th:if="${post.status().name() == 'REJECTED' and reviewReason != null}" class="small"
                th:text="|Reason: ${reviewReason}|">Reason</p>
-            <p th:if="${post.status().name() == 'REMOVED'}" class="small" style="margin:0">Removed from the feed by an admin.</p>
+            <p th:if="${post.status().name() == 'REMOVED'}" class="small">Removed from the feed by an admin.</p>
+            <p th:if="${post.status().name() == 'HANDLED'}" class="small">Nobody claimed this money, so SDFO dealt with it under its policy for unclaimed cash.</p>
         </div>
     </div>
 
@@ -37,7 +45,7 @@
     <section th:replace="~{fragments/claims :: requester(${post}, ${myRequests}, ${canRequest}, ${passDays})}"></section>
 
     <!--/* ---------- Comments ---------- */-->
-    <section class="card comments" id="comments" aria-labelledby="comments-heading">
+    <section class="card comments" id="comments" aria-labelledby="comments-heading" th:unless="${post.money()}">
         <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
 
         <p class="muted small" th:if="${comments.isEmpty() and commentsOpen}">No comments yet. Know something about this item? Say so here.</p>
@@ -106,13 +114,13 @@
                 <p class="field-error" id="comment-photo-error" data-photo-error hidden></p>
             </div>
         </form>
-        <p class="muted small" th:unless="${commentsOpen}" style="margin-top:.75rem">Comments are closed on this post.</p>
+        <p class="muted small" th:unless="${commentsOpen}">Comments are closed on this post.</p>
     </section>
 
     <!--/* ---------- Admin only ---------- */-->
-    <section class="card" th:if="${currentUser.isAdmin()}">
+    <section class="card stack" th:if="${currentUser.isAdmin()}">
         <h2>Admin details</h2>
-        <div class="reporter-box" style="margin-top:0">
+        <div class="reporter-box">
             <dl>
                 <dt>Reporter</dt><dd th:text="${item.reporterName}">Name</dd>
                 <dt>Email</dt><dd th:text="${item.reporterEmail}">email</dd>
@@ -120,7 +128,16 @@
                 <dd th:text="${admin.reporterProfile() != null ? admin.reporterProfile().summary() : 'No profile yet'}">BSIT · 2nd year</dd>
                 <dt>Location</dt><dd th:text="${item.location}">Sentrum</dd>
                 <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
+                <th:block th:if="${admin.money() != null}" th:with="m=${admin.money()}">
+                    <dt>Amount</dt><dd th:text="${@fmt.money(m.amount())}">₱500.00</dd>
+                    <dt>Denominations</dt><dd th:text="${m.denominations() ?: '—'}">5 × ₱100</dd>
+                    <dt>Container</dt><dd th:text="${m.container().label()}">Envelope</dd>
+                    <dt th:text="${item.reportType.name() == 'FOUND'} ? 'Found' : 'Lost'">Found</dt>
+                    <dd th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026, 1:30 PM</dd>
+                </th:block>
                 <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
+                <dt th:if="${item.handledAt != null}">Handled by SDFO</dt>
+                <dd th:if="${item.handledAt != null}" th:text="|${item.handledByName}, ${@fmt.dateTime(item.handledAt)}: ${item.handledNote}|">note</dd>
                 <dt>Submitted</dt><dd th:text="${@fmt.dateTime(item.createdAt)}">date</dd>
                 <dt th:if="${item.reviewedByName != null}">Reviewed by</dt>
                 <dd th:if="${item.reviewedByName != null}" th:text="|${item.reviewedByName}, ${@fmt.dateTime(item.reviewedAt)}|">admin</dd>
@@ -128,12 +145,12 @@
                 <dd th:if="${item.archivedAt != null}" th:text="${@fmt.dateTime(item.archivedAt)}">date</dd>
             </dl>
         </div>
-        <div style="margin-top:1rem" th:if="${post.status().name() == 'PENDING'}">
-            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|)}"></div>
+        <div th:if="${post.status().name() == 'PENDING'}">
+            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|, false)}"></div>
         </div>
 
         <th:block th:unless="${claimRequests.isEmpty()}">
-            <h3 style="margin-top:1rem">Claim requests</h3>
+            <h3 class="section-title">Claim requests</h3>
             <div class="stack">
                 <th:block th:each="r : ${claimRequests}">
                     <div th:replace="~{fragments/claims :: adminRequest(${r}, ${item}, |/posts/${post.id()}|)}"></div>
@@ -142,17 +159,17 @@
         </th:block>
 
         <th:block th:unless="${claimHistory.isEmpty()}">
-            <h3 style="margin-top:1rem">Claim records</h3>
+            <h3 class="section-title">Claim records</h3>
             <div class="stack">
                 <th:block th:each="cr : ${claimHistory}">
                     <div th:replace="~{admin/archive :: claimRecord(${cr}, |/posts/${post.id()}|)}"></div>
                 </th:block>
             </div>
         </th:block>
-        <p class="muted small" th:if="${claimHistory.isEmpty() and post.claimed()}" style="margin-top:1rem">
+        <p class="muted small" th:if="${claimHistory.isEmpty() and post.claimed()}">
             No claim record: this item was marked as claimed before claim records were kept.</p>
 
-        <h3 style="margin-top:1rem">History</h3>
+        <h3 class="section-title">History</h3>
         <ol class="timeline">
             <li th:each="e : ${history}">
                 <div>

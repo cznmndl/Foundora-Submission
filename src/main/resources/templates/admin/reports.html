@@ -72,29 +72,28 @@
         <table class="data">
             <caption class="visually-hidden">Reports, newest first</caption>
             <thead>
-            <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col" class="col-status">Status</th>
+            <tr><th scope="col" class="col-main">Item</th><th scope="col">Type</th><th scope="col" class="col-status">Status</th>
                 <th scope="col">Reporter</th><th scope="col">Lost/found</th><th scope="col">Actions</th></tr>
             </thead>
             <tbody>
             <tr th:each="r : ${results.content}">
-                <td data-label="Item">
+                <td data-label="Item" class="col-main">
                     <a th:href="@{/posts/{id}(id=${r.id})}" th:text="${r.itemName}">Item</a>
                     <div class="muted small" th:text="|${r.category.label()} · ${r.location}|">Category · place</div>
                     <div class="muted small" th:if="${r.locationSpot != null}" th:text="${r.locationSpot}">spot</div>
 
                 </td>
-                <td data-label="Type"><span class="badge" th:classappend="${r.reportType.name() == 'FOUND'} ? 'badge-found' : 'badge-lost'"
-                                            th:text="${r.reportType.label()}">Lost</span></td>
+                <td data-label="Type"><span th:replace="~{fragments/status :: badge(${r.reportType.name()})}"></span></td>
                 <td data-label="Status" class="col-status">
                     <span th:replace="~{fragments/status :: badge(${r.archivedAt != null ? 'ARCHIVED' : r.status.name()})}"></span></td>
                 <td data-label="Reporter"><span th:text="${r.reporterName}">Name</span>
                     <div class="muted small" th:text="${r.reporterEmail}">email</div></td>
-                <td data-label="Lost/found" th:text="${@fmt.date(r.dateLostFound)}">date</td>
+                <td data-label="Lost/found" class="col-nowrap" th:text="${@fmt.date(r.dateLostFound)}">date</td>
                 <td data-label="Actions">
                     <a class="btn btn-secondary btn-small" th:if="${r.status.name() == 'PENDING'}"
                        th:href="@{/admin/pending}">Review</a>
-                    <div th:unless="${r.status.name() == 'PENDING'}"
-                         th:replace="~{fragments/posts :: adminActions(${r.id}, ${r.itemName}, ${r.status.name()}, ${currentUrl})}"></div>
+                    <th:block th:unless="${r.status.name() == 'PENDING'}"><div
+                         th:replace="~{fragments/posts :: adminActions(${r.id}, ${r.itemName}, ${r.status.name()}, ${currentUrl}, ${r.foundMoney})}"></div></th:block>
                 </td>
             </tr>
             </tbody>

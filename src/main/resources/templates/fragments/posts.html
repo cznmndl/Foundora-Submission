@@ -20,24 +20,25 @@
     </div>
     <div class="post-body">
         <header class="post-head">
-            <span class="avatar" aria-hidden="true" th:text="${post.reporterInitial()}">J</span>
+            <span class="avatar" aria-hidden="true" th:unless="${post.money()}" th:text="${post.reporterInitial()}">J</span>
+            <span class="avatar" aria-hidden="true" th:if="${post.money()}" th:insert="~{fragments/icons :: icon('cat-MONEY')}"></span>
             <div class="post-who">
-                <span class="post-author" th:text="${post.reporterName()}">Juan Dela Cruz</span>
+                <span class="post-author" th:unless="${post.money()}" th:text="${post.reporterName()}">Juan Dela Cruz</span>
                 <a class="post-time" th:href="@{/posts/{id}(id=${post.id()})}">
                     <time th:datetime="${@fmt.iso(post.createdAt())}" th:title="${@fmt.dateTime(post.createdAt())}"
                           th:text="${@fmt.ago(post.createdAt())}">2 hours ago</time>
                 </a>
             </div>
-            <span class="badge" th:classappend="${post.found()} ? 'badge-found' : 'badge-lost'"
-                  th:text="${post.type().label()}">Lost</span>
+            <span th:replace="~{fragments/status :: badge(${post.type().name()})}"></span>
         </header>
-        <span class="chip chip-quiet" th:text="${post.category().label()}">Umbrellas</span>
-        <span class="status" th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"
-              th:classappend="|stage-${post.stage().slug()}|" th:text="${post.stage().label()}">Claim pending</span>
+        <!--/* Money's title is already "Money", so no category chip repeating it. */-->
+        <span class="chip chip-quiet" th:unless="${post.money()}" th:text="${post.category().label()}">Umbrellas</span>
+        <th:block th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"><span
+              th:replace="~{fragments/posts :: sticker(${post.stage()})}"></span></th:block>
         <h2 class="post-title" th:id="|title-${post.id()}|">
             <a th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Blue umbrella</a>
         </h2>
-        <p class="post-desc" th:classappend="${clamp} ? 'clamp'" th:text="${post.description()}">Description</p>
+        <p class="post-desc" th:unless="${post.money()}" th:classappend="${clamp} ? 'clamp'" th:text="${post.description()}">Description</p>
     </div>
     <a th:if="${post.hasPhoto()}" class="post-photo" th:href="@{/photos/{id}(id=${post.id()})}" data-lightbox
        th:attr="data-caption=${post.itemName()}">
@@ -45,13 +46,19 @@
              loading="lazy" decoding="async">
         <span class="visually-hidden">(opens full size)</span>
     </a>
-    <div class="post-body" style="padding-top: .25rem">
+    <div class="post-body">
         <dl class="post-meta">
-            <div>
+            <div th:unless="${post.money()}">
                 <th:block th:replace="~{fragments/icons :: icon('calendar')}"></th:block>
                 <dt th:text="${post.found()} ? 'Found' : 'Lost'">Lost</dt>
                 <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}"
                           th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd>
+            </div>
+            <div th:if="${post.money()}">
+                <th:block th:replace="~{fragments/icons :: icon('calendar')}"></th:block>
+                <dt th:text="${post.found()} ? 'Surrendered' : 'Reported'">Surrendered</dt>
+                <dd><time th:datetime="${@fmt.iso(post.surrenderedAt())}"
+                          th:text="${@fmt.dateTime(post.surrenderedAt())}">Oct 3, 2026, 1:30 PM</time></dd>
             </div>
             <div th:if="${commentCount != null}">
                 <th:block th:replace="~{fragments/icons :: icon('comment')}"></th:block>
@@ -61,13 +68,14 @@
             </div>
         </dl>
         <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
-        <p class="sdfo-note" th:classappend="${!post.found()} ? 'is-lost'">
+        <!--/* Lost money: the page's banner already says what happens, so the card doesn't repeat it. */-->
+        <p class="sdfo-note" th:unless="${post.money() and !post.found()}" th:classappend="${!post.found()} ? 'is-lost'">
             <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
             <span th:text="${post.found()} ? 'Claim this item at the SDFO office.' : 'Found this? Bring it to the SDFO office.'">Note</span>
         </p>
     </div>
     <div class="post-foot" th:if="${controls and !post.status().name().equals('PENDING')}">
-        <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo})}"></div>
+        <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div>
     </div>
 </article>
 
@@ -95,11 +103,16 @@
             <h2 class="idcard-title" th:id="|title-${post.id()}|">
                 <a class="idcard-link" th:href="@{/posts/{id}(id=${post.id()})}" th:text="${post.itemName()}">Green Aquaflask, 32 oz</a>
             </h2>
-            <dl class="idcard-dl">
+            <dl class="idcard-dl" th:unless="${post.money()}">
                 <div><dt>Category</dt><dd th:text="${post.category().label()}">Tumblers &amp; Bottles</dd></div>
                 <div><dt th:text="${post.found()} ? 'Found' : 'Lost'">Found</dt>
                     <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}" th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd></div>
                 <div><dt>Posted by</dt><dd th:text="${post.reporterName()}">Juan Dela Cruz</dd></div>
+            </dl>
+            <!--/* Money: nothing but when it was surrendered. No amount, finder, place or date found. */-->
+            <dl class="idcard-dl is-money" th:if="${post.money()}">
+                <div><dt th:text="${post.found()} ? 'Surrendered' : 'Reported'">Surrendered</dt>
+                    <dd><time th:datetime="${@fmt.iso(post.surrenderedAt())}" th:text="${@fmt.dateTime(post.surrenderedAt())}">Oct 3, 2026, 1:30 PM</time></dd></div>
             </dl>
         </div>
     </div>
@@ -116,8 +129,8 @@
     </footer>
     <div class="idcard-admin" th:if="${ad != null or controls}">
         <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
-        <div th:if="${controls}"
-             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo})}"></div>
+        <th:block th:if="${controls}"><div
+             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div></th:block>
     </div>
 </article>
 
@@ -127,8 +140,11 @@
     <span th:text="${stage.label()}">Posted</span>
 </span>
 
-<!--/* Admin buttons for an item, each with a confirmation step (a <details> panel: no JavaScript needed). */-->
-<div th:fragment="adminActions(id, name, status, returnTo)" class="action-row">
+<!--/*
+  Admin buttons for an item, each with a confirmation step (a <details> panel: no JavaScript needed).
+  handleable: found money, which can be closed as "Handled by SDFO" if nobody claims it.
+*/-->
+<div th:fragment="adminActions(id, name, status, returnTo, handleable)" class="action-row">
     <th:block th:if="${status == 'PENDING'}">
         <details class="confirm">
             <summary class="btn btn-primary btn-small">Approve</summary>
@@ -152,6 +168,19 @@
     </th:block>
     <a class="btn btn-secondary btn-small" th:if="${status == 'APPROVED'}"
        th:href="@{/admin/reports/{id}/claim(id=${id}, returnTo=${returnTo})}">Mark as claimed</a>
+    <details class="confirm" th:if="${handleable and status == 'APPROVED'}">
+        <summary class="btn btn-secondary btn-small">Handled by SDFO</summary>
+        <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/handle(id=${id})}" data-loading>
+            <p>For money nobody claimed. This closes the report for good and takes it off the feed.</p>
+            <div class="field">
+                <label th:for="|note-handle-${id}|">What SDFO did with it <span class="hint">Required. Saved on the report and in the activity log.</span></label>
+                <textarea th:id="|note-handle-${id}|" name="note" required maxlength="500" rows="3"
+                          placeholder="e.g. Unclaimed after 60 days; turned over to the Finance Office, OR no. 12345."></textarea>
+            </div>
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <button class="btn btn-primary btn-small" type="submit">Mark as handled</button>
+        </form>
+    </details>
     <details class="confirm" th:if="${status == 'APPROVED' or status == 'CLAIMED'}">
         <summary class="btn btn-ghost btn-small">Remove</summary>
         <form class="confirm-panel" method="post" th:action="@{/admin/reports/{id}/remove(id=${id})}" data-loading>
@@ -176,6 +205,12 @@
         <dt>Location</dt>
         <dd><span th:text="${ad.location()}">Sentrum</span>
             <span th:if="${ad.locationSpot() != null}" th:text="| · ${ad.locationSpot()}|"> · near the stairs</span></dd>
+        <th:block th:if="${ad.money() != null}">
+            <dt>Amount</dt><dd th:text="${@fmt.money(ad.money().amount())}">₱500.00</dd>
+            <dt>Denominations</dt><dd th:text="${ad.money().denominations() ?: '—'}">5 × ₱100</dd>
+            <dt>Container</dt><dd th:text="${ad.money().container().label()}">Envelope</dd>
+            <dt>When</dt><dd th:text="${@fmt.dateAndTime(ad.money().date(), ad.money().time())}">Oct 3, 2026, 1:30 PM</dd>
+        </th:block>
         <dt th:if="${ad.privateDetails() != null}">Private details</dt>
         <dd th:if="${ad.privateDetails() != null}" th:text="${ad.privateDetails()}">Initials “JDC” inside the lid</dd>
         <dt>Reporter</dt>

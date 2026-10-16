@@ -10,8 +10,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 /**
@@ -28,6 +30,9 @@ public class Item {
     public static final int MAX_SPOT = 200;
     public static final int MAX_REASON = 500;
     public static final int MAX_PRIVATE_DETAILS = 500;
+    public static final int MAX_DENOMINATIONS = 200;
+    /** The item name and (empty) description every money report gets: the form doesn't ask for either. */
+    public static final String MONEY_NAME = "Money";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -59,6 +64,21 @@ public class Item {
 
     @Column(nullable = false)
     private LocalDate dateLostFound;
+
+    /** Approximate time of day it was lost or found; money reports only, optional. Admins and the reporter only. */
+    private LocalTime timeLostFound;
+
+    // Money reports only (V14). Admins and the reporter only; never on the feed, in search or on public pages.
+    @Column(precision = 12, scale = 2)
+    private BigDecimal moneyAmount;
+    private String moneyDenominations;
+    @Enumerated(EnumType.STRING)
+    private MoneyContainer moneyContainer;
+
+    /** Why SDFO handled unclaimed money under its policy (status HANDLED), and who did it, when. */
+    private String handledNote;
+    private String handledByName;
+    private Instant handledAt;
 
     /** Object path inside the private item-images bucket, e.g. {@code items/<uuid>.jpg}; null when there is no photo. */
     private String imagePath;
@@ -103,9 +123,21 @@ public class Item {
         return archivedAt != null;
     }
 
-    /** On the feed: Approved, or Claimed and not yet archived. */
+    /** On the feed: Approved, or Claimed and not yet archived. Lost money never is: only its reporter and admins see it. */
     public boolean isOnFeed() {
-        return ReportStatus.ON_FEED.contains(status) && !isArchived();
+        return ReportStatus.ON_FEED.contains(status) && !isArchived() && !isLostMoney();
+    }
+
+    public boolean isMoney() {
+        return category == Category.MONEY;
+    }
+
+    public boolean isLostMoney() {
+        return isMoney() && reportType == ReportType.LOST;
+    }
+
+    public boolean isFoundMoney() {
+        return isMoney() && reportType == ReportType.FOUND;
     }
 
     public UUID getId() {
@@ -178,6 +210,57 @@ public class Item {
 
     public void setDateLostFound(LocalDate dateLostFound) {
         this.dateLostFound = dateLostFound;
+    }
+
+    public LocalTime getTimeLostFound() {
+        return timeLostFound;
+    }
+
+    public void setTimeLostFound(LocalTime timeLostFound) {
+        this.timeLostFound = timeLostFound;
+    }
+
+    public BigDecimal getMoneyAmount() {
+        return moneyAmount;
+    }
+
+    public void setMoneyAmount(BigDecimal moneyAmount) {
+        this.moneyAmount = moneyAmount;
+    }
+
+    public String getMoneyDenominations() {
+        return moneyDenominations;
+    }
+
+    public void setMoneyDenominations(String moneyDenominations) {
+        this.moneyDenominations = moneyDenominations;
+    }
+
+    public MoneyContainer getMoneyContainer() {
+        return moneyContainer;
+    }
+
+    public void setMoneyContainer(MoneyContainer moneyContainer) {
+        this.moneyContainer = moneyContainer;
+    }
+
+    public String getHandledNote() {
+        return handledNote;
+    }
+
+    public String getHandledByName() {
+        return handledByName;
+    }
+
+    public Instant getHandledAt() {
+        return handledAt;
+    }
+
+    /** SDFO dealt with unclaimed money under its policy: the note is required and kept for the record. */
+    public void markHandled(String note, String adminName, Instant now) {
+        this.handledNote = note;
+        this.handledByName = adminName;
+        this.handledAt = now;
     }
 
     public String getImagePath() {
