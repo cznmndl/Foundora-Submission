@@ -40,11 +40,13 @@ Profiles are stored in `user_profiles`, keyed by Firebase UID and email. Name an
 - **My Reports** (`/my-reports`): your reports in every status, with their location, private details and the admin's reason for rejections.
 - **Admin**: overview counts, a pending queue (oldest first, each previewed exactly as its feed post), All Reports with search (including location and spot) and filters (including location), Mark as Claimed / Remove, the Archive, and an activity log of every action. Every action has a confirmation step.
 - **Claims**: "Mark as claimed" opens a claim record form. The admin picks the claimant from registered users (their name and course/department come from their profile) or types the name and course/year/section or department, enters the release date and time, and adds optional notes ("verified with school ID"). The signed-in admin is recorded as the one who released it. Students and staff see only "Returned to owner"; the claimant's name and the full record are for admins. Admins can mark a claim **Disputed** (with a note), resolve the dispute, or **reopen** the claim (with a reason), which puts the item back on the feed, unclaimed. Reopened claim records are kept. All of this goes in the activity log.
+- **Claim requests**: on a found item, a student or staff member taps **This is mine** and tells SDFO how they know it's theirs (optionally with a photo). The item shows **Claim pending**. Admins compare every open request for the item on **Claims** (`/admin/claims`) and verify one (a pickup pass valid for `foundora.claims.pass-valid-for`, default 7 days, shown as **Verified**), deny it with a reason, or ask for more information. A pass that isn't collected in time expires and the item is Posted again; admins can extend it. The release at the counter is then recorded as a claim record (below). The requester follows it on the post and on My Reports.
+- **Money** (loose cash, envelopes, coin purses; wallets stay under Bags & Wallets): the report form hides the photo, name and public description and asks privately for the amount, denominations, time and container. Found money appears on the feed only as "Money" and when it was surrendered (the admin's approval); lost money never appears on the feed. Claims on money must give the same details, which admins see beside the finder's. **Lost money** (`/admin/money`) lists open lost and found money with possible matches (within 7 days and 20% of the amount). Unclaimed found money can be closed as **Handled by SDFO** with a required note. Amounts are never searchable or shown on public pages.
 - **Archive**: claimed posts are archived automatically `foundora.claims.archive-after` after being claimed (default 30 days; checked hourly). Archived posts leave the feed and the Claimed tab, but nothing is deleted: the report, photo, comments and claim records stay, and admins can search them on **Archive** (`/admin/archive`).
 - **Photos** (reports and comments): re-encoded on the server as JPEG of at most 1600 px (which also strips EXIF data such as GPS location), up to 5 MB, JPEG/PNG/WebP. Stored in the private bucket (report photos under `items/`, comment photos under `comments/`) and served only to signed-in users who may see the post. Deleted from storage when a report is rejected or removed, or when a comment is deleted.
 
 ## Report statuses
-`PENDING` → `APPROVED` or `REJECTED` (reason required); `APPROVED` → `CLAIMED` (with a claim record) or `REMOVED`; `CLAIMED` → `REMOVED`, or back to `APPROVED` when an admin reopens the claim. Claimed reports are archived (`archived_at`) after `foundora.claims.archive-after`; they keep the `CLAIMED` status. Only Approved reports and Claimed reports that aren't archived appear on the feed. Remove hides a report rather than deleting it, so the activity log stays complete.
+`PENDING` → `APPROVED` or `REJECTED` (reason required); `APPROVED` → `CLAIMED` (with a claim record), `REMOVED`, or, for found money only, `HANDLED` (handled by SDFO, note required, final); `CLAIMED` → `REMOVED`, or back to `APPROVED` when an admin reopens the claim. Claimed reports are archived (`archived_at`) after `foundora.claims.archive-after`; they keep the `CLAIMED` status. Only Approved reports and Claimed reports that aren't archived appear on the feed. Remove hides a report rather than deleting it, so the activity log stays complete.
 
 ## Data structures and algorithms
 The classes in `com.foundora.dsa` do real work in the app; each one's comments explain its structure and running time.
@@ -103,6 +105,10 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
    | V8 | `comments` table (RLS on, no policies) |
    | V9 | `claim_records` table (RLS on, no policies); at most one open claim per item |
    | V10 | New activity log actions: comment deleted, claim disputed / resolved / reopened, archived |
+   | V11 | `claim_requests` table (RLS on, no policies): one open request per person per item, at most one verified |
+   | V12 | `items.private_details` (identifying details only SDFO sees) |
+   | V13 | Profile communities (Elementary, JHS, SHS, College) and grade levels |
+   | V14 | Money category: private amount, denominations, container and time; `HANDLED` status; money claims |
 
    Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema. Never edit a migration that has already run; add a new one.
 
@@ -116,6 +122,7 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
    | `foundora.comments.cooldown` | Minimum time between two comments by the same person (default `PT30S`) |
    | `foundora.claims.archive-after` | How long after being claimed a post is archived (default `P30D`, 30 days) |
    | `foundora.claims.archive-check-interval` | How often the archive job runs (default `PT1H`) |
+   | `foundora.claims.pass-valid-for` | How long a verified claim's pickup pass lasts (default `P7D`) |
 
 4. Build the project. Tests never touch Supabase: most use an in-memory H2 database, and `MigrationTest` / `SchemaValidationTest` run every Flyway migration on a throwaway embedded Postgres (downloaded by Maven the first time) and check that the entities match the migrated schema:
    ```
@@ -161,24 +168,31 @@ docker run -p 8080:8080 -e PORT=8080 --env-file .env \
 The `prod` profile requires HTTPS for the session cookie, so sign-in over plain `http://localhost` will not keep you logged in; add `-e SPRING_PROFILES_ACTIVE=default` for local HTTP testing.
 
 ## Directory Structure
+The backend is organized by module, matching the project proposal.
 ```
 src/main/java/com/foundora
-├── auth/         Firebase sign-in, roles (EmailRoleResolver, UserRole, FoundoraUser)
-├── config/       Security, Firebase, Supabase, clock/time zone, template helpers
-├── controller/   Feed, posts, comments, reports, My Reports, profile, photos, suggestions, admin
+├── auth/         Sign-in (Firebase token check, @dlsl.edu.ph rule), roles, profile setup and My Profile
+├── reporting/    Report form and its validation, photo upload and re-encoding, photos, My Reports,
+│                 who may see a report (ReportAccess)
+├── moderation/   Admin pages: approve, reject, remove, claim requests and claim records, Handled by
+│                 SDFO, activity log, archive, Lost money, admin search
+├── feed/         The feed and its in-memory index (search, filters, categories), post page, comments,
+│                 search suggestions
 ├── dsa/          The data structures and algorithms listed above
-├── feed/         FeedIndex (in-memory feed read model) and its records
-├── model/        Item, Comment, ClaimRecord, UserProfile, ActivityLogEntry and enums
-├── repository/   Spring Data repositories
-└── service/      Reporting, moderation and claims, comments, profiles, archiving, admin search,
-                  image processing, storage
+├── database/
+│   ├── entity/       JPA entities (Item, Comment, ClaimRecord, ClaimRequest, UserProfile,
+│   │                 ActivityLogEntry) and their enums
+│   ├── repository/   Spring Data repositories
+│   └── storage/      Supabase Storage (private photo bucket) and photo clean-up
+└── config/       Security, Firebase, Supabase, time zone, formatting, campus locations, SDFO office,
+                  error pages, health check
 src/main/resources
-├── db/migration/ Flyway migrations V1–V10
-├── static/       app.css, app.js, favicon.svg
-└── templates/    fragments/ (layout, post card, report form, icons, office), feed, post, report,
-                  my-reports, profile, admin/ (incl. claim, archive), error/ (403, 404, 500), login
-src/test/java     MockMvc tests on H2 (Firebase and Storage mocked), unit tests for dsa/ and services,
-                  and migration/ tests on an embedded Postgres
+├── db/migration/ Flyway migrations V1–V14
+├── static/       app.css, app.js, favicon.svg, self-hosted fonts
+└── templates/    fragments/ (layout, post card, report form, claims, status badge, icons, office),
+                  feed, post, report, report-sent, my-reports, profile, admin/, error/, login
+src/test/java     Same modules: MockMvc tests on H2 (Firebase and Storage mocked), unit tests for
+                  dsa/, and database/ tests that run every migration on an embedded Postgres
 ```
 
 ## Contributing
