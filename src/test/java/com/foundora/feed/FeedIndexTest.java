@@ -1,12 +1,12 @@
 package com.foundora.feed;
 
-import com.foundora.model.Category;
-import com.foundora.model.Item;
-import com.foundora.model.ItemStage;
-import com.foundora.model.ReportStatus;
-import com.foundora.model.ReportType;
-import com.foundora.repository.ClaimRequestRepository;
-import com.foundora.repository.ItemRepository;
+import com.foundora.database.entity.Category;
+import com.foundora.database.entity.Item;
+import com.foundora.database.entity.ItemStage;
+import com.foundora.database.entity.ReportStatus;
+import com.foundora.database.entity.ReportType;
+import com.foundora.database.repository.ClaimRequestRepository;
+import com.foundora.database.repository.ItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

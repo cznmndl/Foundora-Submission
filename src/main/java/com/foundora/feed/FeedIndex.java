@@ -1,18 +1,18 @@
 package com.foundora.feed;
 
+import com.foundora.database.entity.Category;
+import com.foundora.database.entity.ClaimRequest;
+import com.foundora.database.entity.ClaimRequestStatus;
+import com.foundora.database.entity.Item;
+import com.foundora.database.entity.ItemStage;
+import com.foundora.database.entity.ReportStatus;
+import com.foundora.database.entity.ReportType;
+import com.foundora.database.repository.ClaimRequestRepository;
+import com.foundora.database.repository.ItemRepository;
 import com.foundora.dsa.CategoryIndex;
 import com.foundora.dsa.DateMergeSort;
 import com.foundora.dsa.InvertedIndex;
 import com.foundora.dsa.SortedInsert;
-import com.foundora.model.Category;
-import com.foundora.model.ClaimRequest;
-import com.foundora.model.ClaimRequestStatus;
-import com.foundora.model.Item;
-import com.foundora.model.ItemStage;
-import com.foundora.model.ReportStatus;
-import com.foundora.model.ReportType;
-import com.foundora.repository.ClaimRequestRepository;
-import com.foundora.repository.ItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;

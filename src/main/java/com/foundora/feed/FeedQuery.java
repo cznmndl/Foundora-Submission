@@ -1,7 +1,8 @@
 package com.foundora.feed;
 
-import com.foundora.model.Category;
-import com.foundora.model.ReportType;
+
+import com.foundora.database.entity.Category;
+import com.foundora.database.entity.ReportType;
 
 import java.time.LocalDate;
 

@@ -1,11 +1,12 @@
 package com.foundora.feed;
 
+
 import com.foundora.auth.FoundoraUser;
-import com.foundora.model.Category;
-import com.foundora.model.Item;
-import com.foundora.model.ItemStage;
-import com.foundora.model.ReportStatus;
-import com.foundora.model.ReportType;
+import com.foundora.database.entity.Category;
+import com.foundora.database.entity.Item;
+import com.foundora.database.entity.ItemStage;
+import com.foundora.database.entity.ReportStatus;
+import com.foundora.database.entity.ReportType;
 
 import java.time.Instant;
 import java.time.LocalDate;

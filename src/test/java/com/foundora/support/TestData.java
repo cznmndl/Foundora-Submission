@@ -2,14 +2,17 @@ package com.foundora.support;
 
 import com.foundora.auth.FoundoraUser;
 import com.foundora.auth.UserRole;
-import com.foundora.model.Category;
-import com.foundora.model.Item;
-import com.foundora.model.ReportStatus;
-import com.foundora.model.ReportType;
+import com.foundora.database.entity.Category;
+import com.foundora.database.entity.Item;
+import com.foundora.database.entity.ReportStatus;
+import com.foundora.database.entity.ReportType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -68,5 +71,12 @@ public final class TestData {
 
     public static Instant minutesAgo(long minutes) {
         return Instant.now().minus(Duration.ofMinutes(minutes));
+    }
+
+    /** A blank PNG of the given size, for upload tests. */
+    public static byte[] png(int w, int h) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB), "png", out);
+        return out.toByteArray();
     }
 }

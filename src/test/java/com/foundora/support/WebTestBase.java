@@ -1,16 +1,16 @@
 package com.foundora.support;
 
 import com.foundora.auth.FoundoraUser;
+import com.foundora.database.entity.Item;
+import com.foundora.database.entity.UserProfile;
+import com.foundora.database.repository.ActivityLogRepository;
+import com.foundora.database.repository.ClaimRecordRepository;
+import com.foundora.database.repository.ClaimRequestRepository;
+import com.foundora.database.repository.CommentRepository;
+import com.foundora.database.repository.ItemRepository;
+import com.foundora.database.repository.UserProfileRepository;
+import com.foundora.database.storage.StorageService;
 import com.foundora.feed.FeedIndex;
-import com.foundora.model.Item;
-import com.foundora.model.UserProfile;
-import com.foundora.repository.ActivityLogRepository;
-import com.foundora.repository.ClaimRecordRepository;
-import com.foundora.repository.ClaimRequestRepository;
-import com.foundora.repository.CommentRepository;
-import com.foundora.repository.ItemRepository;
-import com.foundora.repository.UserProfileRepository;
-import com.foundora.service.StorageService;
 import com.google.firebase.auth.FirebaseAuth;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,12 +1,12 @@
 package com.foundora.auth;
 
+import com.foundora.database.entity.UserProfile;
+import com.foundora.database.repository.UserProfileRepository;
+import com.google.firebase.ErrorCode;
 import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
-import com.google.firebase.ErrorCode;
-import com.foundora.model.UserProfile;
-import com.foundora.repository.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
