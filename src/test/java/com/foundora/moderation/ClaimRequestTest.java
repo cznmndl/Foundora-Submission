@@ -10,7 +10,6 @@ import com.foundora.database.entity.ReportType;
 import com.foundora.support.WebTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -273,10 +272,5 @@ class ClaimRequestTest extends WebTestBase {
 
     private static LocalDateTime localNow() {
         return LocalDateTime.now(ZoneId.of("Asia/Manila")).truncatedTo(ChronoUnit.MINUTES);
-    }
-
-    private String html(String url, RequestPostProcessor user) throws Exception {
-        return mvc.perform(get(url).with(user)).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
     }
 }

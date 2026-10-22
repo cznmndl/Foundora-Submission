@@ -1,6 +1,5 @@
 package com.foundora.moderation;
 
-
 import com.foundora.database.entity.ClaimRequest;
 import com.foundora.database.entity.Item;
 import com.foundora.database.entity.MoneyContainer;

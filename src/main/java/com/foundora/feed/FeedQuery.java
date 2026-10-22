@@ -1,6 +1,5 @@
 package com.foundora.feed;
 
-
 import com.foundora.database.entity.Category;
 import com.foundora.database.entity.ReportType;
 

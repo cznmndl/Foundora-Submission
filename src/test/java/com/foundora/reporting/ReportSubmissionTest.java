@@ -5,14 +5,11 @@ import com.foundora.database.entity.Item;
 import com.foundora.database.entity.ReportStatus;
 import com.foundora.database.entity.ReportType;
 import com.foundora.support.WebTestBase;
-import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import static com.foundora.support.TestData.STAFF;

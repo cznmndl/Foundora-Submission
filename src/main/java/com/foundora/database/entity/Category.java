@@ -29,18 +29,10 @@ public enum Category {
 
     /** URL form, e.g. {@code ids-documents}. */
     public String slug() {
-        return name().toLowerCase().replace('_', '-');
+        return Slugs.of(this);
     }
 
     public static Category fromSlug(String slug) {
-        if (slug == null) {
-            return null;
-        }
-        for (Category category : values()) {
-            if (category.slug().equalsIgnoreCase(slug.trim())) {
-                return category;
-            }
-        }
-        return null;
+        return Slugs.find(Category.class, slug);
     }
 }

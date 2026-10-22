@@ -14,7 +14,6 @@ import static com.foundora.support.TestData.STUDENT;
 import static com.foundora.support.TestData.as;
 import static com.foundora.support.TestData.item;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -96,10 +95,5 @@ class LocationPrivacyTest extends WebTestBase {
         item.setLocation(PLACE);
         item.setLocationSpot(SPOT);
         return item;
-    }
-
-    private String html(String url, RequestPostProcessor user) throws Exception {
-        return mvc.perform(get(url).with(user)).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
     }
 }

@@ -3,7 +3,6 @@ package com.foundora.moderation;
 import com.foundora.database.entity.ClaimRecord;
 import com.foundora.database.entity.UserProfile;
 
-
 /**
  * What only admins see about a post: where it was lost or found, its identifying details, who reported it,
  * and its current claim.

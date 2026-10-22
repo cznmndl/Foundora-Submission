@@ -1,6 +1,5 @@
 package com.foundora.feed;
 
-
 import com.foundora.auth.FoundoraUser;
 
 import java.time.Instant;

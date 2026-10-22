@@ -162,10 +162,4 @@ class FeedPageTest extends WebTestBase {
     private String html(String url) throws Exception {
         return html(url, as(STUDENT));
     }
-
-    private String html(String url, org.springframework.test.web.servlet.request.RequestPostProcessor user)
-            throws Exception {
-        return mvc.perform(get(url).with(user)).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-    }
 }

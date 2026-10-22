@@ -353,8 +353,4 @@ class MoneyTest extends WebTestBase {
         }
         return fields;
     }
-
-    private String html(String url, RequestPostProcessor user) throws Exception {
-        return mvc.perform(get(url).with(user)).andReturn().getResponse().getContentAsString();
-    }
 }

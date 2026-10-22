@@ -345,12 +345,10 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .status { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 700; }
-.status-pending { background: var(--pending-bg); color: var(--pending-ink); }
 .status-approved { background: var(--found-bg); color: var(--green-900); }
 .status-rejected { background: var(--danger-bg); color: var(--danger); }
-.status-claimed { background: var(--muted-bg); color: var(--muted-ink); }
 .status-removed { background: var(--muted-bg); color: var(--muted-ink); }
-/* Claim requests (stage 1, plain; restyled with the School ID screens). Blue is 7.9:1 on its tint. */
+/* Claim request statuses. Blue is 7.9:1 on its tint. */
 .claim-pending, .claim-needs-info { background: var(--pending-bg); color: var(--pending-ink); }
 .claim-verified { background: #e3ebf8; color: #1f3f80; }
 .claim-released { background: var(--found-bg); color: var(--green-900); }
@@ -379,9 +377,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .alert-neutral { background: var(--muted-bg); color: var(--muted-ink); border: 1px solid var(--line); }
 
 /* ---------- Feed ---------- */
-/* Kept for older pages that still use the round composer. */
-.composer { display: flex; align-items: center; gap: .75rem; }
-
 .composer-bar { display: none; }
 @media (min-width: 900px) {
   .composer-bar {
@@ -620,9 +615,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .empty-note { color: var(--ink-3); margin: 0; }
 
 /* Right panel */
-.stat-list { list-style: none; margin: 0; padding: 0; }
-.stat-list li { display: flex; align-items: baseline; gap: var(--s2); padding: var(--s1) 0; }
-.stat-list strong { font-size: 1.5rem; color: var(--green-800); min-width: 2.5rem; }
 .office { padding: 0; overflow: hidden; box-shadow: none; }
 .office > :not(.office-stripe) { margin-left: var(--s4); margin-right: var(--s4); }
 .office-stripe {

@@ -1,6 +1,5 @@
 package com.foundora.feed;
 
-
 import com.foundora.auth.FoundoraUser;
 import com.foundora.database.entity.Category;
 import com.foundora.database.entity.Item;

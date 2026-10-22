@@ -42,7 +42,7 @@ public enum ActivityAction {
         }
 
         public String slug() {
-            return name().toLowerCase().replace('_', '-');
+            return Slugs.of(this);
         }
 
         /** The actions in this category, in declaration order. */
@@ -51,15 +51,7 @@ public enum ActivityAction {
         }
 
         public static Group fromSlug(String slug) {
-            if (slug == null) {
-                return null;
-            }
-            for (Group group : values()) {
-                if (group.slug().equalsIgnoreCase(slug.trim())) {
-                    return group;
-                }
-            }
-            return null;
+            return Slugs.find(Group.class, slug);
         }
     }
 
@@ -87,18 +79,10 @@ public enum ActivityAction {
     }
 
     public String slug() {
-        return name().toLowerCase().replace('_', '-');
+        return Slugs.of(this);
     }
 
     public static ActivityAction fromSlug(String slug) {
-        if (slug == null) {
-            return null;
-        }
-        for (ActivityAction action : values()) {
-            if (action.slug().equalsIgnoreCase(slug.trim())) {
-                return action;
-            }
-        }
-        return null;
+        return Slugs.find(ActivityAction.class, slug);
     }
 }

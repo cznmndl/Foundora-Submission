@@ -1,6 +1,5 @@
 package com.foundora.moderation;
 
-
 import com.foundora.database.entity.ClaimRequest;
 import com.foundora.database.entity.Item;
 import com.foundora.database.entity.MoneyContainer;
@@ -37,13 +36,5 @@ public record MoneyDetails(BigDecimal amount, String denominations, String where
         }
         return new MoneyDetails(request.getMoneyAmount(), request.getMoneyDenominations(), request.getMoneyWhere(),
                 request.getMoneyLostOn(), request.getMoneyLostTime(), request.getMoneyContainer());
-    }
-
-    public boolean sameAmount(MoneyDetails other) {
-        return other != null && amount.compareTo(other.amount) == 0;
-    }
-
-    public boolean sameContainer(MoneyDetails other) {
-        return other != null && container == other.container;
     }
 }

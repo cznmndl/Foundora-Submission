@@ -27,7 +27,7 @@ public enum ItemStage {
     }
 
     public String slug() {
-        return name().toLowerCase().replace('_', '-');
+        return Slugs.of(this);
     }
 
     /** The icon on its status sticker (fragments/icons.html). */

@@ -31,7 +31,7 @@ public enum ReportStatus {
     }
 
     public String slug() {
-        return name().toLowerCase();
+        return Slugs.of(this);
     }
 
     public boolean canMoveTo(ReportStatus next) {
@@ -44,14 +44,6 @@ public enum ReportStatus {
     }
 
     public static ReportStatus fromSlug(String slug) {
-        if (slug == null) {
-            return null;
-        }
-        for (ReportStatus status : values()) {
-            if (status.slug().equalsIgnoreCase(slug.trim())) {
-                return status;
-            }
-        }
-        return null;
+        return Slugs.find(ReportStatus.class, slug);
     }
 }

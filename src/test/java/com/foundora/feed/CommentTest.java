@@ -192,9 +192,4 @@ class CommentTest extends WebTestBase {
         return mvc.perform(multipart("/posts/" + post.getId() + "/comments").param("body", body)
                 .with(user).with(csrf()));
     }
-
-    private String html(String url, RequestPostProcessor user) throws Exception {
-        return mvc.perform(get(url).with(user)).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-    }
 }

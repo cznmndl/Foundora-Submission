@@ -32,7 +32,7 @@ public enum ClaimRequestStatus {
     }
 
     public String slug() {
-        return name().toLowerCase().replace('_', '-');
+        return Slugs.of(this);
     }
 
     public boolean isOpen() {

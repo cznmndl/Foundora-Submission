@@ -16,7 +16,6 @@ import static com.foundora.support.TestData.STUDENT;
 import static com.foundora.support.TestData.as;
 import static com.foundora.support.TestData.item;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 class ActivityLogFilterTest extends WebTestBase {
 
@@ -65,6 +64,6 @@ class ActivityLogFilterTest extends WebTestBase {
     }
 
     private String html(String url) throws Exception {
-        return mvc.perform(get(url).with(as(ADMIN))).andReturn().getResponse().getContentAsString();
+        return html(url, as(ADMIN));
     }
 }

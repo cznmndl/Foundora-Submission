@@ -35,7 +35,7 @@ public class ProfileOptions {
                     "BS Entertainment and Multimedia Computing", "BS Industrial Engineering",
                     "BS Information Technology", "Associate in Computer Technology")),
             new CourseGroup("College of Criminal Justice Education", List.of("Bachelor of Forensic Science")),
-            // Placeholders until the programs are listed: each college is one choice for now.
+            // These colleges are a single choice each: their programs aren't listed separately.
             new CourseGroup("College of Law", List.of("College of Law")),
             new CourseGroup("College of Nursing", List.of("College of Nursing")));
 

@@ -18,8 +18,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.Instant;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Full app on the in-memory database, with Firebase and Supabase Storage replaced by mocks.
@@ -82,6 +86,12 @@ public abstract class WebTestBase {
         p.setSection(section);
         p.setDepartment(department);
         return p;
+    }
+
+    /** The page's HTML as this user sees it; fails the test unless the page loads (200). */
+    protected String html(String url, RequestPostProcessor user) throws Exception {
+        return mvc.perform(get(url).with(user)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
     }
 
     /** Saves items directly (as if already moderated) and reloads the feed index. */

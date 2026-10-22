@@ -16,18 +16,10 @@ public enum ReportType {
 
     /** Lower-case name used in URLs, e.g. {@code ?type=found}. */
     public String slug() {
-        return name().toLowerCase();
+        return Slugs.of(this);
     }
 
     public static ReportType fromSlug(String slug) {
-        if (slug == null) {
-            return null;
-        }
-        for (ReportType type : values()) {
-            if (type.slug().equalsIgnoreCase(slug.trim())) {
-                return type;
-            }
-        }
-        return null;
+        return Slugs.find(ReportType.class, slug);
     }
 }

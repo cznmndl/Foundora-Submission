@@ -1,6 +1,5 @@
 package com.foundora.moderation;
 
-
 import com.foundora.database.entity.Category;
 import com.foundora.database.entity.ReportStatus;
 import com.foundora.database.entity.ReportType;
