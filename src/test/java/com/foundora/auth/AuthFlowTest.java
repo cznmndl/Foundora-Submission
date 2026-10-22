@@ -230,4 +230,24 @@ class AuthFlowTest {
                 "auth_time", authTime.getEpochSecond()));
         return token;
     }
+
+    @Test
+    void adminEmailMatchesWhateverItsCapitalization() throws Exception {
+        // On the allowlist as ana.cruz@dlsl.edu.ph; Google can send the address with capitals.
+        MockHttpSession session = signIn("caps-token", token("Ana.Cruz@DLSL.edu.ph", true, "google.com"), "/admin");
+
+        mvc.perform(get("/admin").session(session)).andExpect(status().isOk());
+    }
+
+    @Test
+    void rejectsExpiredTokens() throws Exception {
+        when(firebaseAuth.verifyIdToken(eq("expired"), eq(true))).thenThrow(
+                new FirebaseAuthException(ErrorCode.UNAUTHENTICATED, "Firebase ID token has expired", null, null,
+                        AuthErrorCode.EXPIRED_ID_TOKEN));
+
+        mvc.perform(post("/auth/session").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"idToken\":\"expired\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").exists());
+    }
 }

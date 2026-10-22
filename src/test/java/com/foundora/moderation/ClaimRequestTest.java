@@ -7,9 +7,12 @@ import com.foundora.database.entity.Item;
 import com.foundora.database.entity.ItemStage;
 import com.foundora.database.entity.ReportStatus;
 import com.foundora.database.entity.ReportType;
+import com.foundora.database.storage.StorageService;
 import com.foundora.support.WebTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -25,9 +28,13 @@ import static com.foundora.support.TestData.STAFF;
 import static com.foundora.support.TestData.STUDENT;
 import static com.foundora.support.TestData.as;
 import static com.foundora.support.TestData.item;
+import static com.foundora.support.TestData.png;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -272,5 +279,18 @@ class ClaimRequestTest extends WebTestBase {
 
     private static LocalDateTime localNow() {
         return LocalDateTime.now(ZoneId.of("Asia/Manila")).truncatedTo(ChronoUnit.MINUTES);
+    }
+
+    @Test
+    void keepsTheRequestWhenThePhotoCannotBeUploaded() throws Exception {
+        Item item = found("Blue tumbler");
+        when(storage.storePhoto(anyString(), any())).thenThrow(new ResourceAccessException("Supabase Storage unreachable"));
+
+        mvc.perform(request(item, PROOF).file(new MockMultipartFile("photo", "me.png", "image/png", png(300, 200)))
+                        .with(as(STUDENT)).with(csrf()))
+                .andExpect(flash().attribute("flashError", StorageService.UPLOAD_FAILED))
+                .andExpect(flash().attribute("proofDraft", PROOF));
+
+        assertThat(claimRequestRepository.count()).isZero();
     }
 }

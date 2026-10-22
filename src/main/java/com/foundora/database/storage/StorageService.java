@@ -54,6 +54,9 @@ public class StorageService {
     }
 
     /** Uploads JPEG bytes into {@code folder} (items, comments or claims) under a new random name; returns the object path. */
+    /** Shown when Supabase Storage doesn't accept an upload; the form is kept so the person can try again. */
+    public static final String UPLOAD_FAILED = "We couldn't save the photo just now. Please try again in a moment.";
+
     public String storePhoto(String folder, byte[] jpeg) {
         if (!ITEMS.equals(folder) && !COMMENTS.equals(folder) && !CLAIMS.equals(folder)) {
             throw new IllegalArgumentException("Unknown photo folder: " + folder);

@@ -8,7 +8,10 @@ import com.foundora.database.entity.ItemStage;
 import com.foundora.database.entity.MoneyContainer;
 import com.foundora.database.entity.ReportType;
 import com.foundora.feed.FeedPost;
+import com.foundora.database.storage.StorageService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -25,6 +29,8 @@ import java.util.UUID;
 /** The report form (a full page on phones, a dialog on the desktop feed) and its confirmation. */
 @Controller
 public class ReportController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportController.class);
 
     private final ReportService reports;
     private final CampusLocations campusLocations;
@@ -65,6 +71,10 @@ public class ReportController {
             saved = reports.submit(user, form, photo);
         } catch (InvalidImageException e) {
             model.addAttribute("photoError", e.getMessage());
+            return formPage(model);
+        } catch (RestClientException e) {
+            log.warn("Photo upload failed; the report was not saved", e);
+            model.addAttribute("photoError", StorageService.UPLOAD_FAILED);
             return formPage(model);
         }
         redirect.addFlashAttribute("sentType", form.getType());

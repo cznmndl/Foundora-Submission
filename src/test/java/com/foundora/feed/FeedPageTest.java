@@ -162,4 +162,24 @@ class FeedPageTest extends WebTestBase {
     private String html(String url) throws Exception {
         return html(url, as(STUDENT));
     }
+
+    @Test
+    void searchCopesWithEmptyTextSpecialCharactersAndNoResults() throws Exception {
+        save(item("100% cotton shirt", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
+
+        // An empty search shows everything.
+        assertThat(search("")).contains("100% cotton shirt");
+        // Odd characters are just text: no error, and nothing typed is echoed back as markup.
+        for (String q : new String[]{"%", "_", "'", "\"", "\\", "(((", "<script>alert(1)</script>"}) {
+            assertThat(search(q)).as(q).doesNotContain("<script>alert(1)</script>");
+        }
+        assertThat(search("100%")).contains("100% cotton shirt");
+        // No results: the empty board says so and offers to clear the filters.
+        assertThat(search("zzzzzz")).doesNotContain("100% cotton shirt").contains("Clear filters");
+    }
+
+    private String search(String q) throws Exception {
+        return mvc.perform(get("/").param("q", q).with(as(STUDENT))).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
 }

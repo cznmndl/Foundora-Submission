@@ -4,11 +4,22 @@ import com.foundora.database.entity.ClaimRequestStatus;
 import com.foundora.database.entity.ReportStatus;
 import com.foundora.database.repository.ClaimRequestRepository;
 import com.foundora.database.repository.ItemRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.TransactionException;
 
-/** Numbers shown in the navigation, read by templates as {@code ${@navCounts.pending()}} only where displayed. */
+import java.util.function.LongSupplier;
+
+/**
+ * Numbers shown in the navigation, read by templates as {@code ${@navCounts.pending()}} only where displayed.
+ * If the database can't be reached they show as 0, so the page explaining the outage still renders.
+ */
 @Component("navCounts")
 public class NavCounts {
+
+    private static final Logger log = LoggerFactory.getLogger(NavCounts.class);
 
     private final ItemRepository items;
     private final ClaimRequestRepository claimRequests;
@@ -19,11 +30,20 @@ public class NavCounts {
     }
 
     public long pending() {
-        return items.countByStatus(ReportStatus.PENDING);
+        return countOrZero(() -> items.countByStatus(ReportStatus.PENDING));
     }
 
     /** Claim requests waiting for an admin's decision. */
     public long claims() {
-        return claimRequests.countByStatus(ClaimRequestStatus.PENDING);
+        return countOrZero(() -> claimRequests.countByStatus(ClaimRequestStatus.PENDING));
+    }
+
+    private static long countOrZero(LongSupplier count) {
+        try {
+            return count.getAsLong();
+        } catch (DataAccessException | TransactionException e) {
+            log.debug("Navigation count unavailable", e);
+            return 0;
+        }
     }
 }

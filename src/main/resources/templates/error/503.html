@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Temporarily unavailable · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <section class="card empty">
+        <p class="error-code">503</p>
+        <h1>Foundora can't reach its database right now</h1>
+        <p class="muted">This is usually brief. Nothing you did was lost or wrong: wait a minute, then try again. If it keeps happening, let the SDFO office know.</p>
+        <a class="btn btn-primary" th:href="@{/}">Try again</a>
+    </section>
+</div>
+</body>
+</html>

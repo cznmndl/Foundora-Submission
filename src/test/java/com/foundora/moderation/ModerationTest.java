@@ -206,4 +206,20 @@ class ModerationTest extends WebTestBase {
     private ActivityLogEntry lastLog() {
         return activityLog.findTop10ByOrderByCreatedAtDescIdDesc().get(0);
     }
+
+    @Test
+    void adminSearchTreatsPercentAndUnderscoreAsPlainText() throws Exception {
+        save(item("100% cotton shirt", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
+        save(item("Blue umbrella", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
+
+        assertThat(adminSearch("")).contains("100% cotton shirt").contains("Blue umbrella");
+        assertThat(adminSearch("100%")).contains("100% cotton shirt").doesNotContain("Blue umbrella");
+        // In SQL LIKE, _ matches any one character; here it's only an underscore, so "b_ue" finds nothing.
+        assertThat(adminSearch("b_ue")).doesNotContain("Blue umbrella").contains("No reports match");
+    }
+
+    private String adminSearch(String q) throws Exception {
+        return mvc.perform(get("/admin/reports").param("q", q).with(as(ADMIN))).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
 }

@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.time.Instant;
 
@@ -25,6 +26,7 @@ import static com.foundora.support.TestData.png;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -191,5 +193,19 @@ class CommentTest extends WebTestBase {
             throws Exception {
         return mvc.perform(multipart("/posts/" + post.getId() + "/comments").param("body", body)
                 .with(user).with(csrf()));
+    }
+
+    @Test
+    void keepsTheCommentWhenThePhotoCannotBeUploaded() throws Exception {
+        Item post = approvedPostBy(OTHER_STUDENT);
+        when(storage.storePhoto(anyString(), any())).thenThrow(new ResourceAccessException("Supabase Storage unreachable"));
+
+        mvc.perform(multipart("/posts/" + post.getId() + "/comments")
+                        .file(new MockMultipartFile("photo", "id.png", "image/png", png(300, 200)))
+                        .param("body", "Is this the one I lost?").with(as(STUDENT)).with(csrf()))
+                .andExpect(flash().attribute("flashError", StorageService.UPLOAD_FAILED))
+                .andExpect(flash().attribute("commentDraft", "Is this the one I lost?"));
+
+        assertThat(commentRepository.count()).isZero();
     }
 }

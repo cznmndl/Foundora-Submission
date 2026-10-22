@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -273,5 +274,22 @@ class ClaimTest extends WebTestBase {
 
     private ActivityAction lastAction() {
         return activityLog.findTop10ByOrderByCreatedAtDescIdDesc().get(0).getAction();
+    }
+
+    @Test
+    void anAlreadyClaimedItemCannotBeClaimedOrRequestedAgain() throws Exception {
+        Item item = save(item("Blue tumbler", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
+        claim(item);
+
+        mvc.perform(claimForm(item).param("claimantName", "Someone Else").param("claimantAffiliation", "BSIT")
+                        .with(as(ADMIN)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("can&#39;t be marked as claimed")));
+        mvc.perform(multipart("/posts/" + item.getId() + "/claim-requests")
+                        .param("proof", "It's mine, I lost it at the library on Monday.").with(as(STUDENT)).with(csrf()))
+                .andExpect(flash().attribute("flashError", containsString("already been returned")));
+
+        assertThat(claimRepository.findAll()).hasSize(1);
+        assertThat(claimRequestRepository.count()).isZero();
     }
 }

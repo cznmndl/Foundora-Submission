@@ -60,6 +60,11 @@ public class ClaimRequestController {
             redirect.addFlashAttribute("flashError", e.getMessage());
             redirect.addFlashAttribute("proofDraft", proof);
             redirect.addFlashAttribute("moneyDraft", money);
+        } catch (RestClientException e) {
+            log.warn("Claim request photo upload failed; the request was not sent", e);
+            redirect.addFlashAttribute("flashError", StorageService.UPLOAD_FAILED);
+            redirect.addFlashAttribute("proofDraft", proof);
+            redirect.addFlashAttribute("moneyDraft", money);
         }
         return "redirect:/posts/" + id + "#claim";
     }

@@ -4,11 +4,13 @@ import com.foundora.database.entity.ActivityAction;
 import com.foundora.database.entity.Item;
 import com.foundora.database.entity.ReportStatus;
 import com.foundora.database.entity.ReportType;
+import com.foundora.reporting.ImageProcessor;
 import com.foundora.support.WebTestBase;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
 
@@ -219,5 +221,59 @@ class ReportSubmissionTest extends WebTestBase {
                 .param("location", location)
                 .param("locationSpot", spot)
                 .param("dateLostFound", date);
+    }
+
+    @Test
+    void refusesFieldsThatAreTooLong() throws Exception {
+        mvc.perform(multipart("/report").param("type", "LOST").param("itemName", "x".repeat(81))
+                        .param("description", "x".repeat(1001)).param("category", "UMBRELLAS")
+                        .param("location", "Sentrum").param("locationSpot", "x".repeat(201))
+                        .param("dateLostFound", today().toString()).with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Keep the item name to 80 characters or fewer.")))
+                .andExpect(content().string(containsString("Keep the description to 1000 characters or fewer.")))
+                .andExpect(content().string(containsString("Keep the specific spot to 200 characters or fewer.")));
+
+        assertThat(items.count()).isZero();
+    }
+
+    @Test
+    void refusesAFileRenamedToLookLikeAPhoto() throws Exception {
+        mvc.perform(validReport("FOUND")
+                        .file(new MockMultipartFile("photo", "receipt.jpg", "image/jpeg", "%PDF-1.7 not a photo".getBytes()))
+                        .with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("isn&#39;t a photo we can read")));
+
+        verify(storage, never()).storePhoto(any());
+        assertThat(items.count()).isZero();
+    }
+
+    @Test
+    void refusesPhotosOverFiveMegabytes() throws Exception {
+        byte[] tooBig = new byte[(int) ImageProcessor.MAX_BYTES + 1];
+
+        mvc.perform(validReport("FOUND").file(new MockMultipartFile("photo", "big.jpg", "image/jpeg", tooBig))
+                        .with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("The photo must be 5 MB or smaller.")));
+
+        verify(storage, never()).storePhoto(any());
+        assertThat(items.count()).isZero();
+    }
+
+    @Test
+    void keepsTheFormWhenThePhotoCannotBeUploaded() throws Exception {
+        when(storage.storePhoto(any())).thenThrow(new ResourceAccessException("Supabase Storage unreachable"));
+
+        mvc.perform(validReport("FOUND")
+                        .file(new MockMultipartFile("photo", "umbrella.png", "image/png", png(400, 300)))
+                        .with(as(STUDENT)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("We couldn&#39;t save the photo just now")))
+                .andExpect(content().string(containsString("value=\"Navy umbrella\"")));
+
+        assertThat(items.count()).isZero();
+        assertThat(activityLog.count()).isZero();
     }
 }

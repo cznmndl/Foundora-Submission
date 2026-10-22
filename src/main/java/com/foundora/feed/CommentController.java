@@ -50,6 +50,10 @@ public class CommentController {
         } catch (CommentException | InvalidImageException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
             redirect.addFlashAttribute("commentDraft", body);
+        } catch (RestClientException e) {
+            log.warn("Comment photo upload failed; the comment was not posted", e);
+            redirect.addFlashAttribute("flashError", StorageService.UPLOAD_FAILED);
+            redirect.addFlashAttribute("commentDraft", body);
         }
         return "redirect:/posts/" + id + "#comments";
     }
