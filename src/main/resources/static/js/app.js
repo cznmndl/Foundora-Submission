@@ -34,6 +34,18 @@
   });
 
   document.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-pin-toggle]");
+    if (!toggle) return;
+    const input = document.getElementById(toggle.dataset.pinToggle);
+    if (!input) return;
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    toggle.setAttribute("aria-pressed", String(show));
+    toggle.querySelector("[data-eye-open]").hidden = !show;
+    toggle.querySelector("[data-eye-closed]").hidden = show;
+  });
+
+  document.addEventListener("click", (event) => {
     if (event.target instanceof HTMLDialogElement) {
       const r = event.target.getBoundingClientRect();
       const inside = event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;

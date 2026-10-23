@@ -13,6 +13,8 @@ Foundora is the lost and found board for the De La Salle Lipa community (Group 6
 ## Roles
 Only `@dlsl.edu.ph` Google accounts can sign in; the server checks this after verifying the Firebase ID token.
 
+After every Google sign-in, users enter a 4-digit PIN before any other page opens. First-time users create one (not all-same digits like 1111 and not a straight run like 1234), then set up their profile. Only a BCrypt hash of the PIN is stored. Three wrong PINs lock PIN entry for 24 hours. **Forgot PIN?** signs the user out, and their next Google sign-in clears the old PIN so they can create a new one.
+
 | Email | Role | Can do |
 | --- | --- | --- |
 | On `FOUNDORA_ADMIN_EMAILS` (any @dlsl.edu.ph address, including office accounts) | Admin | Everything below, plus moderation; lands on `/admin` |
@@ -109,6 +111,7 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
    | V12 | `items.private_details` (identifying details only SDFO sees) |
    | V13 | Profile communities (Elementary, JHS, SHS, College) and grade levels |
    | V14 | Money category: private amount, denominations, container and time; `HANDLED` status; money claims |
+   | V15 | Sign-in PIN: BCrypt hash, failed attempts, 24-hour lock and reset request on `user_profiles` |
 
    Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema. Never edit a migration that has already run; add a new one.
 
@@ -171,7 +174,7 @@ The `prod` profile requires HTTPS for the session cookie, so sign-in over plain 
 The backend is organized by module, matching the project proposal.
 ```
 src/main/java/com/foundora
-├── auth/         Sign-in (Firebase token check, @dlsl.edu.ph rule), roles, profile setup and My Profile
+├── auth/         Sign-in (Firebase token check, @dlsl.edu.ph rule), PIN step, roles, profile setup and My Profile
 ├── reporting/    Report form and its validation, photo upload and re-encoding, photos, My Reports,
 │                 who may see a report (ReportAccess)
 ├── moderation/   Admin pages: approve, reject, remove, claim requests and claim records, Handled by
@@ -187,7 +190,7 @@ src/main/java/com/foundora
 └── config/       Security, Firebase, Supabase, time zone, formatting, campus locations, SDFO office,
                   error pages, health check
 src/main/resources
-├── db/migration/ Flyway migrations V1–V14
+├── db/migration/ Flyway migrations V1–V15
 ├── static/       app.css, app.js, favicon.svg, self-hosted fonts
 └── templates/    fragments/ (layout, post card, report form, claims, status badge, icons, office),
                   feed, post, report, report-sent, my-reports, profile, admin/, error/, login

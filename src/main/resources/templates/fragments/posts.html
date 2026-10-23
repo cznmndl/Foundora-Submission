@@ -112,10 +112,11 @@
             <span aria-hidden="true" th:text="${commentCount}">2</span></a>
         <span th:replace="~{fragments/posts :: sticker(${post.stage()})}"></span>
     </footer>
-    <div class="idcard-admin" th:if="${ad != null or controls}">
-        <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
-        <th:block th:if="${controls}"><div
-             th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div></th:block>
+    <div class="idcard-admin" th:if="${ad != null}">
+        <div th:replace="~{fragments/posts :: adminBox(${ad})}"></div>
+    </div>
+    <div class="idcard-actions" th:if="${controls}">
+        <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, ${post.status().name()}, ${returnTo}, ${post.money() and post.found()})}"></div>
     </div>
 </article>
 

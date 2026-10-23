@@ -1,6 +1,7 @@
 package com.foundora.auth;
 
 import com.foundora.config.FirebaseWebProperties;
+import com.foundora.database.entity.UserProfile;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -73,12 +74,12 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
 
-        boolean complete = profiles.recordSignIn(user).isCompleteFor(user.role());
-        if (!complete) {
-            return ResponseEntity.ok(Map.of("redirect", ProfileSetupInterceptor.SETUP_PATH));
+        UserProfile profile = profiles.recordSignIn(user);
+        if (profile.isCompleteFor(user.role())) {
+            session.setAttribute(ProfileSetupInterceptor.COMPLETE_ATTRIBUTE, true);
         }
-        session.setAttribute(ProfileSetupInterceptor.COMPLETE_ATTRIBUTE, true);
-        return ResponseEntity.ok(Map.of("redirect", user.homePath()));
+        String next = profile.hasPin() ? PinInterceptor.PIN_PATH : PinInterceptor.SETUP_PATH;
+        return ResponseEntity.ok(Map.of("redirect", next));
     }
 
     public record SessionRequest(String idToken) {

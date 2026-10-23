@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">Foundora</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <meta name="theme-color" content="#f3f6f4">
+    <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+    <link rel="preload" th:href="@{/fonts/inter-latin-wght-normal.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/inter-latin-wght-italic.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/archivo-latin-wdth-normal.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body class="auth-body">
+<main id="main" class="auth-page">
+    <section class="auth-card" aria-labelledby="auth-title">
+        <div class="auth-badge" th:replace="~{fragments/auth :: badge}"></div>
+        <th:block th:replace="${content}"></th:block>
+    </section>
+</main>
+</body>
+</html>
+
+<div th:fragment="badge" class="auth-badge">
+    <th:block th:replace="~{fragments/auth :: magnifier}"></th:block>
+    <span class="wordmark">
+        <span class="wordmark-name">Foundora</span>
+        <span class="wordmark-tag">DLSL Lost &amp; Found</span>
+    </span>
+</div>
+
+<svg th:fragment="magnifier" class="magnifier" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+    <circle class="magnifier-ring" cx="20" cy="20" r="13" fill="none" stroke-width="6.5"/>
+    <path class="magnifier-handle" d="M30.5 30.5l9 9" fill="none" stroke-width="7" stroke-linecap="round"/>
+</svg>
+
+<form th:fragment="signout" class="auth-signout" th:action="@{/logout}" method="post">
+    Not you? <button class="link-button" type="submit">Sign out here.</button>
+</form>
+
+<button th:fragment="eye(target)" class="pin-toggle" type="button" th:attr="data-pin-toggle=${target}"
+        aria-label="Show PIN" aria-pressed="false">
+    <span data-eye-closed th:insert="~{fragments/icons :: icon('eye-closed')}"></span>
+    <span data-eye-open hidden th:insert="~{fragments/icons :: icon('eye')}"></span>
+</button>

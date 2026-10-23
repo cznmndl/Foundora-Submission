@@ -72,7 +72,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("14");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("15");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -180,6 +180,15 @@ class MigrationTest {
                 + "('Money', 'HANDLED_BY_SDFO', 'a', 'A', 'Turned over to Finance')");
         assertThatThrownBy(() -> exec("update public.claim_requests set money_amount = -1")).as("negative claim")
                 .isInstanceOf(SQLException.class);
+
+        assertThat(query("select pin_failed_attempts || '|' || pin_reset_requested || '|' || (pin_hash is null) "
+                + "from public.user_profiles where uid = 'uid-old'")).isEqualTo("0|false|true");
+        exec("update public.user_profiles set pin_hash = '$2a$10$abcdefghijklmnopqrstuuVfZ0lU5n0bAg0l4oA0o3iQ0e1bUq6Q2', "
+                + "pin_failed_attempts = 2 where uid = 'uid-old'");
+        assertThatThrownBy(() -> exec("update public.user_profiles set pin_hash = '2580' where uid = 'uid-old'"))
+                .as("raw PIN").isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> exec("update public.user_profiles set pin_failed_attempts = 4 where uid = 'uid-old'"))
+                .as("more than 3 attempts").isInstanceOf(SQLException.class);
     }
 
     private static void exec(String sql) throws SQLException {

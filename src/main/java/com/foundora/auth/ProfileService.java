@@ -42,6 +42,7 @@ public class ProfileService {
                 profile.setGradeLevel(previous.getGradeLevel());
                 profile.setSection(previous.getSection());
                 profile.setDepartment(previous.getDepartment());
+                profile.copyPinFrom(previous);
                 profiles.delete(previous);
                 profiles.flush();
             }
@@ -49,6 +50,9 @@ public class ProfileService {
         profile.setEmail(user.email());
         profile.setFullName(user.name());
         profile.setRole(user.role());
+        if (profile.isPinResetRequested()) {
+            profile.clearPin();
+        }
         profile.setUpdatedAt(now);
         return profiles.save(profile);
     }

@@ -35,6 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AuthFlowTest {
 
+    private static final String PIN = "2580";
+
     @Autowired
     private MockMvc mvc;
 
@@ -54,9 +56,15 @@ class AuthFlowTest {
     }
 
     @Test
-    void firstSignInMustSetUpTheProfileBeforeAnythingElse() throws Exception {
-        MockHttpSession session = signIn("new-token", token("pedro_reyes@dlsl.edu.ph", true, "google.com"),
-                "/profile/setup");
+    void firstSignInCreatesAPinThenSetsUpTheProfileBeforeAnythingElse() throws Exception {
+        MockHttpSession session = startSession("new-token", token("pedro_reyes@dlsl.edu.ph", true, "google.com"));
+        for (String page : new String[]{"/", "/profile/setup", "/my-reports", "/report"}) {
+            mvc.perform(get(page).session(session)).andExpect(status().isSeeOther())
+                    .andExpect(redirectedUrl("/pin"));
+        }
+        mvc.perform(get("/pin").session(session)).andExpect(redirectedUrl("/pin/setup"));
+        mvc.perform(post("/pin/setup").session(session).with(csrf()).param("pin", PIN).param("confirm", PIN))
+                .andExpect(redirectedUrl("/profile/setup"));
 
         for (String page : new String[]{"/", "/my-reports", "/report", "/posts/" + java.util.UUID.randomUUID()}) {
             mvc.perform(get(page).session(session)).andExpect(status().isSeeOther())
@@ -99,7 +107,7 @@ class AuthFlowTest {
     }
 
     @Test
-    void profileIsNotAskedForAgainOnTheNextSignIn() throws Exception {
+    void profileAndPinSetupAreNotAskedForAgainOnTheNextSignIn() throws Exception {
         signIn("t1", token("pedro_reyes@dlsl.edu.ph", true, "google.com"), "/profile/setup");
         UserProfile p = profiles.findById("uid-pedro_reyes@dlsl.edu.ph").orElseThrow();
         p.setCourse("BS Nursing");
@@ -185,12 +193,26 @@ class AuthFlowTest {
     }
 
     private MockHttpSession signIn(String idToken, FirebaseToken token, String expectedRedirect) throws Exception {
+        MockHttpSession session = startSession(idToken, token);
+        String pinPath = profiles.findById(token.getUid()).orElseThrow().hasPin() ? "/pin" : "/pin/setup";
+        if (pinPath.equals("/pin")) {
+            mvc.perform(post("/pin").session(session).with(csrf()).param("pin", PIN))
+                    .andExpect(redirectedUrl(expectedRedirect));
+        } else {
+            mvc.perform(post("/pin/setup").session(session).with(csrf()).param("pin", PIN).param("confirm", PIN))
+                    .andExpect(redirectedUrl(expectedRedirect));
+        }
+        return session;
+    }
+
+    private MockHttpSession startSession(String idToken, FirebaseToken token) throws Exception {
         when(firebaseAuth.verifyIdToken(eq(idToken), eq(true))).thenReturn(token);
+        boolean hasPin = profiles.findById(token.getUid()).map(UserProfile::hasPin).orElse(false);
         return (MockHttpSession) mvc.perform(post("/auth/session").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"idToken\":\"" + idToken + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.redirect").value(expectedRedirect))
+                .andExpect(jsonPath("$.redirect").value(hasPin ? "/pin" : "/pin/setup"))
                 .andReturn().getRequest().getSession(false);
     }
 

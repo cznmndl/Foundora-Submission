@@ -3,12 +3,24 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title th:text="${setupMode} ? 'Set up your profile · Foundora' : 'My Profile · Foundora'">My Profile · Foundora</title></head>
 <body>
-<div id="content" class="profile-page">
-    <div class="profile-head">
-        <h1 th:text="${setupMode} ? 'Set up your profile' : 'My Profile'">My Profile</h1>
-        <p th:if="${setupMode}">Welcome to Foundora! Tell us a little about yourself. You only need to do this once.</p>
-        <p th:unless="${setupMode}">Keep these details up to date. SDFO uses them to confirm who posted, lost or found an item.</p>
+<div id="content" class="profile-page" th:classappend="${setupMode} ? 'is-setup'">
+    <div class="setup-head" th:if="${setupMode}">
+        <div class="setup-logo">
+            <th:block th:replace="~{fragments/auth :: magnifier}"></th:block>
+            <span class="wordmark">
+                <span class="wordmark-name">Foundora</span>
+                <span class="wordmark-tag">DLSL Lost &amp; Found</span>
+            </span>
+        </div>
+        <h1 th:text="|Welcome to Foundora, ${currentUser.firstName()}!|">Welcome to Foundora, Juan!</h1>
+        <p class="auth-sub">Tell us a little about yourself. You only need to do this once.</p>
     </div>
+    <div class="profile-head" th:unless="${setupMode}">
+        <h1>My Profile</h1>
+        <p>Keep these details up to date. SDFO uses them to confirm who posted, lost or found an item.</p>
+    </div>
+
+    <div th:classappend="${setupMode} ? 'frost-panel'">
 
     <form class="card profile-card" method="post" th:action="@{/profile}" th:object="${profileForm}" data-loading
           data-profile-form>
@@ -106,6 +118,8 @@
             <button class="btn btn-primary" type="submit" th:text="${setupMode} ? 'Save and continue' : 'Save changes'">Save</button>
         </div>
     </form>
+    </div>
+    <th:block th:if="${setupMode}"><th:block th:replace="~{fragments/auth :: signout}"></th:block></th:block>
 </div>
 </body>
 </html>

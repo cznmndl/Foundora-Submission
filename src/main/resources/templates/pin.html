@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/auth :: page(~{::title}, ~{::#content})}">
+<head><title>Enter your PIN · Foundora</title></head>
+<body>
+<div id="content" class="auth-content">
+    <h1 id="auth-title" class="auth-title" th:text="|Welcome back, ${currentUser.firstName()}!|">Welcome back, Juan!</h1>
+    <p class="auth-sub">Keep your claims and reports safe with a 4-digit PIN</p>
+
+    <p class="auth-locked" role="alert" th:if="${locked}"
+       th:text="|Too many wrong PINs. Try again after ${lockedUntil}.|">Too many wrong PINs. Try again after Oct 24, 2026, 9:00 PM.</p>
+
+    <th:block th:unless="${locked}">
+        <form class="auth-form" method="post" th:action="@{/pin}" data-loading>
+            <div class="auth-field">
+                <label class="visually-hidden" for="pin">Enter your 4-digit PIN</label>
+                <input class="auth-input" id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}"
+                       minlength="4" maxlength="4" required autocomplete="off" autofocus
+                       placeholder="Enter your 4-digit PIN"
+                       th:attr="aria-invalid=${pinError != null} ? 'true' : null,
+                                aria-describedby=${pinError != null} ? 'pin-error' : null">
+                <th:block th:replace="~{fragments/auth :: eye('pin')}"></th:block>
+            </div>
+            <div class="auth-row">
+                <p class="auth-hint auth-error" id="pin-error" role="alert" th:if="${pinError}" th:text="${pinError}">Incorrect. 2 attempts left.</p>
+                <button class="link-button auth-forgot" type="submit" form="forgot-pin">Forgot PIN?</button>
+            </div>
+            <button class="btn-auth btn-continue" type="submit">Continue</button>
+        </form>
+        <form id="forgot-pin" method="post" th:action="@{/pin/forgot}" hidden></form>
+    </th:block>
+    <th:block th:replace="~{fragments/auth :: signout}"></th:block>
+</div>
+</body>
+</html>

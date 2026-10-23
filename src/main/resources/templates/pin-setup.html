@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/auth :: page(~{::title}, ~{::#content})}">
+<head><title>Create your PIN · Foundora</title></head>
+<body>
+<div id="content" class="auth-content">
+    <h1 id="auth-title" class="auth-title" th:text="|Welcome to Foundora, ${currentUser.firstName()}!|">Welcome to Foundora, Juan!</h1>
+    <p class="auth-sub">Keep your claims and reports safe with a 4-digit PIN</p>
+
+    <form class="auth-form" method="post" th:action="@{/pin/setup}" data-loading>
+        <div class="auth-field">
+            <label class="visually-hidden" for="pin">Enter your 4-digit PIN</label>
+            <input class="auth-input" id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}"
+                   minlength="4" maxlength="4" required autocomplete="new-password" autofocus
+                   placeholder="Enter your 4-digit PIN"
+                   th:attr="aria-invalid=${pinError != null} ? 'true' : null,
+                            aria-describedby=${pinError != null} ? 'pin-hint pin-error' : 'pin-hint'">
+            <th:block th:replace="~{fragments/auth :: eye('pin')}"></th:block>
+        </div>
+        <p class="auth-hint" id="pin-hint">Avoid easy PINs like 1234</p>
+
+        <div class="auth-field">
+            <label class="visually-hidden" for="confirm">Re-enter your PIN</label>
+            <input class="auth-input" id="confirm" name="confirm" type="password" inputmode="numeric" pattern="[0-9]{4}"
+                   minlength="4" maxlength="4" required autocomplete="new-password" placeholder="Re-enter your PIN"
+                   th:attr="aria-invalid=${pinError != null} ? 'true' : null,
+                            aria-describedby=${pinError != null} ? 'pin-error' : null">
+            <th:block th:replace="~{fragments/auth :: eye('confirm')}"></th:block>
+        </div>
+        <p class="auth-hint auth-error" id="pin-error" role="alert" th:if="${pinError}" th:text="${pinError}">The two PINs don't match.</p>
+
+        <button class="btn-auth btn-continue" type="submit">Continue</button>
+    </form>
+    <th:block th:replace="~{fragments/auth :: signout}"></th:block>
+</div>
+</body>
+</html>

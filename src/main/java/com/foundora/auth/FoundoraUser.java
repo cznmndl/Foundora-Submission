@@ -13,6 +13,14 @@ public record FoundoraUser(String uid, String email, String name, UserRole role)
         return role.canModerate();
     }
 
+    public String firstName() {
+        if (name == null || name.isBlank()) {
+            return "";
+        }
+        String first = name.trim().split("\\s+")[0];
+        return first.substring(0, 1).toUpperCase(Locale.ROOT) + first.substring(1).toLowerCase(Locale.ROOT);
+    }
+
     public String initial() {
         return initialOf(name);
     }

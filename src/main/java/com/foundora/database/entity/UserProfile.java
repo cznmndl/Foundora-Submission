@@ -40,6 +40,16 @@ public class UserProfile {
     private String section;
     private String department;
 
+    private String pinHash;
+
+    @Column(nullable = false)
+    private int pinFailedAttempts;
+
+    private Instant pinLockedUntil;
+
+    @Column(nullable = false)
+    private boolean pinResetRequested;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -191,6 +201,56 @@ public class UserProfile {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public boolean hasPin() {
+        return pinHash != null;
+    }
+
+    public void clearPin() {
+        pinHash = null;
+        pinFailedAttempts = 0;
+        pinLockedUntil = null;
+        pinResetRequested = false;
+    }
+
+    public void copyPinFrom(UserProfile other) {
+        pinHash = other.pinHash;
+        pinFailedAttempts = other.pinFailedAttempts;
+        pinLockedUntil = other.pinLockedUntil;
+        pinResetRequested = other.pinResetRequested;
+    }
+
+    public String getPinHash() {
+        return pinHash;
+    }
+
+    public void setPinHash(String pinHash) {
+        this.pinHash = pinHash;
+    }
+
+    public int getPinFailedAttempts() {
+        return pinFailedAttempts;
+    }
+
+    public void setPinFailedAttempts(int pinFailedAttempts) {
+        this.pinFailedAttempts = pinFailedAttempts;
+    }
+
+    public Instant getPinLockedUntil() {
+        return pinLockedUntil;
+    }
+
+    public void setPinLockedUntil(Instant pinLockedUntil) {
+        this.pinLockedUntil = pinLockedUntil;
+    }
+
+    public boolean isPinResetRequested() {
+        return pinResetRequested;
+    }
+
+    public void setPinResetRequested(boolean pinResetRequested) {
+        this.pinResetRequested = pinResetRequested;
     }
 
     public Instant getCreatedAt() {
