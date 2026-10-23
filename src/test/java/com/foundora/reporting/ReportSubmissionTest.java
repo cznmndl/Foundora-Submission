@@ -126,7 +126,7 @@ class ReportSubmissionTest extends WebTestBase {
 
         ArgumentCaptor<byte[]> stored = ArgumentCaptor.forClass(byte[].class);
         verify(storage).storePhoto(stored.capture());
-        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8); // JPEG, whatever was uploaded
+        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8);
         assertThat(items.findAll()).singleElement()
                 .satisfies(i -> assertThat(i.getImagePath()).isEqualTo("items/stored.jpg"));
     }
@@ -175,7 +175,6 @@ class ReportSubmissionTest extends WebTestBase {
             assertThat(mvc.perform(get(url).with(as(STAFF))).andReturn().getResponse().getContentAsString())
                     .as(url).doesNotContain("carved in the handle").contains("Navy umbrella");
         }
-        // Not searchable either: searching for its words finds nothing.
         assertThat(mvc.perform(get("/?q=carved").with(as(STAFF))).andReturn().getResponse().getContentAsString())
                 .doesNotContain("Navy umbrella");
         assertThat(mvc.perform(get("/my-reports").with(as(STUDENT))).andReturn().getResponse()

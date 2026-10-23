@@ -6,7 +6,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
-/** Lenient parsing of query parameters: a malformed value is ignored rather than turned into an error page. */
 public final class Params {
 
     private Params() {
@@ -35,13 +34,11 @@ public final class Params {
         return trimmed.length() > maxLength ? trimmed.substring(0, maxLength) : trimmed;
     }
 
-    /** The current path and query string, e.g. to come back here after an admin action. */
     public static String currentUrl(HttpServletRequest request) {
         String query = request.getQueryString();
         return request.getRequestURI() + (query == null ? "" : "?" + query);
     }
 
-    /** The current page's URL with its page parameter replaced. */
     public static String withPage(HttpServletRequest request, int page) {
         return UriComponentsBuilder.fromPath(request.getRequestURI())
                 .query(request.getQueryString())
@@ -50,7 +47,6 @@ public final class Params {
                 .toUriString();
     }
 
-    /** Only same-site paths, so a crafted returnTo can't send an admin to another website. */
     public static String safeReturn(String returnTo, String fallback) {
         if (returnTo == null || !returnTo.startsWith("/") || returnTo.startsWith("//")
                 || returnTo.contains("\\") || returnTo.contains("\r") || returnTo.contains("\n")) {

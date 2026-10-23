@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!--/*
-  Claim request pieces: the requester's side on the post page, and one request as admins review it.
-  A request's proof is shown only to its requester and to admins. So are a money claim's answers (amount,
-  denominations, where and when, container), which admins see beside the finder's private details.
-*/-->
 
-<!--/* The requester's side, on the post page: their latest request, or the "This is mine" form. */-->
 <section th:fragment="requester(post, myRequests, canRequest, passDays)" class="card flow" id="claim"
          th:if="${post.found() and (canRequest or !myRequests.isEmpty())}" aria-labelledby="claim-heading"
          th:with="r=${myRequests.isEmpty() ? null : myRequests[0]}">
@@ -72,7 +66,6 @@
         </div>
     </th:block>
 
-    <!--/* Money: cash can't be told apart by looking, so the claimant describes it the way the finder did. */-->
     <form th:if="${canRequest and post.money()}" method="post" th:action="@{/posts/{id}/claim-requests(id=${post.id()})}"
           data-loading class="request-form" th:with="d=${moneyDraft}">
         <p class="small">Tell SDFO about the money you lost. Only SDFO sees this, and compares it with what the finder reported.</p>
@@ -137,7 +130,6 @@
     </form>
 </section>
 
-<!--/* One request as admins see it, with the decisions it allows. */-->
 <div th:fragment="adminRequest(r, item, returnTo)" class="reporter-box flow" th:id="|request-${r.id}|">
     <p class="request-line">
         <strong th:text="${r.requesterName}">Name</strong>
@@ -145,7 +137,6 @@
         <span class="muted small nowrap" th:text="|${@fmt.ago(r.createdAt)}|">2 hours ago</span>
     </p>
     <p class="muted small" th:text="|${r.requesterEmail}${r.requesterAffiliation != null ? ' · ' + r.requesterAffiliation : ''}|">email · course</p>
-    <!--/* Money: what the claimant says, beside what the finder privately reported. */-->
     <table class="money-compare" th:if="${item.money and r.isMoney()}">
         <caption class="visually-hidden">The claimant's description beside the finder's private details</caption>
         <thead><tr><th scope="col"></th><th scope="col">Claimant says</th><th scope="col">Finder reported</th></tr></thead>

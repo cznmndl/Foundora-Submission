@@ -33,7 +33,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-        <!-- Used only to verify Firebase Authentication ID tokens; app data lives in Supabase. -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
@@ -43,7 +42,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <!-- Lets Java's ImageIO read WebP and the odd JPEGs phones produce (CMYK, broken markers). -->
         <dependency>
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-webp</artifactId>
@@ -54,12 +52,10 @@
             <artifactId>imageio-jpeg</artifactId>
             <version>${twelvemonkeys.version}</version>
         </dependency>
-        <!-- RestClient for server-side uploads to Supabase Storage. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
-        <!-- Items live in Supabase Postgres (Session pooler); schema is managed by Flyway. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -97,7 +93,6 @@
             <artifactId>spring-boot-starter-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- A real, throwaway Postgres for MigrationTest: runs every Flyway migration on old-version data. -->
         <dependency>
             <groupId>io.zonky.test</groupId>
             <artifactId>embedded-postgres</artifactId>

@@ -2,13 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--/*
-  One feed post. Rendered from a FeedPost, which has no reporter email and no location, so the card can't leak
-  them. Admin-only details come from the ${adminDetails} map (post id -> AdminPostDetails), which controllers
-  add only for admins.
-  controls: show admin Mark as claimed / Remove; returnTo: where admin actions come back to;
-  clamp: shorten long descriptions (the detail page shows them in full).
-*/-->
 <article th:fragment="card(post, controls, returnTo, clamp)" class="card post"
          th:classappend="${post.claimed()} ? 'is-claimed'" th:id="|post-${post.id()}|"
          th:attr="aria-labelledby=|title-${post.id()}|"
@@ -31,7 +24,6 @@
             </div>
             <span th:replace="~{fragments/status :: badge(${post.type().name()})}"></span>
         </header>
-        <!--/* Money's title is already "Money", so no category chip repeating it. */-->
         <span class="chip chip-quiet" th:unless="${post.money()}" th:text="${post.category().label()}">Umbrellas</span>
         <th:block th:if="${post.stage() != null and (post.stage().name() == 'CLAIM_PENDING' or post.stage().name() == 'VERIFIED')}"><span
               th:replace="~{fragments/posts :: sticker(${post.stage()})}"></span></th:block>
@@ -68,7 +60,6 @@
             </div>
         </dl>
         <th:block th:if="${ad != null}"><div th:replace="~{fragments/posts :: adminBox(${ad})}"></div></th:block>
-        <!--/* Lost money: the page's banner already says what happens, so the card doesn't repeat it. */-->
         <p class="sdfo-note" th:unless="${post.money() and !post.found()}" th:classappend="${!post.found()} ? 'is-lost'">
             <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
             <span th:text="${post.found()} ? 'Claim this item at the SDFO office.' : 'Found this? Bring it to the SDFO office.'">Note</span>
@@ -79,11 +70,6 @@
     </div>
 </article>
 
-<!--/*
-  One item on the feed, as an ID card: type stripe, photo window, the facts, and a status sticker in a fixed
-  corner. Same privacy rule as card(): rendered from a FeedPost, so no email and no location; admin details come
-  from ${adminDetails} only for admins. The whole card opens the item; admin controls sit above that link.
-*/-->
 <article th:fragment="idcard(post, controls, returnTo)" class="idcard" data-post
          th:classappend="${(post.found() ? 'is-found' : 'is-lost') + ' is-stage-' + post.stage().slug()}"
          th:id="|post-${post.id()}|" th:attr="aria-labelledby=|title-${post.id()}|"
@@ -109,7 +95,6 @@
                     <dd><time th:datetime="${@fmt.iso(post.dateLostFound())}" th:text="${@fmt.date(post.dateLostFound())}">Oct 3, 2026</time></dd></div>
                 <div><dt>Posted by</dt><dd th:text="${post.reporterName()}">Juan Dela Cruz</dd></div>
             </dl>
-            <!--/* Money: nothing but when it was surrendered. No amount, finder, place or date found. */-->
             <dl class="idcard-dl is-money" th:if="${post.money()}">
                 <div><dt th:text="${post.found()} ? 'Surrendered' : 'Reported'">Surrendered</dt>
                     <dd><time th:datetime="${@fmt.iso(post.surrenderedAt())}" th:text="${@fmt.dateTime(post.surrenderedAt())}">Oct 3, 2026, 1:30 PM</time></dd></div>
@@ -134,16 +119,11 @@
     </div>
 </article>
 
-<!--/* The status sticker: an icon, a word and a colour, never colour alone. stage is an ItemStage. */-->
 <span th:fragment="sticker(stage)" class="sticker" th:classappend="|sticker-${stage.slug()}|">
     <th:block th:replace="~{fragments/icons :: icon(${stage.icon()})}"></th:block>
     <span th:text="${stage.label()}">Posted</span>
 </span>
 
-<!--/*
-  Admin buttons for an item, each with a confirmation step (a <details> panel: no JavaScript needed).
-  handleable: found money, which can be closed as "Handled by SDFO" if nobody claims it.
-*/-->
 <div th:fragment="adminActions(id, name, status, returnTo, handleable)" class="action-row">
     <th:block th:if="${status == 'PENDING'}">
         <details class="confirm">
@@ -195,10 +175,6 @@
     </details>
 </div>
 
-<!--/*
-  What only admins see on a post: where it was lost or found, who reported it, and the claim record.
-  ad is an AdminPostDetails; controllers create it only for admins.
-*/-->
 <div th:fragment="adminBox(ad)" class="admin-box" role="group" aria-label="Admin only">
     <p class="admin-box-label"><th:block th:replace="~{fragments/icons :: icon('shield')}"></th:block>Admin only</p>
     <dl>
@@ -233,7 +209,6 @@
     </dl>
 </div>
 
-<!--/* A page of feed posts plus the "Load more" control. Also returned alone by /feed/posts. */-->
 <th:block th:fragment="page">
     <th:block th:each="post : ${feedPage.posts()}">
         <article th:replace="~{fragments/posts :: idcard(${post}, ${currentUser.isAdmin()}, ${filters.pageUrl(0)})}"></article>

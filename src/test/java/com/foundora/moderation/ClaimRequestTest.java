@@ -162,7 +162,6 @@ class ClaimRequestTest extends WebTestBase {
         assertThat(only().getStatus()).isEqualTo(ClaimRequestStatus.DENIED);
         assertThat(stageOnFeed(item)).isEqualTo(ItemStage.POSTED);
         assertThat(html("/posts/" + item.getId(), as(STUDENT))).contains("The tumbler has no sticker.");
-        // Denied, so they may ask again with better proof.
         assertThat(html("/posts/" + item.getId(), as(STUDENT))).contains("Send claim request");
     }
 
@@ -246,8 +245,6 @@ class ClaimRequestTest extends WebTestBase {
         mvc.perform(get("/claim-requests/" + r.getId() + "/photo").with(as(STAFF)))
                 .andExpect(status().isNotFound());
     }
-
-    // ---------- helpers ----------
 
     private Item found(String name) {
         return save(item(name, ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));

@@ -15,10 +15,6 @@ import java.sql.Statement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Runs the real Flyway migrations on a throwaway Postgres (never Supabase). V1-V5 run first and rows are
- * written the way the live site writes them today; then V6 onward must apply on top without losing anything.
- */
 class MigrationTest {
 
     private static EmbeddedPostgres postgres;
@@ -48,7 +44,6 @@ class MigrationTest {
                     values ('22222222-2222-2222-2222-222222222222', 'Calculator', 'CLAIMED', 'ana.cruz@dlsl.edu.ph',
                             'Ana', now())""");
         }
-        // A profile as V7–V12 stored it (a course, no community), for V13's backfill.
         flyway("12").migrate();
         try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
             s.execute("""
@@ -123,7 +118,7 @@ class MigrationTest {
         exec(claim.formatted("ACTIVE"));
         assertThatThrownBy(() -> exec(claim.formatted("ACTIVE"))).as("second open claim")
                 .isInstanceOf(SQLException.class);
-        exec(claim.formatted("REOPENED")); // reopened claims are history; any number is fine
+        exec(claim.formatted("REOPENED"));
 
         exec("insert into public.activity_log (item_id, item_name, action, actor_email, actor_name) values "
                 + "('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'COMMENT_DELETED', 'a', 'A')");
@@ -139,7 +134,7 @@ class MigrationTest {
         exec(request.formatted("p_two", "PENDING"));
         assertThatThrownBy(() -> exec(request.formatted("p_three", "VERIFIED"))).as("second verified request")
                 .isInstanceOf(SQLException.class);
-        exec(request.formatted("p_one", "DENIED")); // closed requests are history
+        exec(request.formatted("p_one", "DENIED"));
         assertThatThrownBy(() -> exec(request.formatted("p_four", "MATCHED"))).isInstanceOf(SQLException.class);
         exec("insert into public.activity_log (item_id, item_name, action, actor_email, actor_name) values "
                 + "('11111111-1111-1111-1111-111111111111', 'Blue umbrella', 'CLAIM_PASS_EXPIRED', 'system', 'S')");
@@ -147,7 +142,6 @@ class MigrationTest {
         assertThatThrownBy(() -> exec("update public.items set archived_at = now() "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).as("only claimed reports are archived")
                 .isInstanceOf(SQLException.class);
-        // V13: communities. A profile with a course became College, staff stayed without one; grades must fit.
         assertThat(query("select community from public.user_profiles where uid = 'uid-old'")).isEqualTo("COLLEGE");
         assertThat(query("select coalesce(community, '-') from public.user_profiles where uid = 'uid-staff'"))
                 .isEqualTo("-");
@@ -166,7 +160,6 @@ class MigrationTest {
         assertThatThrownBy(() -> exec("update public.items set location_spot = repeat('x', 201) "
                 + "where id = '11111111-1111-1111-1111-111111111111'")).isInstanceOf(SQLException.class);
 
-        // V14: money needs an amount and container; HANDLED needs a note.
         String money = "insert into public.items (item_name, description, category, location, date_lost_found, "
                 + "report_type, status, reporter_name, reporter_email, money_amount, money_container) values "
                 + "('Money', '', 'MONEY', 'Sentrum', '2026-10-01', 'FOUND', '%s', 'Juan', 'j@dlsl.edu.ph', %s, %s)";

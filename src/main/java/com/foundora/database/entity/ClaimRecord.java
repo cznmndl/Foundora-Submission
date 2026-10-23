@@ -12,10 +12,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Who an item was released to, and by which admin (db/migration/V9__claim_records.sql).
- * Never deleted: a reopened claim keeps its row so disputes can be traced later.
- */
 @Entity
 @Table(name = "claim_records")
 public class ClaimRecord {
@@ -31,14 +27,12 @@ public class ClaimRecord {
     @Column(nullable = false)
     private UUID itemId;
 
-    /** Set when the claimant was picked from registered users. */
     private String claimantUid;
     private String claimantEmail;
 
     @Column(nullable = false)
     private String claimantName;
 
-    /** Course, year level and section, or department / office. */
     @Column(nullable = false)
     private String claimantAffiliation;
 

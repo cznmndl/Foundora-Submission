@@ -13,7 +13,6 @@
             <a class="chip" th:each="g : ${groups}" th:href="@{/admin/activity(group=${g.slug()})}" th:text="${g.label()}"
                th:attr="aria-current=${group == g} ? 'true' : null">Reports</a>
         </nav>
-        <!--/* Works without JavaScript: a GET form with Apply. app.js applies on change and hides the button. */-->
         <form class="log-action" method="get" th:action="@{/admin/activity}" data-autosubmit>
             <input type="hidden" name="group" th:if="${group != null}" th:value="${group.slug()}">
             <label for="action" class="visually-hidden">Action</label>
@@ -49,7 +48,6 @@
     </section>
 </div>
 
-<!--/* One activity entry: the status badge in its fixed column, then who did what to which report. */-->
 <li th:fragment="entry(e)">
     <span th:replace="~{fragments/status :: badge(${e.action.name()})}"></span>
     <div class="atl-entry">

@@ -3,11 +3,6 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title>Lost money · Foundora</title></head>
 <body>
-<!--/*
-  Admins only (everything under /admin). Lost money never goes on the feed, so this is where SDFO compares it
-  with the found money it's holding. ${board} has every open money report (Pending or Approved) with its
-  private amount, and for each lost report the found money that could be it.
-*/-->
 <div id="content">
     <div class="page-head"><h1>Lost money</h1></div>
     <p class="page-note" th:text="|Lost money is never posted on the board. A possible match is found money within ${matchDays} days and ${matchPercent}% of the amount.|">

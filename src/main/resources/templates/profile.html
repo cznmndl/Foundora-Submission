@@ -3,11 +3,6 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
 <head><title th:text="${setupMode} ? 'Set up your profile · Foundora' : 'My Profile · Foundora'">My Profile · Foundora</title></head>
 <body>
-<!--/*
-  First-time setup (${setupMode}: no navigation until it's done) and the My Profile page: the same centred card.
-  Students choose a community first; app.js then shows only that community's fields (data-community). Without
-  JavaScript every student field is shown, tagged with who it's for, and the server checks and ignores the rest.
-*/-->
 <div id="content" class="profile-page">
     <div class="profile-head">
         <h1 th:text="${setupMode} ? 'Set up your profile' : 'My Profile'">My Profile</h1>

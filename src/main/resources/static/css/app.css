@@ -1,8 +1,3 @@
-/* Foundora: one stylesheet for every page. Mobile first; colors are tokens checked for WCAG AA contrast.
-   The School ID look: a DLSL-green lanyard band, white card stock, and items shown as ID cards with a
-   status sticker. Archivo (headings and brand only) and Inter (everything else) are served from /fonts
-   (SIL OFL, see fonts/Archivo-OFL.txt and fonts/Inter-OFL.txt). */
-
 @font-face {
   font-family: "Archivo"; font-style: normal; font-display: swap;
   font-weight: 100 900; font-stretch: 62% 125%;
@@ -38,16 +33,16 @@
 :root {
   --green-900: #063d22;
   --green-800: #0a5230;
-  --green-700: #0b6b3a;   /* primary: white text on it is 6.4:1 */
+  --green-700: #0b6b3a;
   --green-600: #138048;
   --green-100: #d9efe1;
   --green-50: #eef7f1;
-  --gold: #e8b021;        /* key actions and highlights only, never for text; green-900 text on it is 6.3:1 */
+  --gold: #e8b021;
   --gold-hover: #f2c341;
 
   --ink: #17221c;
-  --ink-2: #44524a;       /* 8.3:1 on white */
-  --ink-3: #5f6d65;       /* 5.4:1 on white */
+  --ink-2: #44524a;
+  --ink-3: #5f6d65;
   --line: #dbe3dd;
   --line-strong: #b9c6bd;
   --bg: #f3f6f4;
@@ -61,7 +56,6 @@
   --muted-bg: #e9eeeb;
   --muted-ink: #3f4b45;
 
-  /* ID card stripes and status stickers. White text on each is AA (stage-pending 5.4:1, verified 7.8:1). */
   --stripe-found: var(--green-700);
   --stripe-lost: #2b3a33;
   --stage-pending: #b14a14;
@@ -72,19 +66,17 @@
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgba(10, 40, 25, .06), 0 2px 8px rgba(10, 40, 25, .05);
   --focus: 0 0 0 3px var(--surface), 0 0 0 5px var(--green-800);
-  /* Inter for everything people read and use; Archivo only for the wordmark, the strap and headings. */
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* One spacing scale for every page. */
-  --s1: .25rem;  /* 4  */
-  --s2: .5rem;   /* 8  */
-  --s3: .75rem;  /* 12 */
-  --s4: 1rem;    /* 16 */
-  --s5: 1.5rem;  /* 24 */
-  --s6: 2rem;    /* 32 */
-  --text-meta: .875rem;  /* helper, meta and timestamp text, everywhere */
-  --control-h: 48px;     /* every single-line input and select */
+  --s1: .25rem;
+  --s2: .5rem;
+  --s3: .75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --text-meta: .875rem;
+  --control-h: 48px;
   color-scheme: light;
 }
 
@@ -97,8 +89,7 @@ body {
   line-height: 1.5;
   color: var(--ink);
   background: var(--bg);
-  padding-bottom: 76px; /* room for the mobile tab bar */
-  /* Sticky footer: the shell grows, so the footer sits at the bottom of short pages (no position: fixed). */
+  padding-bottom: 76px;
   min-height: 100vh; min-height: 100dvh;
   display: flex; flex-direction: column;
 }
@@ -129,7 +120,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .skip-link:focus { top: 8px; color: #fff; }
 .icon { width: 20px; height: 20px; flex: none; }
 
-/* ---------- Header: the lanyard band ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 20;
   background: var(--green-900); color: #fff;
@@ -154,7 +144,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   display: none; font-size: .68rem; font-weight: 700; font-stretch: 80%; letter-spacing: .14em;
   text-transform: uppercase; color: rgba(255, 255, 255, .72);
 }
-/* Login and error pages still show the mark on white. */
 .center-card .brand { color: var(--green-800); }
 .brand-mark {
   width: 32px; height: 32px; border-radius: 9px; background: var(--green-700);
@@ -181,7 +170,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .avatar-sm { width: 32px; height: 32px; font-size: var(--text-meta); }
 .avatar .icon { width: 22px; height: 22px; }
 
-/* ---------- Page shell ---------- */
 .shell {
   max-width: 1280px; margin: 0 auto; padding: var(--s4) var(--s4) var(--s6);
   display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5);
@@ -191,7 +179,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .content-narrow { max-width: 680px; }
 .sidenav, .rightpanel { display: none; }
 
-/* Mobile tab bar */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   display: flex; background: var(--surface); border-top: 1px solid var(--line);
@@ -213,7 +200,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 }
 .tabbar .tab-report .tab-plus .icon { stroke-width: 2.6; }
 
-/* On phones the Sign out label is hidden visually but still read by screen readers. */
 .signout-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (min-width: 640px) {
   .user-name { display: block; }
@@ -226,7 +212,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   body { padding-bottom: 0; }
   .tabbar { display: none; }
   .shell { grid-template-columns: 220px minmax(0, 1fr); padding: 1.5rem 1rem; }
-  /* First-time setup has no side navigation: one column, so the page centres. */
   .shell:not(:has(> .sidenav)) { grid-template-columns: minmax(0, 1fr); }
   .sidenav { display: block; position: sticky; top: 92px; align-self: start; }
 }
@@ -235,7 +220,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   .rightpanel { display: block; position: sticky; top: 92px; align-self: start; }
 }
 
-/* Side navigation */
 .nav-section + .nav-section { margin-top: var(--s5); }
 .nav-heading {
   font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
@@ -257,14 +241,12 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
   background: var(--green-700); color: #fff;
 }
 
-/* ---------- Footer ---------- */
 .footer {
   width: calc(100% - 2 * var(--s4)); max-width: calc(1280px - 2 * var(--s4)); margin: 0 auto; padding: var(--s5) 0 var(--s6);
   color: var(--ink-3); font-size: var(--text-meta); border-top: 1px solid var(--line);
 }
 .footer p { margin: 0; }
 
-/* ---------- Building blocks ---------- */
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: var(--s4);
@@ -280,7 +262,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .small { font-size: var(--text-meta); }
 .page-note { color: var(--ink-3); font-size: var(--text-meta); margin: calc(-1 * var(--s3)) 0 var(--s5); }
 .result-count { margin: var(--s4) 0 var(--s3); }
-/* Activity log filters: category tabs in one row, then the Action dropdown. Directly on the page. */
 .log-filters { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s5); }
 .log-tabs {
   display: flex; flex-wrap: nowrap; gap: var(--s2); overflow-x: auto; scrollbar-width: none;
@@ -296,11 +277,9 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s4); }
 .card-head h2 { margin: 0; }
-/* A ghost action at the end of a card head: its text lines up with the card's right edge. */
 .card-head .btn-ghost { margin-right: calc(-1 * var(--s3)); }
 .section-title { margin: 0 0 var(--s3); }
 .card-title { margin-bottom: var(--s1); }
-/* A card's own lines, 8px apart; the boxes, tables, actions and forms inside it 12px; a new section 24px. */
 .flow > * { margin-bottom: 0; }
 .flow > * + * { margin-top: var(--s2); }
 .flow > .reporter-box, .flow > .admin-box, .flow > .claim-record, .flow > .action-row, .flow > .stack,
@@ -348,7 +327,6 @@ time, .num, .week-list dd { font-variant-numeric: tabular-nums; }
 .status-approved { background: var(--found-bg); color: var(--green-900); }
 .status-rejected { background: var(--danger-bg); color: var(--danger); }
 .status-removed { background: var(--muted-bg); color: var(--muted-ink); }
-/* Claim request statuses. Blue is 7.9:1 on its tint. */
 .claim-pending, .claim-needs-info { background: var(--pending-bg); color: var(--pending-ink); }
 .claim-verified { background: #e3ebf8; color: #1f3f80; }
 .claim-released { background: var(--found-bg); color: var(--green-900); }
@@ -373,10 +351,8 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .alert-success { background: var(--found-bg); color: var(--green-900); border: 1px solid var(--green-100); }
 .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #f6c9c9; }
 .alert-info { background: var(--pending-bg); color: var(--pending-ink); border: 1px solid #f3dfa6; }
-/* Information, not a warning or a status: Muted Fog with Muted Ink. */
 .alert-neutral { background: var(--muted-bg); color: var(--muted-ink); border: 1px solid var(--line); }
 
-/* ---------- Feed ---------- */
 .composer-bar { display: none; }
 @media (min-width: 900px) {
   .composer-bar {
@@ -432,10 +408,7 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
   .chip-row.mobile-only { display: none; }
 }
 
-/* ---------- Items as ID cards ---------- */
 .idcard-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
-/* Admins' cards carry admin details of different lengths: let each card be its own height, so no card gets a
-   blank gap above its footer. */
 .idcard-grid:has(.idcard-admin) { align-items: start; }
 @media (min-width: 700px) {
   .content-narrow:has(.idcard-grid) { max-width: 760px; }
@@ -478,9 +451,7 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
   color: var(--ink-3); font-size: .68rem; font-weight: 700; font-stretch: 82%; letter-spacing: .1em;
   text-transform: uppercase;
 }
-/* Values wrap rather than being cut off ("Tumblers & Bo…" in the narrow two-up cards). */
 .idcard-dl dd { margin: 0; color: var(--ink-2); overflow-wrap: break-word; }
-/* Money has one fact, "Surrendered", too long for the label column: the label sits above its value. */
 .idcard-dl.is-money div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 .idcard-foot {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-top: auto;
@@ -497,12 +468,10 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .idcard-admin .admin-box { margin-top: 0; }
 .idcard-admin .action-row { margin-top: var(--s3); }
 
-/* Returned: the card stays on the board, quietly. */
 .idcard.is-stage-returned { background: #fafbfa; }
 .idcard.is-stage-returned .idcard-photo img { filter: grayscale(1); opacity: .6; }
 .idcard.is-stage-returned .idcard-title, .idcard.is-stage-returned .idcard-dl dd { color: var(--ink-3); }
 
-/* Status stickers: icon + word + colour, the same corner on every card. */
 .sticker {
   display: inline-flex; align-items: center; gap: .35rem; flex: none;
   min-height: 26px; padding: .15rem .6rem .15rem .45rem; border-radius: 6px;
@@ -518,7 +487,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .sticker-handled { background: var(--stage-returned); border-color: var(--stage-returned); color: #fff; }
 .is-stage-claim-pending .sticker, .is-stage-verified .sticker { transform: rotate(-2deg); }
 
-/* Empty board: one blank ID card, waiting. */
 .feed-empty { text-align: center; padding: var(--s6) var(--s4); }
 .feed-empty h2 { font-size: 1.2rem; margin-top: var(--s5); }
 .feed-empty p { color: var(--ink-2); max-width: 46ch; margin: 0 auto var(--s4); }
@@ -540,10 +508,8 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .feed-empty-lines i:nth-child(3) { width: 50%; }
 
 .post { padding: 0; overflow: hidden; }
-/* One column, s2 between each piece (header, chip, title, description, date row), so a missing piece leaves no gap. */
 .post-body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); padding: var(--s4); }
 .post-body > * { margin: 0; }
-/* With no photo between them, the two halves read as one: the s2 gap carries on across the seam. */
 .post-body:has(+ .post-body) { padding-bottom: var(--s2); }
 .post-body + .post-body { padding-top: 0; }
 .post-photo + .post-body { padding-top: var(--s4); }
@@ -553,7 +519,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 }
 .post-detail { margin-bottom: var(--s4); }
 .post-head { display: flex; align-items: center; gap: var(--s3); align-self: stretch; }
-/* The admin details and the SDFO note follow the facts: s2 gap + s1 = s3 above each. */
 .post-body > .admin-box, .post-body > .sdfo-note { align-self: stretch; margin-top: var(--s1); }
 .post-who { min-width: 0; flex: 1; line-height: 1.25; }
 .post-author { font-weight: 700; display: block; }
@@ -590,7 +555,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .post.is-claimed .post-body, .post.is-claimed .post-photo { opacity: .62; }
 .post.is-claimed .post-photo img { filter: grayscale(1); }
 .post-foot { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: #fafcfb; }
-/* From 640px the card's content sits 24px in, like every other card: the banner and the foot follow it. */
 @media (min-width: 640px) { .claimed-banner, .post-foot { padding-inline: var(--s5); } }
 
 .load-more { display: flex; justify-content: center; padding: var(--s4) 0; }
@@ -611,10 +575,8 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 }
 .empty .empty-icon .icon { width: 30px; height: 30px; }
 .empty .btn { margin-top: var(--s4); }
-/* An empty list inside a card (Recent activity, the activity log, the Lost money tables): one quiet line. */
 .empty-note { color: var(--ink-3); margin: 0; }
 
-/* Right panel */
 .office { padding: 0; overflow: hidden; box-shadow: none; }
 .office > :not(.office-stripe) { margin-left: var(--s4); margin-right: var(--s4); }
 .office-stripe {
@@ -638,8 +600,6 @@ a.chip:hover { border-color: var(--green-700); color: var(--green-900); }
 .week-list dd { margin: 0; font-weight: 800; color: var(--ink); }
 .placeholder { color: var(--pending-ink); background: var(--pending-bg); padding: 0 .3rem; border-radius: 4px; }
 
-/* ---------- Forms ---------- */
-/* Label → helper → control: label, then the helper --s1 below it, then the control --s2 below that. */
 .field { margin-bottom: var(--s4); }
 .field > label, .field > .label, fieldset > legend {
   display: block; font-weight: 600; margin-bottom: var(--s2); line-height: 1.35;
@@ -659,7 +619,6 @@ input[type="time"], input[type="datetime-local"], select {
   height: var(--control-h); line-height: 1.2;
 }
 textarea { padding: var(--s3); line-height: 1.5; }
-/* Selects and dates look the same in every browser: one chevron and one calendar icon, same size, same spot. */
 select {
   appearance: none; -webkit-appearance: none; padding-right: calc(var(--s3) * 2 + 16px); cursor: pointer;
   background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6d65' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right var(--s3) center / 16px 16px;
@@ -678,7 +637,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .checkbox input { width: 20px; height: 20px; accent-color: var(--green-700); }
 fieldset { border: 0; padding: 0; margin: 0 0 var(--s4); min-width: 0; }
 legend { padding: 0; }
-/* The last field of a group adds no space of its own: the group's margin sets the gap to what follows. */
 fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0; }
 .photo-picker {
   display: grid; gap: var(--s3); padding: var(--s4); border: 2px dashed var(--line-strong); border-radius: var(--radius);
@@ -689,7 +647,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
 .photo-preview img { max-height: 260px; width: auto; border-radius: var(--radius-sm); }
 .form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-top: var(--s5); }
 
-/* ---------- Report form: issuing the item's ID card ---------- */
 .report-head { margin-bottom: var(--s4); }
 .report-head h1 { margin-bottom: var(--s1); }
 .report-head p { color: var(--ink-3); margin: 0; }
@@ -706,7 +663,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
   padding: 0; margin-bottom: var(--s3); font-size: 1.2rem; font-weight: 700; letter-spacing: -.01em;
 }
 .hint-below { margin: var(--s2) 0 0; }
-/* A hint is the last thing in its field: it adds no space below (the field's own margin does). */
 .field p.hint { margin-bottom: 0; }
 .rf-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s4); }
 @media (min-width: 560px) { .rf-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -715,7 +671,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
   text-transform: uppercase; color: var(--ink-3);
 }
 
-/* Lost / found: two blank ID cards to pick from. */
 .type-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
 .type-tiles input { position: absolute; opacity: 0; pointer-events: none; }
 .type-tile {
@@ -749,7 +704,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
 }
 .rf-dropoff .icon { width: 18px; height: 18px; margin-top: 2px; }
 
-/* Photo: an ID photo frame. */
 .report-form .photo-picker {
   display: flex; align-items: center; gap: var(--s4); padding: 0; border: 0; background: none;
 }
@@ -769,7 +723,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
 .photo-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
 .report-form .photo-picker .field-error { flex-basis: 100%; }
 
-/* The private panel: sealed off from the public card. */
 .rf-private {
   margin: 0 0 var(--s5); padding: 0 var(--s4) var(--s4); min-width: 0;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); overflow: hidden;
@@ -787,7 +740,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
 .report-form:has(#type-found:checked) .hint-none,
 .report-form:has(#type-lost:checked) .hint-none { display: none; }
 
-/* Money: no photo, name or public description on the board; its private details show in the panel instead. */
 .report-form:not(:has(#category option[value="MONEY"]:checked)) .rf-money-only { display: none; }
 .report-form:has(#category option[value="MONEY"]:checked) .rf-not-money { display: none; }
 .rf-money-note {
@@ -799,7 +751,6 @@ fieldset > .field:last-child, .rf-section > .field:last-child { margin-bottom: 0
 .rf-fineprint { color: var(--ink-3); font-size: var(--text-meta); margin: var(--s3) 0 0; max-width: 60ch; }
 dialog .report-preview { display: none !important; }
 
-/* Live preview of the card */
 .report-preview-label, .report-preview-note {
   font-size: .68rem; font-weight: 700; font-stretch: 82%; letter-spacing: .12em; text-transform: uppercase;
   color: var(--ink-3); margin: 0 0 var(--s2);
@@ -817,7 +768,6 @@ dialog .report-preview { display: none !important; }
 .report-preview .idcard-photo:has(img[hidden]) { background: var(--green-50); }
 .report-preview .idcard.is-lost .idcard-photo:has(img[hidden]) { background: var(--muted-bg); color: var(--stripe-lost); }
 
-/* Sent: the card waiting for review, and what happens next. */
 .sent-page h1 { margin-bottom: var(--s1); }
 .sent-card { max-width: 380px; margin: var(--s5) 0; }
 .sent-card .idcard { transform: rotate(-1.5deg); box-shadow: 0 8px 20px rgba(10, 40, 25, .12); }
@@ -835,7 +785,6 @@ dialog .report-preview { display: none !important; }
 .sent-steps li.is-now::before { background: var(--green-700); border-color: var(--green-700); color: #fff; }
 .sent-steps strong { color: var(--ink); }
 
-/* ---------- Dialogs ---------- */
 dialog {
   width: min(640px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);
   padding: 0; border: 0; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(6, 61, 34, .28);
@@ -854,7 +803,6 @@ dialog::backdrop { background: rgba(6, 61, 34, .55); }
 .lightbox .btn-ghost { color: #fff; }
 .lightbox .btn-ghost:hover { background: #333; color: #fff; }
 
-/* Confirmation steps built from <details>: work with keyboard and without JavaScript. */
 .confirm { display: inline-block; }
 .confirm > summary { list-style: none; }
 .confirm > summary::-webkit-details-marker { display: none; }
@@ -865,12 +813,9 @@ dialog::backdrop { background: rgba(6, 61, 34, .55); }
 }
 .confirm-panel p { font-weight: 600; }
 .action-row { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; }
-/* A text-only button has no visible box, so its 12px padding hangs out to the left: its text, not its padding,
-   meets the row's left edge, and sits 12px after the button before it. */
 .action-row > .btn-ghost, .action-row > .confirm > .btn-ghost, .action-row > form > .btn-ghost,
 .form-actions > .btn-ghost { padding-inline: var(--s3); margin-left: calc(-1 * var(--s3)); }
 
-/* ---------- Admin ---------- */
 .stat-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
 .stat-tile {
   display: block; padding: var(--s4); border-radius: var(--radius); background: var(--surface);
@@ -883,7 +828,6 @@ dialog::backdrop { background: rgba(6, 61, 34, .55); }
 @media (min-width: 640px) { .stat-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); } }
 .stat-tiles + .card { margin-top: var(--s5); }
 
- /* The pending review: the post as students will see it, then what only admins see. One card, not a card in a card. */
 .review-card { padding: 0; overflow: hidden; }
 .review-card > .post { border: 0; border-radius: 0; box-shadow: none; margin: 0; }
 .review-card > .post-foot .action-row { margin-top: var(--s3); }
@@ -895,15 +839,10 @@ dialog::backdrop { background: rgba(6, 61, 34, .55); }
 .reporter-box {
   margin-top: var(--s3); padding: var(--s3); border-radius: var(--radius-sm); background: var(--bg); font-size: .92rem;
 }
- /* Every label/value list (ADMIN ONLY, Admin details, claim records, the office card, the profile): the label column is
-   as wide as its longest label (at most 40%, so on a phone a long label wraps instead of squeezing its value),
-   rows 8px apart, 16px between label and value. Values break only a word too long
-   for the line (an email), never mid-word otherwise. */
 .reporter-box dl, .admin-box dl, .claim-record dl, .profile-info {
   display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--s2) var(--s4); align-items: baseline; margin: 0;
 }
 .reporter-box dt { font-weight: 700; color: var(--ink-3); }
-/* Phones: inside cards and boxes the value column is too narrow for an email, so the label sits above its value. */
 @media (max-width: 480px) {
   .reporter-box dl, .admin-box dl, .claim-record dl { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .reporter-box dt:not(:first-child), .admin-box dt:not(:first-child), .claim-record dt:not(:first-child) { margin-top: var(--s2); }
@@ -917,7 +856,6 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 @media (max-width: 760px) {
   table.data thead { display: none; }
   table.data tr { display: block; padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
-  /* The label sits in a fixed column; everything in the cell (links, lines, buttons) stacks in the other. */
   table.data td { display: block; position: relative; border: 0; padding: var(--s1) 0 var(--s1) calc(6.5rem + var(--s3)); }
   table.data td::before {
     content: attr(data-label); position: absolute; left: 0; top: var(--s1); width: 6.5rem; font-weight: 700; color: var(--ink-3);
@@ -931,7 +869,6 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 .timeline li:last-child { border-bottom: 0; }
 .timeline .when { color: var(--ink-3); font-size: var(--text-meta); }
 
-/* ---------- Status badge: one style for every status, everywhere (fragments/status.html) ---------- */
 .sbadge {
   display: inline-flex; align-items: center; gap: .375rem; flex: none;
   width: 8.75rem; height: 1.75rem; padding: 0 .625rem; border-radius: 6px;
@@ -945,13 +882,10 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
 .sbadge-done { background: #d6dfda; color: var(--ink); }
 .sbadge-info { background: #e3ebf8; color: #1f3f80; }
 .sbadge-claim { background: #fbe8dc; color: #8a3510; }
-/* Lost / Found, as on the ID card stripes: Lost Ink and DLSL Green with white text. */
 .sbadge-lost { background: var(--stripe-lost); color: #fff; }
 .sbadge-found { background: var(--green-700); color: #fff; }
-/* A type label, not a status column: as wide as its word. */
 .sbadge-lost, .sbadge-found { width: auto; }
 
-/* ---------- Activity timeline: badge column, divider, entry (overview and activity log) ---------- */
 .atl { list-style: none; margin: 0; padding: 0; position: relative; }
 .atl::before {
   content: ""; position: absolute; top: 0; bottom: 0; left: calc(8.75rem + var(--s4)); width: 1px; background: var(--line-strong);
@@ -960,7 +894,6 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
   display: grid; grid-template-columns: 8.75rem minmax(0, 1fr); column-gap: calc(var(--s4) * 2 + 1px);
   align-items: start;
 }
-/* The badge lines up with the entry's first line (the person's name): 12px padding + half a 23px line − half the badge. */
 .atl > li > .sbadge { margin-top: calc(var(--s3) + .725rem - .875rem); }
 .atl-entry { padding: var(--s3) 0; border-bottom: 1px solid var(--line); line-height: 1.45; overflow-wrap: anywhere; }
 .atl li:last-child .atl-entry { border-bottom: 0; }
@@ -977,20 +910,16 @@ table.data th { font-size: .78rem; text-transform: uppercase; letter-spacing: .0
   .atl > li > .sbadge { margin-top: 0; }
 }
 
-/* ---------- Admin filter form: two equal columns, every control the same height ---------- */
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s4); }
 @media (min-width: 640px) { .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .form-grid .span-2 { grid-column: 1 / -1; }
 .form-grid .form-actions { margin-top: var(--s2); }
 
-/* Tables: every cell vertically centred, status in its own aligned column. */
 table.data td { vertical-align: middle; }
 table.data th.col-status, table.data td.col-status { width: 10rem; }
-/* The column people read: wide enough that names and places don't wrap word by word. */
 table.data .col-main { min-width: 14rem; }
 table.data .col-nowrap { white-space: nowrap; }
 
-/* ---------- Admin-only details on posts: a hairline-ruled section, not a box ---------- */
 .admin-box {
   margin-top: var(--s3); padding: var(--s3) 0 0; border-top: 1px solid var(--line); font-size: var(--text-meta); color: var(--ink-2);
 }
@@ -1013,7 +942,6 @@ table.data .col-nowrap { white-space: nowrap; }
 .claim-record.claim-disputed { border-color: #f6c9c9; background: var(--danger-bg); }
 .claim-record.claim-reopened { opacity: .75; }
 
-/* ---------- Comments ---------- */
 .comments h2 { font-size: 1.05rem; }
 .comments > h2 { margin-bottom: var(--s3); }
 .comments > p { margin: 0; }
@@ -1030,7 +958,6 @@ table.data .col-nowrap { white-space: nowrap; }
 .comment-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s1); font-size: .8rem; color: var(--ink-3); }
 .comment-foot .confirm[open] { width: 100%; }
 .comment-form { border-top: 1px solid var(--line); margin-top: var(--s5); padding-top: var(--s5); }
-/* "Write a comment", its helper text, then the box: 8px from label to helper, 12px from helper to box. */
 .comment-form .field > label { margin-bottom: var(--s3); }
 .comment-form .hint { margin-top: var(--s2); }
 .comment-form .hint[data-char-count] { margin: var(--s2) 0 0; }
@@ -1049,7 +976,6 @@ table.data .col-nowrap { white-space: nowrap; }
 .link-button::-webkit-details-marker { display: none; }
 .link-button:hover { color: var(--danger); }
 
-/* ---------- Profile (setup and My Profile): one centred card ---------- */
 .profile-page { width: 100%; max-width: 640px; margin: 0 auto; }
 .profile-head { text-align: center; margin-bottom: var(--s5); }
 .profile-head h1 { margin-bottom: var(--s2); }
@@ -1078,11 +1004,9 @@ table.data .col-nowrap { white-space: nowrap; }
   background: var(--green-700) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 13px no-repeat;
 }
 
-/* Paired fields: same label height, same input top; helpers sit below the inputs. */
 .profile-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s4); }
 @media (min-width: 560px) { .profile-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .profile-row > .field[hidden] { display: none; }
-/* Without JavaScript every student field shows, tagged with who it's for; with it, only the right ones show. */
 .community-tag {
   margin-left: var(--s2); font-size: .75rem; font-weight: 600; color: var(--ink-3);
 }
@@ -1095,11 +1019,9 @@ table.data .col-nowrap { white-space: nowrap; }
 .profile-privacy { color: var(--ink-3); font-size: var(--text-meta); margin: 0 0 var(--s4); }
 .profile-actions { margin-top: 0; }
 
-/* ---------- Header profile link ---------- */
 .user-link { display: flex; align-items: center; gap: var(--s2); color: inherit; text-decoration: none; border-radius: var(--radius-sm); }
 .user-link:hover .user-name { text-decoration: underline; }
 
-/* ---------- Report list (My Reports) ---------- */
 .report-row { display: flex; gap: var(--s4); align-items: flex-start; }
 .report-row .thumb {
   width: 64px; height: 64px; flex: none; border-radius: var(--radius-sm); object-fit: cover; background: var(--muted-bg);
@@ -1113,7 +1035,6 @@ table.data .col-nowrap { white-space: nowrap; }
   background: var(--danger-bg); color: #7d1515; font-size: .92rem;
 }
 
-/* ---------- Standalone pages (login, errors) ---------- */
 .center-page { min-height: 100vh; display: grid; place-items: center; padding: var(--s4); }
 .center-card { width: 100%; max-width: 420px; text-align: center; }
 .center-card .brand { justify-content: center; margin-bottom: var(--s4); }
@@ -1123,13 +1044,11 @@ table.data .col-nowrap { white-space: nowrap; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* ---------- Money: the claimant's answers beside the finder's private details (admins only) ---------- */
 .money-compare { width: 100%; border-collapse: collapse; margin-top: var(--s3); font-size: var(--text-meta); }
 .money-compare th, .money-compare td { text-align: left; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
 .money-compare th:first-child { padding-left: 0; }
 .money-compare thead th { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
 .money-compare tbody th { font-weight: 700; color: var(--ink-3); width: 1%; white-space: nowrap; }
-/* Phones: each field is a row, the claimant's answer and the finder's side by side under it, each captioned. */
 @media (max-width: 560px) {
   .money-compare thead { display: none; }
   .money-compare tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }

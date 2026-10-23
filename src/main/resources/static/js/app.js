@@ -1,4 +1,3 @@
-// Foundora: small progressive enhancements. Every page works without this file; it only makes things smoother.
 (function () {
   "use strict";
 
@@ -7,7 +6,6 @@
   const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const wideScreen = window.matchMedia("(min-width: 768px)");
 
-  // ---------- Report dialog: a pop-up on wide screens; on phones the link opens the full /report page ----------
   document.addEventListener("click", (event) => {
     const opener = event.target.closest("[data-open-dialog]");
     if (opener) {
@@ -35,7 +33,6 @@
     }
   });
 
-  // Clicking the dimmed backdrop closes a dialog.
   document.addEventListener("click", (event) => {
     if (event.target instanceof HTMLDialogElement) {
       const r = event.target.getBoundingClientRect();
@@ -44,7 +41,6 @@
     }
   });
 
-  // ---------- Busy state on submit, so a slow upload doesn't get submitted twice ----------
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form.matches("[data-loading]")) return;
@@ -59,7 +55,6 @@
     if (form.matches("[data-comment-form]")) button.textContent = "Posting…";
   });
 
-  // ---------- Photo picker: preview, check type and size, shrink big photos before upload ----------
   function setupPhotoPicker(form) {
     const input = form.querySelector("[data-photo-input]");
     if (!input) return;
@@ -91,7 +86,6 @@
       form.dispatchEvent(new CustomEvent("photo-preview", { detail: { url: previewUrl } }));
     }
 
-    // Phones: "Take a photo" opens the camera directly; "Choose a photo" opens the gallery.
     const camera = form.querySelector("[data-photo-camera]");
     const choose = form.querySelector("[data-photo-choose]");
     if (camera && window.matchMedia("(pointer: coarse)").matches) {
@@ -110,7 +104,7 @@
         input.files = transfer.files;
         return true;
       } catch (e) {
-        return false; // older browsers: keep the original file, the server resizes it anyway
+        return false;
       }
     }
 
@@ -173,7 +167,6 @@
     });
   }
 
-  // ---------- Suggestions as you type (answered by the server's prefix tries) ----------
   function debounce(fn, ms) {
     let timer;
     return (...args) => {
@@ -208,14 +201,12 @@
         const head = completeLastWord ? words.slice(0, -1).join(" ") : "";
         fillDatalist(list, suggestions.map((s) => (head ? `${head} ${s}` : s)));
       } catch (e) {
-        // suggestions are optional
       }
     }, 150);
     input.addEventListener("input", update);
     input.addEventListener("focus", update);
   }
 
-  // ---------- Claim form: registered users matching what the admin types (name or email) ----------
   function setupPeopleSuggestions(input) {
     const list = document.getElementById(input.getAttribute("list"));
     if (!list) return;
@@ -236,13 +227,11 @@
           return option;
         }));
       } catch (e) {
-        // suggestions are optional; the admin can still type the email
       }
     }, 200);
     input.addEventListener("input", update);
   }
 
-  // ---------- Comment box: characters left ----------
   function setupCharCount(textarea) {
     const counter = textarea.closest(".field").querySelector("[data-char-count]");
     const max = Number(textarea.getAttribute("maxlength"));
@@ -255,9 +244,6 @@
     update();
   }
 
-  // ---------- Profile: show only the chosen community's fields ----------
-  // College: course and year level. Elementary, JHS, SHS: grade level, with only that community's grades.
-  // Hidden fields are disabled too, so they're not sent; the server ignores them anyway.
   function setupCommunityFields(form) {
     const radios = form.querySelectorAll('input[name="community"]');
     if (!radios.length) return;
@@ -293,7 +279,6 @@
     sync();
   }
 
-  // ---------- "Load more": fetch the next page of posts and append it; also loads as you scroll ----------
   function setupLoadMore(container) {
     const link = container.querySelector("a");
     let loading = false;
@@ -333,9 +318,6 @@
     }
   }
 
-  // ---------- Report form: money swaps the name, description and photo for private money fields ----------
-  // CSS already shows and hides them; this marks the visible ones required so the browser checks them too.
-  // (The server checks them either way, which is why the markup has no "required" on them.)
   function setupMoneyFields(form) {
     const category = form.querySelector("[data-category]");
     if (!category) return;
@@ -350,7 +332,6 @@
     sync();
   }
 
-  // ---------- Report page: the item's ID card fills in as the form is completed ----------
   function setupReportPreview(form) {
     const preview = document.querySelector("[data-report-preview]");
     if (!preview) return;
@@ -374,7 +355,6 @@
       out("type").textContent = !type ? "Lost or found?" : lost ? "Lost item" : "Found item";
       out("date-label").textContent = !type ? "Date" : lost ? "Lost" : "Found";
       const category = field("category");
-      // Money's card is only "Money" and when SDFO took it in; lost money never reaches the board.
       const money = category.value === "MONEY";
       setText(out("name"), money ? "Money" : field("name").value.trim());
       setText(out("category"), category.value ? category.options[category.selectedIndex].text : "");
@@ -383,7 +363,6 @@
       out("note").textContent = !money ? "Location and private details never appear on the card."
         : lost ? "Lost money is never posted on the board. Only you and SDFO see it."
         : "The amount, place, date and container never appear on the card.";
-      // No photo: the board shows the category's glyph, so the preview does too.
       preview.querySelectorAll("[data-preview-glyph]").forEach((glyph) => {
         glyph.hidden = glyph.dataset.previewGlyph !== category.value;
       });
@@ -409,7 +388,6 @@
     update();
   }
 
-  // ---------- Filter forms that apply as soon as a choice is made (the Apply button stays for no-JS) ----------
   function setupAutosubmit(form) {
     const button = form.querySelector("[data-autosubmit-button]");
     if (button) button.hidden = true;
@@ -428,7 +406,6 @@
     liveRegion.textContent = message;
   }
 
-  // ---------- Tap a photo to see it full size ----------
   let lightbox;
   function openLightbox(href, caption) {
     if (typeof HTMLDialogElement !== "function") return false;
@@ -453,7 +430,6 @@
     if (link && openLightbox(link.href, link.dataset.caption)) event.preventDefault();
   });
 
-  // ---------- Date ranges: "to" can't be before "from" ----------
   function setupDateRange(scope) {
     const from = scope.querySelector("[data-range-from]");
     const to = scope.querySelector("[data-range-to]");

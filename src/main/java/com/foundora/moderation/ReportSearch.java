@@ -13,11 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * The admin's All Reports and Archive search. It runs in the database rather than the feed index because admins
- * search every status, including Pending, Rejected, Removed and archived, which the feed index doesn't hold.
- * Unlike the feed's search, it also matches the location and specific spot (admins only).
- */
 @Service
 public class ReportSearch {
 
@@ -69,7 +64,6 @@ public class ReportSearch {
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
     }
 
-    /** So a search for "100%" matches the text "100%" rather than acting as a wildcard. */
     private static String escapeLike(String text) {
         return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }

@@ -1,4 +1,3 @@
-# Keep build context small and secrets out of the image.
 .git
 .gitignore
 .idea

@@ -20,15 +20,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Archives claimed reports {@code foundora.claims.archive-after} (default 30 days) after they were claimed.
- * Archived reports leave the feed and the Claimed tab for students, but nothing is deleted: the report, its
- * photo, comments and claim record stay for admins on the Archive page, for disputes.
- */
 @Service
 public class ArchiveService {
 
-    /** The actor written to the activity log for automatic archiving. */
     public static final String SYSTEM_EMAIL = "system";
     public static final String SYSTEM_NAME = "Foundora (automatic)";
 
@@ -65,7 +59,6 @@ public class ArchiveService {
         }
     }
 
-    /** Archives every claimed report claimed longer ago than the archive period. Returns how many. */
     @Transactional
     public int archiveDue() {
         Instant now = clock.instant();

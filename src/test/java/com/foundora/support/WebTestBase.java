@@ -25,10 +25,6 @@ import java.time.Instant;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Full app on the in-memory database, with Firebase and Supabase Storage replaced by mocks.
- * The four users in {@link TestData} start every test with completed profiles, so pages don't redirect to setup.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 public abstract class WebTestBase {
@@ -88,13 +84,11 @@ public abstract class WebTestBase {
         return p;
     }
 
-    /** The page's HTML as this user sees it; fails the test unless the page loads (200). */
     protected String html(String url, RequestPostProcessor user) throws Exception {
         return mvc.perform(get(url).with(user)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
     }
 
-    /** Saves items directly (as if already moderated) and reloads the feed index. */
     protected Item save(Item item) {
         Item saved = items.save(item);
         feedIndex.rebuild();

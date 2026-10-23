@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!--/*
-  The one status badge used on every admin list: an icon, a short word and a tint, fixed width so it lines up
-  in its column. code is a ReportStatus or ActivityAction name (the shared ones mean the same thing),
-  'ARCHIVED', a ReportType name (LOST, FOUND) for the type label on post cards, or 'RETURNED': a claimed report as
-  its reporter and the archive say it, matching the feed's "Returned" (admin lists keep 'CLAIMED'). Unknown codes fall back to a quiet grey badge with the code itself.
-*/-->
 <span th:fragment="badge(code)" class="sbadge"
       th:with="tones=${ {SUBMITTED:'pending', PENDING:'pending', APPROVED:'ok', REJECTED:'bad', CLAIMED:'done', RETURNED:'done',
                          REMOVED:'muted', ARCHIVED:'muted', COMMENT_DELETED:'muted', CLAIM_DISPUTED:'bad',

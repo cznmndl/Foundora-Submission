@@ -9,11 +9,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-/**
- * Starts the whole app on a throwaway Postgres the way production does: Flyway migrates, then Hibernate
- * validates that every entity matches the migrated tables (spring.jpa.hibernate.ddl-auto=validate).
- * If an entity and a migration disagree, the context fails to start and this test fails.
- */
 @SpringBootTest(properties = {
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=validate",
@@ -43,6 +38,5 @@ class SchemaValidationTest {
 
     @Test
     void entitiesMatchTheMigratedSchema() {
-        // Reaching this line means Flyway applied every migration and Hibernate's validation passed.
     }
 }

@@ -9,12 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * Until a signed-in user has completed their profile, every page (except the profile page itself, sign-in
- * and static files, see {@link WebConfig}) sends them back to /profile/setup. This runs on the server, so
- * typing another URL doesn't skip the setup. Once complete, the session remembers it, so the database is
- * checked once per sign-in rather than on every request.
- */
 @Component
 public class ProfileSetupInterceptor implements HandlerInterceptor {
 
@@ -44,7 +38,6 @@ public class ProfileSetupInterceptor implements HandlerInterceptor {
             }
             return true;
         }
-        // 303 so a blocked POST becomes a GET of the setup page rather than a re-POST.
         response.setStatus(HttpServletResponse.SC_SEE_OTHER);
         response.setHeader("Location", request.getContextPath() + SETUP_PATH);
         return false;

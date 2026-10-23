@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/**
- * The one-time profile setup after the first sign-in, and the My Profile page where the details can be changed.
- * Both are the same form; the setup version hides the navigation, since nothing else opens until it's done.
- */
 @Controller
 public class ProfileController {
 

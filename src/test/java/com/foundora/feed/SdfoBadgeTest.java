@@ -16,7 +16,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
-/** Comments from accounts on foundora.sdfo.emails carry the "SDFO" badge instead of "Admin". */
 @TestPropertySource(properties = "foundora.sdfo.emails=ana.cruz@dlsl.edu.ph")
 class SdfoBadgeTest extends WebTestBase {
 

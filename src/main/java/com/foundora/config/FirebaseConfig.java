@@ -20,7 +20,6 @@ import java.io.InputStream;
 @EnableConfigurationProperties(FirebaseWebProperties.class)
 public class FirebaseConfig {
 
-    /** Filesystem path to the service account key; blank means use the classpath copy (local dev). */
     @Value("${firebase.credentials.path:}")
     private String credentialsPath;
 

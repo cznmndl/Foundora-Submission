@@ -15,7 +15,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
     Optional<Comment> findTopByAuthorEmailOrderByCreatedAtDesc(String authorEmail);
 
-    /** Comment counts for a page of posts, as [itemId, count] rows (posts without comments are absent). */
     @Query("select c.itemId, count(c) from Comment c where c.itemId in :itemIds group by c.itemId")
     List<Object[]> countByItemIds(Collection<UUID> itemIds);
 }

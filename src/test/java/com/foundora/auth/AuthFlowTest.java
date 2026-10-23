@@ -44,7 +44,6 @@ class AuthFlowTest {
     @Autowired
     private UserProfileRepository profiles;
 
-    /** These accounts have finished profile setup; first-time sign-in is tested separately. */
     @BeforeEach
     void completedProfiles() {
         profiles.deleteAll();
@@ -59,7 +58,6 @@ class AuthFlowTest {
         MockHttpSession session = signIn("new-token", token("pedro_reyes@dlsl.edu.ph", true, "google.com"),
                 "/profile/setup");
 
-        // Every other page sends them back, whatever URL they type, and POSTs are refused the same way.
         for (String page : new String[]{"/", "/my-reports", "/report", "/posts/" + java.util.UUID.randomUUID()}) {
             mvc.perform(get(page).session(session)).andExpect(status().isSeeOther())
                     .andExpect(redirectedUrl("/profile/setup"));
@@ -68,7 +66,6 @@ class AuthFlowTest {
                 .andExpect(status().isSeeOther()).andExpect(redirectedUrl("/profile/setup"));
         mvc.perform(get("/profile/setup").session(session)).andExpect(status().isOk());
 
-        // Missing details are refused.
         mvc.perform(post("/profile").session(session).with(csrf()).param("community", "COLLEGE")
                         .param("course", "College of Nursing"))
                 .andExpect(status().isOk());
@@ -149,9 +146,9 @@ class AuthFlowTest {
 
     @Test
     void rejectsDisallowedAccounts() throws Exception {
-        assertRejected(token("juan_delacruz@gmail.com", true, "google.com"));  // wrong domain
-        assertRejected(token("juan_delacruz@dlsl.edu.ph", false, "google.com")); // unverified email
-        assertRejected(token("juan_delacruz@dlsl.edu.ph", true, "password"));  // not Google sign-in
+        assertRejected(token("juan_delacruz@gmail.com", true, "google.com"));
+        assertRejected(token("juan_delacruz@dlsl.edu.ph", false, "google.com"));
+        assertRejected(token("juan_delacruz@dlsl.edu.ph", true, "password"));
     }
 
     @Test
@@ -233,7 +230,6 @@ class AuthFlowTest {
 
     @Test
     void adminEmailMatchesWhateverItsCapitalization() throws Exception {
-        // On the allowlist as ana.cruz@dlsl.edu.ph; Google can send the address with capitals.
         MockHttpSession session = signIn("caps-token", token("Ana.Cruz@DLSL.edu.ph", true, "google.com"), "/admin");
 
         mvc.perform(get("/admin").session(session)).andExpect(status().isOk());

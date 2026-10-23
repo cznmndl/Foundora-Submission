@@ -48,7 +48,6 @@ public class AuthController {
         return "login";
     }
 
-    /** Exchanges a freshly issued Firebase ID token for a server-side session. */
     @PostMapping("/auth/session")
     @ResponseBody
     public ResponseEntity<Map<String, String>> createSession(@RequestBody SessionRequest body,
@@ -61,7 +60,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         }
 
-        // Start a fresh session so a pre-login session id (and its CSRF token) can't be reused.
         HttpSession previous = request.getSession(false);
         if (previous != null) {
             previous.invalidate();
@@ -75,7 +73,6 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
 
-        // First sign-in (or a profile missing details for this role): fill in the profile before anything else.
         boolean complete = profiles.recordSignIn(user).isCompleteFor(user.role());
         if (!complete) {
             return ResponseEntity.ok(Map.of("redirect", ProfileSetupInterceptor.SETUP_PATH));

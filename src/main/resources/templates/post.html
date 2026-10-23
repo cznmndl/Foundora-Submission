@@ -3,14 +3,9 @@
       th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{::#aside}, ~{})}">
 <head><title th:text="|${post.itemName()} · Foundora|">Item · Foundora</title></head>
 <body>
-<!--/*
-  Non-admins get ${post} (a FeedPost: no email, no location) and ${comments} without emails or profile details.
-  ${item}, ${admin}, ${adminDetails}, ${claimHistory} and ${history} are added only for admins.
-*/-->
 <div id="content" class="content-narrow">
     <p><a th:href="@{/}">← Back to the feed</a></p>
 
-    <!--/* Reporter or admin looking at a report that isn't on the feed: say where it stands. */-->
     <div class="alert alert-info" role="status" th:if="${archived}">
         <th:block th:replace="~{fragments/icons :: icon('archive')}"></th:block>
         <div>
@@ -44,7 +39,6 @@
 
     <section th:replace="~{fragments/claims :: requester(${post}, ${myRequests}, ${canRequest}, ${passDays})}"></section>
 
-    <!--/* ---------- Comments ---------- */-->
     <section class="card comments" id="comments" aria-labelledby="comments-heading" th:unless="${post.money()}">
         <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
 
@@ -60,7 +54,6 @@
                             <span class="role-badge" th:classappend="${c.badgeClass()}" th:text="${c.badge()}">Student</span>
                             <span class="role-badge badge-role-op" th:if="${c.originalPoster()}">Original poster</span>
                         </div>
-                        <!--/* Admin only: CommentView leaves these null for everyone else. */-->
                         <p class="comment-admin small" th:if="${c.authorEmail() != null}">
                             <span th:text="${c.authorEmail()}">email</span> · <span th:text="${c.authorDetails()}">BSIT · 2nd year · O1A</span>
                         </p>
@@ -117,7 +110,6 @@
         <p class="muted small" th:unless="${commentsOpen}">Comments are closed on this post.</p>
     </section>
 
-    <!--/* ---------- Admin only ---------- */-->
     <section class="card stack" th:if="${currentUser.isAdmin()}">
         <h2>Admin details</h2>
         <div class="reporter-box">
