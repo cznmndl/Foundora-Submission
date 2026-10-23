@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">Foundora</title>
-    <meta name="theme-color" content="#063d22">
+    <meta name="theme-color" content="#f3f6f4">
     <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
     <link rel="preload" th:href="@{/fonts/inter-latin-wght-normal.woff2}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" th:href="@{/fonts/inter-latin-wght-italic.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" th:href="@{/fonts/archivo-latin-wdth-normal.woff2}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script th:src="@{/js/app.js}" defer></script>
 </head>
-<body>
+<body th:classappend="${setupMode == true} ? 'setup-body'">
 <a class="skip-link" href="#main">Skip to main content</a>
 
-<header class="topbar">
-    <div class="strap" aria-hidden="true"><span th:each="i : ${#numbers.sequence(1, 8)}">De La Salle Lipa · Foundora · </span></div>
+<header class="topbar" th:unless="${setupMode == true}">
     <div class="topbar-inner">
         <a class="brand" th:href="@{/}">
             <span class="brand-name">Foundora</span>
@@ -24,17 +24,17 @@
         <div class="user-chip" th:if="${currentUser != null}">
             <span class="visually-hidden"
                   th:text="|Signed in as ${currentUser.name}, ${currentUser.role.label()}|">Signed in</span>
-            <a class="user-link" th:href="@{/profile}" th:unless="${setupMode == true}" title="My Profile">
-                <div class="user-text" aria-hidden="true">
-                    <div class="user-name" th:text="${currentUser.name}">Name</div>
+            <a class="user-link" th:href="@{/profile}" title="My Profile">
+                <span class="user-text" aria-hidden="true">
+                    <span class="user-name" th:text="${currentUser.name}">Name</span>
                     <span class="role-tag" th:classappend="${currentUser.isAdmin()} ? 'is-admin'"
                           th:text="${currentUser.role.label()}">Student</span>
-                </div>
+                </span>
                 <span class="avatar avatar-sm" aria-hidden="true" th:text="${currentUser.initial()}">J</span>
                 <span class="visually-hidden">My Profile</span>
             </a>
             <form th:action="@{/logout}" method="post">
-                <button class="btn btn-ghost btn-small" type="submit">
+                <button class="btn btn-signout" type="submit">
                     <th:block th:replace="~{fragments/icons :: icon('logout')}"></th:block>
                     <span class="signout-label">Sign out</span>
                 </button>
@@ -100,7 +100,7 @@
     <th:block th:replace="${aside}"></th:block>
 </div>
 
-<footer class="footer">
+<footer class="footer" th:unless="${setupMode == true}">
     <p>Foundora · Lost and Found for the De La Salle Lipa community.</p>
 </footer>
 

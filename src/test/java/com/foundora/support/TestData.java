@@ -1,6 +1,7 @@
 package com.foundora.support;
 
 import com.foundora.auth.FoundoraUser;
+import com.foundora.auth.PinInterceptor;
 import com.foundora.auth.UserRole;
 import com.foundora.database.entity.Category;
 import com.foundora.database.entity.Item;
@@ -36,6 +37,15 @@ public final class TestData {
     }
 
     public static RequestPostProcessor as(FoundoraUser user) {
+        RequestPostProcessor auth = authentication(UsernamePasswordAuthenticationToken.authenticated(
+                user, null, List.of(new SimpleGrantedAuthority(user.role().authority()))));
+        return request -> {
+            request.getSession(true).setAttribute(PinInterceptor.VERIFIED_ATTRIBUTE, true);
+            return auth.postProcessRequest(request);
+        };
+    }
+
+    public static RequestPostProcessor beforePin(FoundoraUser user) {
         return authentication(UsernamePasswordAuthenticationToken.authenticated(
                 user, null, List.of(new SimpleGrantedAuthority(user.role().authority()))));
     }
