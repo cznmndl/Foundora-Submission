@@ -10,12 +10,6 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 
-/**
- * A person's profile, filled in once at first sign-in (db/migration/V7__user_profiles.sql, V13 communities).
- * Students choose their community: College students give course, year level and section; Elementary, Junior
- * High and Senior High students give grade level and section. Staff and admins give a department or office.
- * Only admins see these details on posts and comments, so SDFO can confirm who someone is.
- */
 @Entity
 @Table(name = "user_profiles")
 public class UserProfile {
@@ -37,13 +31,11 @@ public class UserProfile {
     @Column(nullable = false)
     private UserRole role;
 
-    /** The student's community; null for staff and admins (and for profiles from before V13 without a course). */
     @Enumerated(EnumType.STRING)
     private Community community;
 
     private String course;
     private Integer yearLevel;
-    /** Grade 1–12, for Elementary, Junior High and Senior High only. */
     private Integer gradeLevel;
     private String section;
     private String department;
@@ -66,10 +58,6 @@ public class UserProfile {
         this.updatedAt = now;
     }
 
-    /**
-     * Whether the details this role needs are filled in. Checked against the role of the current sign-in,
-     * so a student who becomes an admin is asked for a department once.
-     */
     public boolean isCompleteFor(UserRole currentRole) {
         if (currentRole != UserRole.STUDENT) {
             return hasText(department);
@@ -81,7 +69,6 @@ public class UserProfile {
         return c.isCollege() ? hasText(course) && yearLevel != null : c.hasGrade(gradeLevel);
     }
 
-    /** The community, treating a profile that has a course but no community yet as College. */
     public Community effectiveCommunity() {
         if (community != null) {
             return community;
@@ -89,10 +76,6 @@ public class UserProfile {
         return hasText(course) ? Community.COLLEGE : null;
     }
 
-    /**
-     * One line for admins: "BS Information Technology · 2nd year · O1A" (college),
-     * "JHS · Grade 8 · Section Rizal" (basic education) or "Registrar's Office" (staff).
-     */
     public String summary() {
         Community c = effectiveCommunity();
         if (role == UserRole.STUDENT && c != null && !c.isCollege()) {

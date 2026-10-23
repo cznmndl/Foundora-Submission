@@ -7,7 +7,6 @@
      th:with="lostMoney=${sentMoney == true and sentType != null and sentType.name() == 'LOST'}">
     <h1>Sent to SDFO</h1>
 
-    <!--/* Lost money never goes on the board, so there's no card to hand back. */-->
     <th:block th:if="${lostMoney}">
         <p class="lead">Cash is hard to identify. SDFO will contact you if money matching your description is turned in.</p>
         <p>Your report is never posted on the board. Only you (in My Reports) and SDFO can see it.</p>

@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!--/*
-  The report form, used on the /report page and in the feed's dialog. Needs ${reportForm}, ${categories}, ${today}.
-  The location list comes from foundora.campus-locations (@campusLocations). Public fields first; the location
-  and identifying marks go in the "Only SDFO sees this" panel, which never reaches the feed.
-  Money (category MONEY) has no photo, name or public description: .rf-not-money fields hide and the
-  .rf-money-only ones (amount, container, denominations, time) show, by CSS alone. The server checks the right
-  ones are filled in; app.js only marks them required in the browser.
-*/-->
 <form th:fragment="form" class="report-form" th:action="@{/report}" method="post" enctype="multipart/form-data"
       th:object="${reportForm}" data-loading data-report-form>
 
@@ -144,7 +136,6 @@
             </div>
         </div>
 
-        <!--/* Money: what SDFO compares a claimant's answers with. */-->
         <div class="rf-row rf-money-only">
             <div class="field">
                 <label for="moneyAmount">Amount in pesos</label>
@@ -205,10 +196,6 @@
     <p class="rf-fineprint">Your name is shown on the post (not on money). Your email, profile, the location and the private details are seen only by SDFO admins. Nothing is posted until SDFO has checked it.</p>
 </form>
 
-<!--/*
-  The live preview beside the form on the /report page: the item's ID card as it will look on the board.
-  Filled in by app.js as the form changes; hidden (and pointless) without JavaScript.
-*/-->
 <aside th:fragment="preview" class="report-preview" data-report-preview hidden aria-hidden="true">
     <p class="report-preview-label">How it will look on the board</p>
     <div class="idcard is-unset is-stage-under-review" data-preview-card>

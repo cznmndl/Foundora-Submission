@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** One line of the admin activity log. Created by db/migration/V4__activity_log.sql. */
 @Entity
 @Table(name = "activity_log")
 public class ActivityLogEntry {
@@ -23,7 +22,6 @@ public class ActivityLogEntry {
 
     private UUID itemId;
 
-    /** Copy of the item name at the time, so the log stays readable on its own. */
     @Column(nullable = false)
     private String itemName;
 

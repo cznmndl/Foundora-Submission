@@ -3,10 +3,6 @@ package com.foundora.database.storage;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/**
- * Deletes a rejected or removed report's photo after the status change has committed. If Supabase is
- * unreachable, moderation still succeeds; the failure is logged with the photo's path.
- */
 @Component
 public class PhotoCleanup {
 

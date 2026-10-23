@@ -53,7 +53,6 @@
                         <label class="checkbox"><input type="checkbox" name="hideClaimed" value="on"
                                                        th:checked="${filters.hideClaimed()}"> Hide returned items</label>
                     </div>
-                    <!--/* Admins only: the server ignores ?location= for everyone else. */-->
                     <div class="field span-2" th:if="${currentUser.isAdmin()}">
                         <label for="location-filter">Location <span class="hint">Admin only</span></label>
                         <select id="location-filter" name="location">

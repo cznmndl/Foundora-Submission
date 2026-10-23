@@ -5,14 +5,9 @@ import com.foundora.database.entity.Item;
 import com.foundora.database.entity.ReportStatus;
 import org.springframework.stereotype.Component;
 
-/** Who may see a report (and its photos and comments). One rule, used by the detail page and the photo endpoints. */
 @Component
 public class ReportAccess {
 
-    /**
-     * On the feed (Approved, or Claimed and not archived): any signed-in user.
-     * Pending, Rejected and archived: the reporter and admins. Removed: admins only.
-     */
     public boolean canView(Item item, FoundoraUser user) {
         if (user.isAdmin() || item.isOnFeed()) {
             return true;

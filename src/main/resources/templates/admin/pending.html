@@ -32,10 +32,6 @@
     </section>
 </div>
 
-<!--/*
-  One submission, previewed as its feed post will look to students (no location, no email: the card gets no
-  admin details here), plus what only admins see below it.
-*/-->
 <div th:fragment="review(r)" class="review-card card">
     <article th:replace="~{fragments/posts :: card(${r.post()}, false, '/admin/pending', false)}"></article>
     <div class="post-foot">

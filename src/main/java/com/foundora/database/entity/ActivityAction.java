@@ -13,7 +13,6 @@ public enum ActivityAction {
     CLAIM_DISPUTED("Marked claim as disputed", Group.CLAIMS, "Marked claim as disputed"),
     CLAIM_RESOLVED("Resolved claim dispute", Group.CLAIMS, "Resolved claim dispute"),
     CLAIM_REOPENED("Reopened claim", Group.CLAIMS, "Reopened claim"),
-    // Archiving acts on the report (it leaves the feed), not on its claim record.
     ARCHIVED("Archived", Group.REPORTS, "Archived"),
     CLAIM_REQUESTED("Requested to claim", Group.CLAIM_REQUESTS, "Requested to claim"),
     CLAIM_INFO_REQUESTED("Asked the claimant for more information", Group.CLAIM_REQUESTS, "Asked for more information"),
@@ -22,10 +21,8 @@ public enum ActivityAction {
     CLAIM_WITHDRAWN("Withdrew a claim request", Group.CLAIM_REQUESTS, "Withdrew"),
     CLAIM_PASS_EXTENDED("Extended a pickup pass", Group.CLAIM_REQUESTS, "Extended a pickup pass"),
     CLAIM_PASS_EXPIRED("Pickup pass expired", Group.CLAIM_REQUESTS, "Pickup pass expired"),
-    // Unclaimed found money dealt with under SDFO policy: the report's final status.
     HANDLED_BY_SDFO("Marked as handled by SDFO", Group.REPORTS, "Handled by SDFO");
 
-    /** The activity log's category tabs. */
     public enum Group {
         REPORTS("Reports"),
         CLAIMS("Claims"),
@@ -45,7 +42,6 @@ public enum ActivityAction {
             return Slugs.of(this);
         }
 
-        /** The actions in this category, in declaration order. */
         public List<ActivityAction> actions() {
             return Arrays.stream(ActivityAction.values()).filter(a -> a.group == this).toList();
         }
@@ -73,7 +69,6 @@ public enum ActivityAction {
         return group;
     }
 
-    /** The shorter name in the activity log's Action dropdown, where the category gives the context. */
     public String filterLabel() {
         return filterLabel;
     }

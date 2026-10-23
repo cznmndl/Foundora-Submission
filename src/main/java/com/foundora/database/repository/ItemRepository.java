@@ -31,6 +31,5 @@ public interface ItemRepository extends JpaRepository<Item, UUID>, JpaSpecificat
 
     long countByArchivedAtIsNotNull();
 
-    /** Claimed reports due for archiving: claimed before the cutoff and not archived yet. */
     List<Item> findByStatusAndArchivedAtIsNullAndClaimedAtBefore(ReportStatus status, Instant cutoff);
 }

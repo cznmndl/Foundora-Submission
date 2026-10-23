@@ -84,7 +84,6 @@
     </div>
 </div>
 
-<!--/* One claim record with the admin's dispute / resolve / reopen actions. Used here and on the post page. */-->
 <div th:fragment="claimRecord(cr, returnTo)" class="claim-record" th:classappend="|claim-${cr.status.name().toLowerCase()}|">
     <div class="action-row">
         <strong>Claim record</strong>

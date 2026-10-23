@@ -3,9 +3,6 @@ package com.foundora.auth;
 import java.io.Serializable;
 import java.util.Locale;
 
-/**
- * The signed-in user, stored in the HTTP session after the Firebase ID token has been verified.
- */
 public record FoundoraUser(String uid, String email, String name, UserRole role) implements Serializable {
 
     public String homePath() {
@@ -16,7 +13,6 @@ public record FoundoraUser(String uid, String email, String name, UserRole role)
         return role.canModerate();
     }
 
-    /** First letter of the name, shown in the avatar circle. */
     public String initial() {
         return initialOf(name);
     }

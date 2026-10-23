@@ -16,7 +16,6 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, String
 
     List<UserProfile> findByEmailIn(Collection<String> emails);
 
-    /** Registered people whose name or email contains the text, for the admin's claimant picker. */
     @Query("""
             select p from UserProfile p
             where lower(p.fullName) like concat('%', :text, '%') or lower(p.email) like concat('%', :text, '%')

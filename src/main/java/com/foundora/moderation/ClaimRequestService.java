@@ -40,19 +40,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Claim requests: someone says a found item is theirs and describes their proof; admins compare every open
- * request for the item and verify one (a pickup pass valid for {@code foundora.claims.pass-valid-for}), deny
- * it, or ask for more information. The item is then released at the SDFO office, recorded as a claim record
- * ({@link ModerationService#markClaimed}), which ends the open requests.
- *
- * <p>Several requests on one item can be open at once; only one can be verified at a time. A pass that isn't
- * collected in time expires, and the item is "Posted" again (or "Claim pending" if other requests are open).
- */
 @Service
 public class ClaimRequestService {
 
-    /** The actor written to the activity log for automatic expiry. */
     public static final String SYSTEM_EMAIL = ArchiveService.SYSTEM_EMAIL;
     public static final String SYSTEM_NAME = ArchiveService.SYSTEM_NAME;
 
@@ -70,7 +60,6 @@ public class ClaimRequestService {
     private final Clock clock;
     private final Duration passValidFor;
 
-    /** One open request in the admin queue, with its item. */
     public record QueueEntry(Item item, List<ClaimRequest> openRequests) {
         public ClaimRequest oldest() {
             return openRequests.get(0);
@@ -81,7 +70,6 @@ public class ClaimRequestService {
         }
     }
 
-    /** One of the signed-in person's requests, with the item it's about. */
     public record MyRequest(ClaimRequest request, Item item) {
     }
 
@@ -107,9 +95,6 @@ public class ClaimRequestService {
         return passValidFor;
     }
 
-    // ---------- Reading ----------
-
-    /** Whether this person may request to claim this item right now (the "This is mine" button). */
     @Transactional(readOnly = true)
     public boolean canRequest(Item item, FoundoraUser user) {
         return claimable(item) && !isReporter(item, user)
@@ -117,19 +102,16 @@ public class ClaimRequestService {
                         .stream().noneMatch(ClaimRequest::isOpen);
     }
 
-    /** This person's requests for one item, newest first. */
     @Transactional(readOnly = true)
     public List<ClaimRequest> mine(Item item, FoundoraUser user) {
         return requests.findByItemIdAndRequesterEmailIgnoreCaseOrderByCreatedAtDesc(item.getId(), user.email());
     }
 
-    /** Every request for one item, oldest first (admins). */
     @Transactional(readOnly = true)
     public List<ClaimRequest> forItem(UUID itemId) {
         return requests.findByItemIdOrderByCreatedAtAsc(itemId);
     }
 
-    /** Everything this person has requested, newest first, with the items. */
     @Transactional(readOnly = true)
     public List<MyRequest> allMine(FoundoraUser user) {
         List<ClaimRequest> mine = requests.findByRequesterEmailIgnoreCaseOrderByCreatedAtDesc(user.email());
@@ -139,7 +121,6 @@ public class ClaimRequestService {
                 .map(r -> new MyRequest(r, byId.get(r.getItemId()))).toList();
     }
 
-    /** Items with open requests, the item whose oldest open request has waited longest first. */
     @Transactional(readOnly = true)
     public List<QueueEntry> queue() {
         Map<UUID, List<ClaimRequest>> byItem = requests.findByStatusInOrderByCreatedAtAsc(ClaimRequestStatus.OPEN)
@@ -157,27 +138,16 @@ public class ClaimRequestService {
                 .stream().map(ClaimRequest::getStatus).toList());
     }
 
-    /** The request if it has a photo and this person may see it: the requester and admins only. */
     @Transactional(readOnly = true)
     public Optional<ClaimRequest> findPhotoViewable(UUID id, FoundoraUser user) {
         return requests.findById(id).filter(ClaimRequest::hasPhoto)
                 .filter(r -> user.isAdmin() || r.isRequester(user.email()));
     }
 
-    // ---------- The requester ----------
-
     public ClaimRequest request(UUID itemId, FoundoraUser user, String proofText, MultipartFile photo) {
         return request(itemId, user, proofText, photo, MoneyClaimInput.EMPTY);
     }
 
-    /**
-     * "This is mine": opens a claim request on a found item. Throws {@link ClaimRequestException} or
-     * {@link InvalidImageException} with a message for the person. The photo is uploaded before the
-     * transaction and deleted again if saving fails.
-     *
-     * <p>Money can't be told apart by looking, so a claim on it must say how much, where and when it was lost,
-     * and what it was in; the free-text proof is then optional and there's no photo.
-     */
     public ClaimRequest request(UUID itemId, FoundoraUser user, String proofText, MultipartFile photo,
                                 MoneyClaimInput moneyInput) {
         Item item = items.findById(itemId).filter(Item::isOnFeed)
@@ -228,7 +198,6 @@ public class ClaimRequestService {
         }
     }
 
-    /** The requester answers the admin's question; the request goes back to waiting for review. */
     @Transactional
     public ClaimRequest reply(UUID requestId, FoundoraUser user, String text) {
         ClaimRequest request = own(requestId, user);
@@ -260,9 +229,6 @@ public class ClaimRequestService {
         return request;
     }
 
-    // ---------- Admins ----------
-
-    /** Verifies a request: the requester gets a pickup pass. Only one request per item can be verified. */
     @Transactional
     public ClaimRequest verify(UUID requestId, FoundoraUser admin) {
         ClaimRequest request = find(requestId);
@@ -290,7 +256,6 @@ public class ClaimRequestService {
         return request;
     }
 
-    /** Denies a request (a verified one too, which cancels its pickup pass). A reason is required. */
     @Transactional
     public ClaimRequest deny(UUID requestId, FoundoraUser admin, String reason) {
         ClaimRequest request = find(requestId);
@@ -307,7 +272,6 @@ public class ClaimRequestService {
         return request;
     }
 
-    /** Asks the requester a question; the request waits for their answer. */
     @Transactional
     public ClaimRequest askForInfo(UUID requestId, FoundoraUser admin, String question) {
         ClaimRequest request = find(requestId);
@@ -324,7 +288,6 @@ public class ClaimRequestService {
         return request;
     }
 
-    /** Gives a verified request another full pass period, counted from now or from its current end if later. */
     @Transactional
     public ClaimRequest extendPass(UUID requestId, FoundoraUser admin) {
         ClaimRequest request = find(requestId);
@@ -342,12 +305,6 @@ public class ClaimRequestService {
         return request;
     }
 
-    // ---------- Called by other services ----------
-
-    /**
-     * The item was released (claim record saved): the matching requester's open request becomes Released,
-     * every other open request is Closed.
-     */
     void onReleased(Item item, String claimantEmail, Instant now) {
         for (ClaimRequest r : requests.findByItemIdAndStatusIn(item.getId(), ClaimRequestStatus.OPEN)) {
             boolean theirs = claimantEmail != null && r.isRequester(claimantEmail);
@@ -356,15 +313,12 @@ public class ClaimRequestService {
         }
     }
 
-    /** The item left the feed (removed): its open requests are Closed. */
     void closeOpen(Item item, Instant now) {
         for (ClaimRequest r : requests.findByItemIdAndStatusIn(item.getId(), ClaimRequestStatus.OPEN)) {
             r.end(ClaimRequestStatus.CLOSED, now);
             requests.save(r);
         }
     }
-
-    // ---------- Expiry ----------
 
     @Scheduled(fixedDelayString = "${foundora.claims.archive-check-interval:PT1H}", initialDelayString = "PT2M")
     public void scheduledExpiry() {
@@ -378,7 +332,6 @@ public class ClaimRequestService {
         }
     }
 
-    /** Ends every pickup pass past its end. Returns how many. */
     @Transactional
     public int expireDue() {
         Instant now = clock.instant();
@@ -391,8 +344,6 @@ public class ClaimRequestService {
         }
         return due.size();
     }
-
-    // ---------- Helpers ----------
 
     private static boolean claimable(Item item) {
         return item.getReportType() == ReportType.FOUND && item.getStatus() == ReportStatus.APPROVED
@@ -408,7 +359,6 @@ public class ClaimRequestService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Claim request not found"));
     }
 
-    /** The person's own request; someone else's is a 404, not a 403. */
     private ClaimRequest own(UUID id, FoundoraUser user) {
         return requests.findById(id).filter(r -> r.isRequester(user.email()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Claim request not found"));
@@ -418,7 +368,6 @@ public class ClaimRequestService {
         return items.findById(request.getItemId()).orElseThrow();
     }
 
-    /** Writes the log line and refreshes the item's feed card (its stage may have changed). */
     private void log(ClaimRequest request, ActivityAction action, String email, String name, String note,
                      Instant now) {
         Item item = item(request);
