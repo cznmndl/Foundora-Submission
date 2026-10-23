@@ -100,9 +100,6 @@
     <th:block th:replace="${aside}"></th:block>
 </div>
 
-<footer class="footer" th:unless="${setupMode == true}">
-    <p>Foundora · Lost and Found for the De La Salle Lipa community.</p>
-</footer>
 
 <nav class="tabbar" aria-label="Main" th:if="${currentUser != null and setupMode != true}">
     <a th:href="@{/}" th:attr="aria-current=${nav == 'feed'} ? 'page' : null">
