@@ -14,6 +14,7 @@ import java.time.Instant;
 @Service
 public class PinService {
 
+    // The 4-digit PIN works as the password: 3 wrong PINs in a row lock PIN entry for 24 hours.
     public static final int MAX_ATTEMPTS = 3;
     public static final Duration LOCKOUT = Duration.ofHours(24);
 
@@ -107,14 +108,17 @@ public class PinService {
 
     @Transactional
     public Check verify(FoundoraUser user, String pin) {
+        // Row lock, so two PIN tries sent at the same moment can't both read the same failed count.
         UserProfile profile = profiles.findForUpdate(user.uid()).orElse(null);
         if (profile == null || !profile.hasPin()) {
             return new Check.NoPin();
         }
+        // While locked the PIN is not even checked, so guessing during the 24 hours can never succeed.
         if (isLocked(profile)) {
             loginHistory.record(LoginOutcome.LOCKED, user, null);
             return new Check.Locked(profile.getPinLockedUntil());
         }
+        // A lock that has run out is cleared here, which gives the user all 3 tries back.
         unlockIfExpired(profile);
         int attempt = profile.getPinFailedAttempts() + 1;
         if (pin != null && pin.matches("[0-9]{4}") && encoder.matches(pin, profile.getPinHash())) {
@@ -124,6 +128,7 @@ public class PinService {
             return new Check.Correct();
         }
         profile.setPinFailedAttempts(attempt);
+        // The third wrong PIN starts the 24-hour lock, counted from this moment.
         if (attempt >= MAX_ATTEMPTS) {
             Instant until = clock.instant().plus(LOCKOUT);
             profile.setPinLockedUntil(until);

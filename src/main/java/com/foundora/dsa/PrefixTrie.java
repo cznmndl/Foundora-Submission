@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+// Trie (prefix tree): one node per letter, so every word that starts with what the user typed sits under one node.
+// Used for search suggestions; finding a prefix of length m takes O(m), plus the matches it returns.
 public final class PrefixTrie {
 
     private static final class Node {

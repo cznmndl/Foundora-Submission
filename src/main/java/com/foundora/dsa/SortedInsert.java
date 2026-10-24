@@ -3,6 +3,8 @@ package com.foundora.dsa;
 import java.util.Comparator;
 import java.util.List;
 
+// Binary search (upper bound) for where a new post belongs in an already-sorted list.
+// O(log n) comparisons to find the spot, instead of re-sorting the whole list for every new post.
 public final class SortedInsert {
 
     private SortedInsert() {

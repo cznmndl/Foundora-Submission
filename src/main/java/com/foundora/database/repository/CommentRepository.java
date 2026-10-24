@@ -15,6 +15,7 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
     Optional<Comment> findTopByAuthorEmailOrderByCreatedAtDesc(String authorEmail);
 
+    // One grouped query counts comments for every card on the page, instead of one query per card.
     @Query("select c.itemId, count(c) from Comment c where c.itemId in :itemIds group by c.itemId")
     List<Object[]> countByItemIds(Collection<UUID> itemIds);
 }

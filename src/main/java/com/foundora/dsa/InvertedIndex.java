@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// Inverted index: each word maps to the set of posts containing it, so a search reads only matching posts, not all.
+// Every query word is prefix-matched through the trie, and the smallest match set is intersected first.
 public final class InvertedIndex<ID> {
 
     private final Map<String, Set<ID>> postings = new HashMap<>();
