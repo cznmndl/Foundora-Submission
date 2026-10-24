@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+// FIFO queue (ArrayDeque) for the admin's Pending page: the oldest report is reviewed first.
+// enqueue and next are O(1).
 public final class PendingQueue<T> {
 
     private final Deque<T> queue = new ArrayDeque<>();

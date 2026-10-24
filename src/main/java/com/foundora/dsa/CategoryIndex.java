@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+// One list per category (an EnumMap of lists), each kept newest first, so a category filter is an O(1) lookup.
+// A new post goes into its list by binary search (SortedInsert): O(log n) to find the spot, O(n) to shift.
 public final class CategoryIndex<K extends Enum<K>, V> {
 
     private final Map<K, List<V>> buckets;

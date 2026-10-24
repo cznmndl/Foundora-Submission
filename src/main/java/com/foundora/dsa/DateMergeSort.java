@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+// Merge sort: sorts each half, then merges them. O(n log n) in every case, and stable: equal dates keep their order.
+// Sorts all feed posts newest first when the feed index is rebuilt; already-ordered halves skip the merge.
 public final class DateMergeSort {
 
     private DateMergeSort() {
