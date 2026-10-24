@@ -19,6 +19,8 @@ public class Formats {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter DISPLAY_DATE_TIME =
+            DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm\u00a0a", Locale.ENGLISH);
 
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
 
@@ -57,6 +59,10 @@ public class Formats {
 
     public String dateTime(Instant time) {
         return time == null ? "" : DATE_TIME.format(time.atZone(clock.getZone()));
+    }
+
+    public String displayDateTime(Instant time) {
+        return time == null ? "" : DISPLAY_DATE_TIME.format(time.atZone(clock.getZone()));
     }
 
     public String dateAndTime(LocalDate date, LocalTime time) {

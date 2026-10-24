@@ -48,7 +48,7 @@ class MoneyTest extends WebTestBase {
     private static final String SPOT = "Taped under the court 2 scoreboard";
     private static final String DENOMINATIONS = "two orange thousands, seven blue fifties";
     private static final String[] SECRETS = {"1,250.50", "1250.5", "seven blue fifties", PLACE, "scoreboard",
-            "1:47 PM", OTHER_STUDENT.name()};
+            "1:47 PM", "1:47\u00a0PM", OTHER_STUDENT.name()};
 
     @Test
     void foundMoneyCardShowsOnlyMoneyAndWhenItWasSurrendered() throws Exception {
@@ -62,7 +62,8 @@ class MoneyTest extends WebTestBase {
                     "/posts/" + money.getId()}) {
                 String html = html(url, user);
                 assertThat(html).as(url).contains("/posts/" + money.getId()).contains(">Money<")
-                        .contains("Surrendered").contains("Oct 5, 2026, 10:30 AM")
+                        .contains("Surrendered")
+                        .contains(url.startsWith("/posts/") ? "Oct 5, 2026, 10:30 AM" : "Oct 5, 2026, 10:30\u00a0AM")
                         .doesNotContain("Admin only").doesNotContain("Posted by</dt><dd>Maria");
                 for (String secret : SECRETS) {
                     assertThat(html).as(url + " leaks " + secret).doesNotContain(secret);

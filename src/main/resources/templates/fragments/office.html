@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<section th:fragment="card" class="card office">
-    <h2 class="office-stripe">SDFO office</h2>
+<section th:fragment="card" class="card panel-card office">
+    <h2 class="panel-stripe">SDFO office</h2>
     <p class="small">Found items are turned in here, and owners pick them up here.</p>
     <dl>
         <dt>Where</dt>
@@ -12,6 +12,15 @@
         <dd th:if="${@sdfo.hours() != null}" th:text="${@sdfo.hours()}">Hours</dd>
         <dd th:unless="${@sdfo.hours() != null}"><span class="placeholder">Hours to be confirmed (placeholder)</span></dd>
     </dl>
+</section>
+
+<section th:fragment="howItWorks" class="card panel-card" aria-labelledby="how-heading">
+    <h2 id="how-heading" class="panel-stripe">How it works</h2>
+    <ol class="panel-steps">
+        <li>Report a lost or found item.</li>
+        <li>SDFO checks it before it’s posted.</li>
+        <li>Request a claim in Foundora, then pick it up at the SDFO with your school ID.</li>
+    </ol>
 </section>
 </body>
 </html>
