@@ -136,14 +136,15 @@
 </div>
 
 <aside id="aside" class="rightpanel" aria-label="Quick stats and SDFO office">
-    <section class="card office" th:replace="~{fragments/office :: card}"></section>
-    <section class="panel-week" aria-labelledby="week-heading">
-        <h2 id="week-heading">Posted this week</h2>
+    <section th:replace="~{fragments/office :: card}"></section>
+    <section class="card panel-card" aria-labelledby="week-heading">
+        <h2 id="week-heading" class="panel-stripe">Posted this week</h2>
         <dl class="week-list">
             <div><dt>Found items</dt><dd th:text="${stats.foundThisWeek()}">4</dd></div>
             <div><dt>Lost items</dt><dd th:text="${stats.lostThisWeek()}">7</dd></div>
         </dl>
     </section>
+    <section th:replace="~{fragments/office :: howItWorks}"></section>
 </aside>
 </body>
 </html>

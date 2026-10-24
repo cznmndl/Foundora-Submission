@@ -97,7 +97,7 @@
             </dl>
             <dl class="idcard-dl is-money" th:if="${post.money()}">
                 <div><dt th:text="${post.found()} ? 'Surrendered' : 'Reported'">Surrendered</dt>
-                    <dd><time th:datetime="${@fmt.iso(post.surrenderedAt())}" th:text="${@fmt.dateTime(post.surrenderedAt())}">Oct 3, 2026, 1:30 PM</time></dd></div>
+                    <dd><time th:datetime="${@fmt.iso(post.surrenderedAt())}" th:text="${@fmt.displayDateTime(post.surrenderedAt())}">Oct 3, 2026, 1:30 PM</time></dd></div>
             </dl>
         </div>
     </div>

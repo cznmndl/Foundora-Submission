@@ -1,6 +1,7 @@
 package com.foundora.moderation;
 
 import com.foundora.database.entity.ActivityAction;
+import com.foundora.database.entity.ActivityLogEntry;
 import com.foundora.database.entity.ClaimRequest;
 import com.foundora.database.entity.ClaimRequestStatus;
 import com.foundora.database.entity.Item;
@@ -198,6 +199,9 @@ class ClaimRequestTest extends WebTestBase {
         mvc.perform(admin("extend", id));
         assertThat(only().getExpiresAt()).isEqualTo(before.plus(Duration.ofDays(7)));
         assertThat(lastAction()).isEqualTo(ActivityAction.CLAIM_PASS_EXTENDED);
+        assertThat(activityLog.findTop10ByOrderByCreatedAtDescIdDesc().subList(0, 2))
+                .extracting(ActivityLogEntry::getReason)
+                .allSatisfy(reason -> assertThat(reason).containsPattern("\\d:\\d\\d [AP]M").doesNotContain("\u00a0"));
 
         assertThat(claimRequests.expireDue()).isZero();
         ClaimRequest r = only();

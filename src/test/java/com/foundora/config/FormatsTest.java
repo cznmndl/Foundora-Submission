@@ -28,6 +28,7 @@ class FormatsTest {
     @Test
     void formatsInPhilippineTime() {
         assertThat(fmt.dateTime(NOW)).isEqualTo("Oct 5, 2026, 12:30 AM");
+        assertThat(fmt.displayDateTime(NOW)).isEqualTo("Oct 5, 2026, 12:30\u00a0AM");
         assertThat(fmt.date(LocalDate.of(2026, 1, 9))).isEqualTo("Jan 9, 2026");
     }
 }
