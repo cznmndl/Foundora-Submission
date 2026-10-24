@@ -5,7 +5,7 @@ Foundora is the lost and found board for the De La Salle Lipa community (Group 6
 
 ## Tech Stack
 - **Backend**: Java 17 with Spring Boot 4
-- **Frontend**: Thymeleaf templates, one hand-written stylesheet (`static/css/app.css`) and a small script (`static/js/app.js`). Every page works without JavaScript.
+- **Frontend**: Thymeleaf templates, one hand-written stylesheet (`assets/css/app.css`) and a small script (`assets/js/app.js`). Every page works without JavaScript.
 - **Database**: Supabase Postgres via Spring Data JPA (Session pooler), schema managed by Flyway
 - **Authentication**: Firebase Authentication (Google sign-in), verified on the server
 - **Storage**: private Supabase Storage bucket `item-images`; the app serves each photo after checking who is asking
@@ -170,33 +170,46 @@ docker run -p 8080:8080 -e PORT=8080 --env-file .env \
 ```
 The `prod` profile requires HTTPS for the session cookie, so sign-in over plain `http://localhost` will not keep you logged in; add `-e SPRING_PROFILES_ACTIVE=default` for local HTTP testing.
 
-## Directory Structure
-The backend is organized by module, matching the project proposal.
+## Project Structure
+The Java code is grouped by feature: each folder holds the pages (controllers), logic (services) and forms for one part of the app.
 ```
 src/main/java/com/foundora
-├── auth/         Sign-in (Firebase token check, @dlsl.edu.ph rule), PIN step, roles, profile setup and My Profile
-├── reporting/    Report form and its validation, photo upload and re-encoding, photos, My Reports,
-│                 who may see a report (ReportAccess)
-├── moderation/   Admin pages: approve, reject, remove, claim requests and claim records, Handled by
-│                 SDFO, activity log, archive, Lost money, admin search
-├── feed/         The feed and its in-memory index (search, filters, categories), post page, comments,
-│                 search suggestions
-├── dsa/          The data structures and algorithms listed above
+├── FoundoraApplication.java   Starts the app
+├── auth/          Sign-in with Google (@dlsl.edu.ph only), roles, the 4-digit PIN step and lockout,
+│                  login history, profile setup and My Profile
+├── reporting/     Report a lost or found item: the form, photo upload and re-encoding, My Reports,
+│                  and who may see a report
+├── feed/          The home feed and its search, filters and categories, the post page, comments
+├── moderation/    Admin dashboard: approve, reject and remove reports, claim requests and claim
+│                  records, archive, lost money, activity log, and the Accounts page (reset PIN, unlock)
+├── dsa/           The data structures and algorithms listed above (trie, merge sort, queue, indexes)
 ├── database/
-│   ├── entity/       JPA entities (Item, Comment, ClaimRecord, ClaimRequest, UserProfile,
-│   │                 ActivityLogEntry) and their enums
-│   ├── repository/   Spring Data repositories
-│   └── storage/      Supabase Storage (private photo bucket) and photo clean-up
-└── config/       Security, Firebase, Supabase, time zone, formatting, campus locations, SDFO office,
-                  error pages, health check
+│   ├── entity/       One class per database table (Item, UserProfile, LoginAttempt, ActivityLogEntry…)
+│   ├── repository/   The database queries for each table
+│   └── storage/      Photo upload and delete (Supabase Storage) and photo clean-up
+└── config/        Security rules, Firebase and Supabase settings, time zone, date formats, campus
+                   locations, SDFO office details, error pages, health check
+
 src/main/resources
-├── db/migration/ Flyway migrations V1–V15
-├── static/       app.css, app.js, favicon.svg, self-hosted fonts
-└── templates/    fragments/ (layout, post card, report form, claims, status badge, icons, office),
-                  feed, post, report, report-sent, my-reports, profile, admin/, error/, login
-src/test/java     Same modules: MockMvc tests on H2 (Firebase and Storage mocked), unit tests for
-                  dsa/, and database/ tests that run every migration on an embedded Postgres
+├── application.properties   App settings (database, Firebase, admins, folder locations below)
+├── db/migration/  Database changes in order, V1–V17 (Flyway runs them on startup)
+├── ui/            Every HTML page (Thymeleaf): login, pin, feed, post, report, my-reports, profile,
+│                  admin/ pages, error/ pages, and fragments/ shared by many pages (layout, item card,
+│                  report form, status badges, icons, office card)
+└── assets/        Files sent to the browser as-is: css/app.css, js/app.js, fonts/, favicon.svg
+
+src/test/java      Tests for the same features: page tests on an in-memory database (Firebase and
+                   Storage mocked), unit tests for dsa/, and tests that run every migration on Postgres
 ```
+`ui/` and `assets/` are the renamed `templates/` and `static/` folders. Spring finds them through two lines in `application.properties` (`spring.thymeleaf.prefix=classpath:/ui/` and `spring.web.resources.static-locations=classpath:/assets/`). Web addresses are unchanged: the browser still loads `/css/app.css`, `/js/app.js`, `/fonts/…` and `/favicon.svg`.
+
+### Where to start reading
+| To understand | Open first |
+|---|---|
+| Login | `auth/AuthController.java` (the `/auth/session` sign-in), `auth/FirebaseLoginService.java` (checks the Google token), `auth/EmailRoleResolver.java` (decides student, staff or admin), `config/SecurityConfig.java` (who may open which pages) |
+| PIN and lockout | `auth/PinService.java` (3 tries, then a 24-hour lock), `auth/PinController.java` and `ui/pin.html` (the Enter PIN page), `auth/PinInterceptor.java` (holds every page until the PIN is entered), `moderation/AccountService.java` (admin Reset PIN and Unlock account), `auth/LoginHistory.java` (the login_attempts log) |
+| Posting an item | `reporting/ReportController.java` and `ui/report.html` (the form), `reporting/ReportService.java` (saves it as pending), `moderation/ModerationService.java` (an admin approves it before it appears), `feed/FeedController.java` (shows it on the feed) |
+| Database access | `database/entity/` (tables), `database/repository/` (queries), `db/migration/` (how the tables were created), `database/storage/StorageService.java` (photos) |
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
