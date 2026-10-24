@@ -5,7 +5,7 @@
 <body>
 <div id="content" class="content-narrow">
     <div class="page-head"><h1>Activity log</h1></div>
-    <p class="page-note">Who did what to which report, newest first.</p>
+    <p class="page-note">Who did what to which report or account, newest first.</p>
 
     <div class="log-filters">
         <nav class="log-tabs" aria-label="Filter by category">
@@ -54,7 +54,9 @@
         <div>
             <span class="atl-who" th:text="${e.actorName}">Admin</span>
             <span class="atl-email" th:if="${e.actorEmail != 'system'}" th:text="|(${e.actorEmail})|">email</span>
-            <span th:text="${e.action.name() == 'SUBMITTED'} ? ' submitted' : ''"></span>
+            <span th:text="${e.action.name() == 'SUBMITTED'} ? ' submitted'
+                    : (${e.action.name() == 'PIN_RESET'} ? ' reset the PIN for'
+                    : (${e.action.name() == 'ACCOUNT_UNLOCKED'} ? ' unlocked' : ''))"></span>
             <a th:if="${e.itemId != null}" th:href="@{/posts/{id}(id=${e.itemId})}" th:text="|“${e.itemName}”|">“Item”</a>
             <span th:unless="${e.itemId != null}" th:text="|“${e.itemName}”|">“Item”</span>
         </div>

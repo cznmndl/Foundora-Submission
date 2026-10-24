@@ -53,6 +53,10 @@ class MigrationTest {
             s.execute("alter table public.user_profiles add column last_login_at timestamptz");
             s.execute("update public.user_profiles set last_login_at = '2026-10-20T08:00:00Z' where uid = 'uid-old'");
         }
+        flyway("16").migrate();
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
+            s.execute("update public.user_profiles set pin_reset_requested = true where uid = 'uid-staff'");
+        }
         flyway(null).migrate();
     }
 
@@ -74,7 +78,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("16");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("17");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -207,6 +211,21 @@ class MigrationTest {
         assertThat(query("select count(*) from pg_indexes where tablename = 'login_attempts' "
                 + "and indexname in ('login_attempts_created_at_idx', 'login_attempts_uid_created_at_idx')"))
                 .isEqualTo("2");
+    }
+
+    @Test
+    void acceptsAdminAccountActionsAndCancelsLeftoverForgotPinRequests() throws Exception {
+        assertThat(query("select count(*) from public.user_profiles where pin_reset_requested")).isEqualTo("0");
+        exec("insert into public.activity_log (item_name, action, actor_email, actor_name) values "
+                + "('Old Student (old_student@dlsl.edu.ph)', 'PIN_RESET', 'ana.cruz@dlsl.edu.ph', 'Ana')");
+        exec("insert into public.activity_log (item_name, action, actor_email, actor_name) values "
+                + "('Old Student (old_student@dlsl.edu.ph)', 'ACCOUNT_UNLOCKED', 'ana.cruz@dlsl.edu.ph', 'Ana')");
+        exec("insert into public.login_attempts (uid, email, outcome) "
+                + "values ('uid-old', 'old_student@dlsl.edu.ph', 'PIN_RESET')");
+        exec("insert into public.login_attempts (uid, email, outcome) "
+                + "values ('uid-old', 'old_student@dlsl.edu.ph', 'ACCOUNT_UNLOCKED')");
+        assertThatThrownBy(() -> exec("insert into public.activity_log (item_name, action, actor_email, actor_name) "
+                + "values ('x', 'PIN_FORGOTTEN', 'a', 'A')")).isInstanceOf(SQLException.class);
     }
 
     private static void exec(String sql) throws SQLException {

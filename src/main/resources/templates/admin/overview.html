@@ -7,6 +7,7 @@
     <div class="page-head">
         <h1>Admin overview</h1>
         <a class="btn btn-primary btn-small" th:href="@{/admin/pending}" th:if="${overview.pending() > 0}">Review pending</a>
+        <a class="btn btn-secondary btn-small" th:href="@{/admin/accounts}">Accounts</a>
     </div>
 
     <div class="stat-tiles">

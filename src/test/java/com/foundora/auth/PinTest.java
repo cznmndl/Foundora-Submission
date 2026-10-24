@@ -114,15 +114,11 @@ class PinTest extends WebTestBase {
         mvc.perform(get("/pin").session(session).with(beforePin(USER)))
                 .andExpect(content().string(containsString("Too many wrong PINs. Try again after ")))
                 .andExpect(content().string(not(containsString("id=\"pin\""))))
-                .andExpect(content().string(not(containsString("Forgot PIN?"))));
+                .andExpect(content().string(not(containsString("Forgot your PIN?"))));
 
         mvc.perform(post("/pin").session(session).with(beforePin(USER)).with(csrf()).param("pin", "2580"))
                 .andExpect(redirectedUrl("/pin"));
         mvc.perform(get("/").session(session).with(beforePin(USER))).andExpect(redirectedUrl("/pin"));
-
-        mvc.perform(post("/pin/forgot").session(session).with(beforePin(USER)).with(csrf()))
-                .andExpect(redirectedUrl("/pin"));
-        assertThat(profile().isPinResetRequested()).isFalse();
     }
 
     @Test
@@ -163,29 +159,27 @@ class PinTest extends WebTestBase {
     }
 
     @Test
-    void forgotPinSignsOutAndTheNextSignInCreatesANewPin() throws Exception {
+    void aForgottenPinCanOnlyBeResetAtTheSdfo() throws Exception {
         givenPin("2580");
         MockHttpSession session = new MockHttpSession();
-
-        mvc.perform(post("/pin/forgot").session(session).with(beforePin(USER))).andExpect(status().isForbidden());
-        assertThat(profile().isPinResetRequested()).isFalse();
+        mvc.perform(get("/pin").session(session).with(beforePin(USER)))
+                .andExpect(content().string(containsString(
+                        "Forgot your PIN? Visit the SDFO and present your school ID to have it reset.")))
+                .andExpect(content().string(not(containsString("/pin/forgot"))));
 
         mvc.perform(post("/pin/forgot").session(session).with(beforePin(USER)).with(csrf()))
-                .andExpect(redirectedUrl("/login?pinReset"));
-        assertThat(session.isInvalid()).isTrue();
-        assertThat(profile().isPinResetRequested()).isTrue();
-        assertThat(profile().hasPin()).isTrue();
-
-        mvc.perform(get("/login").param("pinReset", ""))
-                .andExpect(content().string(containsString("Sign in with Google again to create a new PIN.")));
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/pin/forgot").session(new MockHttpSession()).with(TestData.as(USER)).with(csrf()))
+                .andExpect(status().isNotFound());
+        assertThat(session.isInvalid()).isFalse();
+        assertThat(correct("2580")).isTrue();
 
         FirebaseToken token = token(USER);
         when(firebaseAuth.verifyIdToken(eq("again"), eq(true))).thenReturn(token);
         mvc.perform(post("/auth/session").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"idToken\":\"again\"}"))
-                .andExpect(jsonPath("$.redirect").value("/pin/setup"));
-        assertThat(profile().hasPin()).isFalse();
-        assertThat(profile().isPinResetRequested()).isFalse();
+                .andExpect(jsonPath("$.redirect").value("/pin"));
+        assertThat(correct("2580")).isTrue();
     }
 
     @Test

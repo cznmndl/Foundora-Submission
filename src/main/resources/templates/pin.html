@@ -23,11 +23,10 @@
             </div>
             <div class="auth-row">
                 <p class="auth-hint auth-error" id="pin-error" role="alert" th:if="${pinError}" th:text="${pinError}">Incorrect. 2 attempts left.</p>
-                <button class="link-button auth-forgot" type="submit" form="forgot-pin">Forgot PIN?</button>
             </div>
             <button class="btn-auth btn-continue" type="submit">Continue</button>
         </form>
-        <form id="forgot-pin" method="post" th:action="@{/pin/forgot}" hidden></form>
+        <p class="auth-note">Forgot your PIN? Visit the SDFO and present your school ID to have it reset.</p>
     </th:block>
     <th:block th:replace="~{fragments/auth :: signout}"></th:block>
 </div>

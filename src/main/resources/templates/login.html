@@ -8,7 +8,6 @@
     <p class="auth-sub">The lost and found board for the De La Salle Lipa community</p>
 
     <div th:if="${param.logout}" class="alert alert-success" role="status">You have been signed out.</div>
-    <div th:if="${param.pinReset}" class="alert alert-info" role="status">Sign in with Google again to create a new PIN.</div>
     <div id="login-error" class="alert alert-error" role="alert" hidden></div>
 
     <button id="google-sign-in" type="button" class="btn-auth btn-google">

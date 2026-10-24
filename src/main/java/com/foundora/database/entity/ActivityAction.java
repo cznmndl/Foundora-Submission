@@ -21,12 +21,15 @@ public enum ActivityAction {
     CLAIM_WITHDRAWN("Withdrew a claim request", Group.CLAIM_REQUESTS, "Withdrew"),
     CLAIM_PASS_EXTENDED("Extended a pickup pass", Group.CLAIM_REQUESTS, "Extended a pickup pass"),
     CLAIM_PASS_EXPIRED("Pickup pass expired", Group.CLAIM_REQUESTS, "Pickup pass expired"),
-    HANDLED_BY_SDFO("Marked as handled by SDFO", Group.REPORTS, "Handled by SDFO");
+    HANDLED_BY_SDFO("Marked as handled by SDFO", Group.REPORTS, "Handled by SDFO"),
+    PIN_RESET("Reset a PIN", Group.ACCOUNTS, "Reset PIN"),
+    ACCOUNT_UNLOCKED("Unlocked an account", Group.ACCOUNTS, "Unlocked account");
 
     public enum Group {
         REPORTS("Reports"),
         CLAIMS("Claims"),
-        CLAIM_REQUESTS("Claim requests");
+        CLAIM_REQUESTS("Claim requests"),
+        ACCOUNTS("Accounts");
 
         private final String label;
 

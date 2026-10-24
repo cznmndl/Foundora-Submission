@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{}, ~{})}">
+<head><title>Accounts · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <div class="page-head"><h1>Accounts</h1></div>
+    <p class="page-note">Reset a forgotten PIN or unlock an account after checking the person's school ID.</p>
+
+    <form class="card" method="get" th:action="@{/admin/accounts}" role="search" aria-label="Find an account">
+        <div class="field">
+            <label for="q">Find an account <span class="hint">Name or school email</span></label>
+            <input id="q" type="search" name="q" maxlength="100" th:value="${q}">
+        </div>
+        <div class="action-row form-actions">
+            <button class="btn btn-primary btn-small" type="submit">Search</button>
+            <a class="btn btn-ghost btn-small" th:if="${q != null}" th:href="@{/admin/accounts}">Clear</a>
+        </div>
+    </form>
+
+    <p class="muted small result-count" role="status"
+       th:text="${q == null} ? (${accounts.isEmpty()} ? 'No accounts are locked right now.' : |Locked accounts (${accounts.size()})|)
+                : (${accounts.size() == 1} ? '1 account' : |${accounts.size()} accounts|)">Locked accounts</p>
+
+    <div class="stack" th:unless="${accounts.isEmpty()}">
+        <article class="card flow" th:each="a : ${accounts}" th:with="p=${a.profile()}">
+            <h2 th:text="${p.fullName}">Juan Dela Cruz</h2>
+            <p class="muted small" th:text="|${p.email} · ${p.role.label()}|">juan_delacruz@dlsl.edu.ph · Student</p>
+            <dl class="profile-info">
+                <dt>PIN</dt>
+                <dd th:if="${a.locked()}" th:text="|Locked until ${@fmt.dateTime(a.lockedUntil())}|">Locked</dd>
+                <dd th:if="${!a.locked() and p.hasPin()}"
+                    th:text="${p.pinFailedAttempts == 0} ? 'Set' : |Set · ${p.pinFailedAttempts} wrong ${p.pinFailedAttempts == 1 ? 'try' : 'tries'}|">Set</dd>
+                <dd th:if="${!a.locked() and !p.hasPin()}">Not set yet</dd>
+                <dt>Last sign-in</dt>
+                <dd th:text="${p.lastLoginAt != null} ? ${@fmt.dateTime(p.lastLoginAt)} : 'Never'">Never</dd>
+            </dl>
+            <div class="action-row" th:if="${a.locked() or p.hasPin()}">
+                <details class="confirm" th:if="${a.locked()}">
+                    <summary class="btn btn-primary btn-small">Unlock account</summary>
+                    <form class="confirm-panel" method="post" th:action="@{/admin/accounts/unlock}" data-loading>
+                        <p th:text="|Unlock ${p.fullName}'s account? They get 3 PIN tries again.|">Unlock?</p>
+                        <input type="hidden" name="uid" th:value="${p.uid}">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <button class="btn btn-primary btn-small" type="submit">Yes, unlock</button>
+                    </form>
+                </details>
+                <details class="confirm" th:if="${p.hasPin()}">
+                    <summary class="btn btn-secondary btn-small">Reset PIN</summary>
+                    <form class="confirm-panel" method="post" th:action="@{/admin/accounts/reset-pin}" data-loading>
+                        <p th:text="|Reset PIN for ${p.fullName}? They’ll create a new PIN on their next sign-in.|">Reset?</p>
+                        <input type="hidden" name="uid" th:value="${p.uid}">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <button class="btn btn-danger btn-small" type="submit">Yes, reset PIN</button>
+                    </form>
+                </details>
+            </div>
+        </article>
+    </div>
+</div>
+</body>
+</html>

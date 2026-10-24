@@ -80,6 +80,8 @@
                     <th:block th:replace="~{fragments/icons :: icon('archive')}"></th:block>Archive</a></li>
                 <li><a th:href="@{/admin/activity}" th:attr="aria-current=${adminNav == 'activity'} ? 'page' : null">
                     <th:block th:replace="~{fragments/icons :: icon('activity')}"></th:block>Activity log</a></li>
+                <li><a th:href="@{/admin/accounts}" th:attr="aria-current=${adminNav == 'accounts'} ? 'page' : null">
+                    <th:block th:replace="~{fragments/icons :: icon('user')}"></th:block>Accounts</a></li>
             </ul>
         </div>
         <th:block th:replace="${extraNav}"></th:block>

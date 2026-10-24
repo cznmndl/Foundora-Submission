@@ -134,16 +134,6 @@ public class PinService {
         return new Check.Wrong(MAX_ATTEMPTS - attempt);
     }
 
-    @Transactional
-    public boolean requestReset(FoundoraUser user) {
-        UserProfile profile = profiles.findForUpdate(user.uid()).orElse(null);
-        if (profile == null || !profile.hasPin() || isLocked(profile)) {
-            return false;
-        }
-        profile.setPinResetRequested(true);
-        return true;
-    }
-
     private boolean isLocked(UserProfile profile) {
         return profile.getPinLockedUntil() != null && clock.instant().isBefore(profile.getPinLockedUntil());
     }
