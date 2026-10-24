@@ -1,5 +1,6 @@
 package com.foundora.auth;
 
+import com.foundora.database.entity.LoginOutcome;
 import com.foundora.database.entity.UserProfile;
 import com.foundora.database.repository.UserProfileRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -37,12 +38,15 @@ public class PinService {
 
     private final UserProfileRepository profiles;
     private final ProfileService profileService;
+    private final LoginHistory loginHistory;
     private final Clock clock;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    public PinService(UserProfileRepository profiles, ProfileService profileService, Clock clock) {
+    public PinService(UserProfileRepository profiles, ProfileService profileService, LoginHistory loginHistory,
+                      Clock clock) {
         this.profiles = profiles;
         this.profileService = profileService;
+        this.loginHistory = loginHistory;
         this.clock = clock;
     }
 
@@ -97,6 +101,7 @@ public class PinService {
         profile.clearPin();
         profile.setPinHash(encoder.encode(pin));
         profile.setUpdatedAt(clock.instant());
+        loginHistory.record(LoginOutcome.PIN_SET, user, null);
         return true;
     }
 
@@ -107,21 +112,26 @@ public class PinService {
             return new Check.NoPin();
         }
         if (isLocked(profile)) {
+            loginHistory.record(LoginOutcome.LOCKED, user, null);
             return new Check.Locked(profile.getPinLockedUntil());
         }
         unlockIfExpired(profile);
+        int attempt = profile.getPinFailedAttempts() + 1;
         if (pin != null && pin.matches("[0-9]{4}") && encoder.matches(pin, profile.getPinHash())) {
             profile.setPinFailedAttempts(0);
+            profile.setLastLoginAt(clock.instant());
+            loginHistory.record(LoginOutcome.PIN_SUCCESS, user, attempt);
             return new Check.Correct();
         }
-        int failed = profile.getPinFailedAttempts() + 1;
-        profile.setPinFailedAttempts(failed);
-        if (failed >= MAX_ATTEMPTS) {
+        profile.setPinFailedAttempts(attempt);
+        if (attempt >= MAX_ATTEMPTS) {
             Instant until = clock.instant().plus(LOCKOUT);
             profile.setPinLockedUntil(until);
+            loginHistory.record(LoginOutcome.LOCKED, user, attempt);
             return new Check.Locked(until);
         }
-        return new Check.Wrong(MAX_ATTEMPTS - failed);
+        loginHistory.record(LoginOutcome.PIN_FAILED, user, attempt);
+        return new Check.Wrong(MAX_ATTEMPTS - attempt);
     }
 
     @Transactional

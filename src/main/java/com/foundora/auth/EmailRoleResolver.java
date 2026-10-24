@@ -1,5 +1,6 @@
 package com.foundora.auth;
 
+import com.foundora.database.entity.LoginOutcome;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +34,8 @@ public class EmailRoleResolver {
         String normalized = normalize(email);
         String localPart = schoolLocalPart(normalized);
         if (localPart == null) {
-            throw new LoginRejectedException("Please sign in with your @" + ALLOWED_DOMAIN + " Google account.");
+            throw new LoginRejectedException("Please sign in with your @" + ALLOWED_DOMAIN + " Google account.",
+                    LoginOutcome.REJECTED_DOMAIN);
         }
 
         if (adminEmails.contains(normalized)) {
@@ -43,7 +45,8 @@ public class EmailRoleResolver {
         boolean hasUnderscore = localPart.contains("_");
         boolean hasDot = localPart.contains(".");
         if (hasUnderscore && hasDot) {
-            throw new LoginRejectedException("This account is not recognized as a student or staff account.");
+            throw new LoginRejectedException("This account is not recognized as a student or staff account.",
+                    LoginOutcome.REJECTED_DOMAIN);
         }
         return hasUnderscore ? UserRole.STUDENT : UserRole.STAFF;
     }

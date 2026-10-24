@@ -1,6 +1,7 @@
 package com.foundora.auth;
 
 import com.foundora.config.FirebaseWebProperties;
+import com.foundora.database.entity.LoginOutcome;
 import com.foundora.database.entity.UserProfile;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,13 +31,15 @@ public class AuthController {
     private final FirebaseLoginService loginService;
     private final FirebaseWebProperties firebaseWeb;
     private final ProfileService profiles;
+    private final LoginHistory loginHistory;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     public AuthController(FirebaseLoginService loginService, FirebaseWebProperties firebaseWeb,
-                          ProfileService profiles) {
+                          ProfileService profiles, LoginHistory loginHistory) {
         this.loginService = loginService;
         this.firebaseWeb = firebaseWeb;
         this.profiles = profiles;
+        this.loginHistory = loginHistory;
     }
 
     @GetMapping("/login")
@@ -58,6 +61,7 @@ public class AuthController {
         try {
             user = loginService.authenticate(body.idToken());
         } catch (LoginRejectedException e) {
+            loginHistory.record(e.outcome(), e.uid(), e.email(), null);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         }
 
@@ -75,6 +79,7 @@ public class AuthController {
         securityContextRepository.saveContext(context, request, response);
 
         UserProfile profile = profiles.recordSignIn(user);
+        loginHistory.record(LoginOutcome.GOOGLE_OK, user, null);
         if (profile.isCompleteFor(user.role())) {
             session.setAttribute(ProfileSetupInterceptor.COMPLETE_ATTRIBUTE, true);
         }

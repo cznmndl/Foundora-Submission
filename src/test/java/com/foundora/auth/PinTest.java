@@ -232,6 +232,43 @@ class PinTest extends WebTestBase {
         assertThat(PinService.problem("２５８０", "２５８０")).contains("exactly 4 digits");
     }
 
+    @Test
+    void recordsEachPinTryWithItsNumberAndTheLastLogin() throws Exception {
+        mvc.perform(post("/pin/setup").session(new MockHttpSession()).with(beforePin(USER)).with(csrf())
+                .param("pin", "2580").param("confirm", "2580"));
+        assertThat(profile().getLastLoginAt()).isNull();
+
+        MockHttpSession session = new MockHttpSession();
+        wrong(session);
+        Instant before = Instant.now();
+        mvc.perform(post("/pin").session(session).with(beforePin(USER)).with(csrf()).param("pin", "2580"))
+                .andExpect(redirectedUrl("/"));
+
+        assertThat(history()).containsExactly("PIN_SET:-", "PIN_FAILED:1", "PIN_SUCCESS:2");
+        assertThat(loginAttempts.findAll()).allSatisfy(a -> assertThat(a.getUid()).isEqualTo(USER.uid()));
+        assertThat(profile().getLastLoginAt()).isBetween(before, Instant.now());
+    }
+
+    @Test
+    void recordsTheLockAndEveryTryWhileLocked() throws Exception {
+        givenPin("2580");
+        MockHttpSession session = new MockHttpSession();
+        wrong(session);
+        wrong(session);
+        wrong(session);
+        mvc.perform(post("/pin").session(session).with(beforePin(USER)).with(csrf()).param("pin", "2580"))
+                .andExpect(redirectedUrl("/pin"));
+
+        assertThat(history()).containsExactly("PIN_FAILED:1", "PIN_FAILED:2", "LOCKED:3", "LOCKED:-");
+        assertThat(profile().getLastLoginAt()).isNull();
+    }
+
+    private java.util.List<String> history() {
+        return loginAttempts.findByEmailOrderByCreatedAtAscIdAsc(USER.email()).stream()
+                .map(a -> a.getOutcome() + ":" + (a.getAttemptNumber() == null ? "-" : a.getAttemptNumber()))
+                .toList();
+    }
+
     private org.springframework.test.web.servlet.ResultActions wrong(MockHttpSession session) throws Exception {
         return mvc.perform(post("/pin").session(session).with(beforePin(USER)).with(csrf()).param("pin", "9513"))
                 .andExpect(redirectedUrl("/pin"));
