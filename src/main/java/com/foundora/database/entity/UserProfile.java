@@ -47,9 +47,6 @@ public class UserProfile {
 
     private Instant pinLockedUntil;
 
-    @Column(nullable = false)
-    private boolean pinResetRequested;
-
     private Instant lastLoginAt;
 
     @Column(nullable = false)
@@ -213,14 +210,12 @@ public class UserProfile {
         pinHash = null;
         pinFailedAttempts = 0;
         pinLockedUntil = null;
-        pinResetRequested = false;
     }
 
     public void copyPinFrom(UserProfile other) {
         pinHash = other.pinHash;
         pinFailedAttempts = other.pinFailedAttempts;
         pinLockedUntil = other.pinLockedUntil;
-        pinResetRequested = other.pinResetRequested;
     }
 
     public String getPinHash() {
@@ -245,14 +240,6 @@ public class UserProfile {
 
     public void setPinLockedUntil(Instant pinLockedUntil) {
         this.pinLockedUntil = pinLockedUntil;
-    }
-
-    public boolean isPinResetRequested() {
-        return pinResetRequested;
-    }
-
-    public void setPinResetRequested(boolean pinResetRequested) {
-        this.pinResetRequested = pinResetRequested;
     }
 
     public Instant getLastLoginAt() {

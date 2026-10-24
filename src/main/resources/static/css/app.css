@@ -1141,11 +1141,6 @@ table.data .col-nowrap { white-space: nowrap; }
 .auth-error { color: var(--danger); font-weight: 500; }
 .auth-row { display: flex; align-items: flex-start; gap: var(--s3); min-height: 0; }
 .auth-row .auth-hint { flex: 1; }
-.auth-forgot {
-  margin: var(--s2) var(--s4) 0 auto; min-height: 0; font-size: var(--text-meta); font-style: italic;
-  color: var(--danger); text-decoration: none; line-height: 1.4;
-}
-.auth-forgot:hover { color: #861515; text-decoration: underline; }
 .auth-locked {
   margin: 0; padding: var(--s3) var(--s4); border-radius: var(--radius); text-align: left;
   background: var(--danger-bg); color: var(--danger); font-weight: 600; border: 1px solid #f6c9c9;

@@ -54,6 +54,15 @@ public class ActivityLogEntry {
         this.createdAt = createdAt;
     }
 
+    public ActivityLogEntry(UserProfile account, ActivityAction action, String actorEmail, String actorName,
+                            Instant createdAt) {
+        this.itemName = account.getFullName() + " (" + account.getEmail() + ")";
+        this.action = action;
+        this.actorEmail = actorEmail;
+        this.actorName = actorName;
+        this.createdAt = createdAt;
+    }
+
     public Long getId() {
         return id;
     }

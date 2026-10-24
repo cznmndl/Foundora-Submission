@@ -2,11 +2,8 @@ package com.foundora.auth;
 
 import com.foundora.config.Formats;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -90,17 +87,6 @@ public class PinController {
                     + (wrong.attemptsLeft() == 1 ? " attempt" : " attempts") + " left.");
         }
         return "redirect:" + PinInterceptor.PIN_PATH;
-    }
-
-    @PostMapping("/pin/forgot")
-    public String forgot(@AuthenticationPrincipal FoundoraUser user, HttpServletRequest request,
-                         HttpServletResponse response) {
-        if (PinInterceptor.isVerified(request.getSession(false)) || !pins.requestReset(user)) {
-            return "redirect:" + PinInterceptor.PIN_PATH;
-        }
-        new SecurityContextLogoutHandler().logout(request, response,
-                SecurityContextHolder.getContext().getAuthentication());
-        return "redirect:/login?pinReset";
     }
 
     private String verified(FoundoraUser user, HttpServletRequest request) {

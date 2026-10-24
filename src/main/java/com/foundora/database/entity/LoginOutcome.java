@@ -8,5 +8,6 @@ public enum LoginOutcome {
     PIN_SUCCESS,
     PIN_FAILED,
     LOCKED,
-    PIN_RESET
+    PIN_RESET,
+    ACCOUNT_UNLOCKED
 }

@@ -50,9 +50,6 @@ public class ProfileService {
         profile.setEmail(user.email());
         profile.setFullName(user.name());
         profile.setRole(user.role());
-        if (profile.isPinResetRequested()) {
-            profile.clearPin();
-        }
         profile.setUpdatedAt(now);
         return profiles.save(profile);
     }
