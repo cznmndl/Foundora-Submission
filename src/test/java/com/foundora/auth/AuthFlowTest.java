@@ -1,6 +1,8 @@
 package com.foundora.auth;
 
+import com.foundora.database.entity.LoginAttempt;
 import com.foundora.database.entity.UserProfile;
+import com.foundora.database.repository.LoginAttemptRepository;
 import com.foundora.database.repository.UserProfileRepository;
 import com.google.firebase.ErrorCode;
 import com.google.firebase.auth.AuthErrorCode;
@@ -46,8 +48,12 @@ class AuthFlowTest {
     @Autowired
     private UserProfileRepository profiles;
 
+    @Autowired
+    private LoginAttemptRepository loginAttempts;
+
     @BeforeEach
     void completedProfiles() {
+        loginAttempts.deleteAll();
         profiles.deleteAll();
         profiles.save(profile("juan_delacruz@dlsl.edu.ph", UserRole.STUDENT, "BS Psychology", 1, "O1A", null));
         profiles.save(profile("ana.cruz@dlsl.edu.ph", UserRole.ADMIN, null, null, null, "SDFO"));
@@ -175,6 +181,30 @@ class AuthFlowTest {
         mvc.perform(post("/auth/session").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"idToken\":\"forged\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void recordsEveryGoogleSignInOutcome() throws Exception {
+        signIn("new-token", token("pedro_reyes@dlsl.edu.ph", true, "google.com"), "/profile/setup");
+        assertRejected(token("juan_delacruz@gmail.com", true, "google.com"));
+        assertRejected(token("juan.dela_cruz@dlsl.edu.ph", true, "google.com"));
+        assertRejected(token("maria_santos@dlsl.edu.ph", false, "google.com"));
+        when(firebaseAuth.verifyIdToken(eq("forged"), eq(true))).thenThrow(
+                new FirebaseAuthException(ErrorCode.INVALID_ARGUMENT, "bad signature", null, null,
+                        AuthErrorCode.REVOKED_ID_TOKEN));
+        mvc.perform(post("/auth/session").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"idToken\":\"forged\"}"));
+
+        assertThat(loginAttempts.findAll().stream()
+                .sorted(java.util.Comparator.comparing(LoginAttempt::getId))
+                .map(a -> a.getOutcome() + " " + a.getEmail() + " " + a.getUid() + " " + a.getAttemptNumber()))
+                .containsExactly(
+                        "GOOGLE_OK pedro_reyes@dlsl.edu.ph uid-pedro_reyes@dlsl.edu.ph null",
+                        "PIN_SET pedro_reyes@dlsl.edu.ph uid-pedro_reyes@dlsl.edu.ph null",
+                        "REJECTED_DOMAIN juan_delacruz@gmail.com uid-juan_delacruz@gmail.com null",
+                        "REJECTED_DOMAIN juan.dela_cruz@dlsl.edu.ph uid-juan.dela_cruz@dlsl.edu.ph null",
+                        "INVALID_TOKEN maria_santos@dlsl.edu.ph uid-maria_santos@dlsl.edu.ph null",
+                        "INVALID_TOKEN null null null");
     }
 
     @Test

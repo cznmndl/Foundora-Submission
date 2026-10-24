@@ -50,6 +50,8 @@ public class UserProfile {
     @Column(nullable = false)
     private boolean pinResetRequested;
 
+    private Instant lastLoginAt;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -251,6 +253,14 @@ public class UserProfile {
 
     public void setPinResetRequested(boolean pinResetRequested) {
         this.pinResetRequested = pinResetRequested;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public Instant getCreatedAt() {

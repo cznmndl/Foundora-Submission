@@ -50,6 +50,8 @@ class MigrationTest {
                     insert into public.user_profiles (uid, email, full_name, role, course, year_level, section)
                     values ('uid-old', 'old_student@dlsl.edu.ph', 'Old Student', 'STUDENT', 'BS CpE', 2, 'O2A'),
                            ('uid-staff', 'some.staff@dlsl.edu.ph', 'Some Staff', 'STAFF', null, null, null)""");
+            s.execute("alter table public.user_profiles add column last_login_at timestamptz");
+            s.execute("update public.user_profiles set last_login_at = '2026-10-20T08:00:00Z' where uid = 'uid-old'");
         }
         flyway(null).migrate();
     }
@@ -72,7 +74,7 @@ class MigrationTest {
 
     @Test
     void appliesEveryMigration() {
-        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("15");
+        assertThat(flyway(null).info().current().getVersion().getVersion()).isEqualTo("16");
         assertThat(flyway(null).info().pending()).isEmpty();
     }
 
@@ -89,7 +91,8 @@ class MigrationTest {
 
     @Test
     void newTablesHaveRowLevelSecurityWithNoPolicies() throws Exception {
-        for (String table : new String[]{"user_profiles", "comments", "claim_records", "claim_requests"}) {
+        for (String table : new String[]{"user_profiles", "comments", "claim_records", "claim_requests",
+                "login_attempts"}) {
             assertThat(query("select relrowsecurity from pg_class where oid = 'public." + table + "'::regclass"))
                     .as(table).isEqualTo("t");
             assertThat(query("select count(*) from pg_policies where schemaname = 'public' and tablename = '"
@@ -189,6 +192,21 @@ class MigrationTest {
                 .as("raw PIN").isInstanceOf(SQLException.class);
         assertThatThrownBy(() -> exec("update public.user_profiles set pin_failed_attempts = 4 where uid = 'uid-old'"))
                 .as("more than 3 attempts").isInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void keepsAHandAddedLastLoginColumnAndRecordsLoginOutcomes() throws Exception {
+        assertThat(query("select last_login_at = '2026-10-20T08:00:00Z' from public.user_profiles "
+                + "where uid = 'uid-old'")).isEqualTo("t");
+        exec("insert into public.login_attempts (uid, email, outcome, attempt_number) "
+                + "values ('uid-old', 'old_student@dlsl.edu.ph', 'PIN_FAILED', 1)");
+        exec("insert into public.login_attempts (outcome) values ('INVALID_TOKEN')");
+        assertThat(query("select count(*) from public.login_attempts where created_at is not null")).isEqualTo("2");
+        assertThatThrownBy(() -> exec("insert into public.login_attempts (outcome) values ('MAYBE')"))
+                .as("unknown outcome").isInstanceOf(SQLException.class);
+        assertThat(query("select count(*) from pg_indexes where tablename = 'login_attempts' "
+                + "and indexname in ('login_attempts_created_at_idx', 'login_attempts_uid_created_at_idx')"))
+                .isEqualTo("2");
     }
 
     private static void exec(String sql) throws SQLException {

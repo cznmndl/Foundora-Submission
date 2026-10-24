@@ -8,6 +8,7 @@ import com.foundora.database.repository.ClaimRecordRepository;
 import com.foundora.database.repository.ClaimRequestRepository;
 import com.foundora.database.repository.CommentRepository;
 import com.foundora.database.repository.ItemRepository;
+import com.foundora.database.repository.LoginAttemptRepository;
 import com.foundora.database.repository.UserProfileRepository;
 import com.foundora.database.storage.StorageService;
 import com.foundora.feed.FeedIndex;
@@ -51,6 +52,9 @@ public abstract class WebTestBase {
     protected UserProfileRepository profileRepository;
 
     @Autowired
+    protected LoginAttemptRepository loginAttempts;
+
+    @Autowired
     protected FeedIndex feedIndex;
 
     @MockitoBean
@@ -62,6 +66,7 @@ public abstract class WebTestBase {
     @BeforeEach
     void clearData() {
         activityLog.deleteAll();
+        loginAttempts.deleteAll();
         commentRepository.deleteAll();
         claimRepository.deleteAll();
         claimRequestRepository.deleteAll();
