@@ -1,6 +1,7 @@
 package com.foundora.feed;
 
 import com.foundora.database.entity.ActivityAction;
+import com.foundora.database.entity.Category;
 import com.foundora.database.entity.Comment;
 import com.foundora.database.entity.Item;
 import com.foundora.database.entity.ReportStatus;
@@ -73,6 +74,21 @@ class CommentTest extends WebTestBase {
         comment(post, "Still looking for the owner", as(OTHER_STUDENT));
 
         assertThat(html("/posts/" + post.getId(), as(STUDENT))).contains("Original poster");
+    }
+
+    @Test
+    void commentSectionsShowTheSdfoHandoverNoticeButMoneyPostsDoNot() throws Exception {
+        String notice = "Items must be turned over to and claimed through the SDFO. Private handovers are not officially recognized.";
+        Item post = approvedPostBy(OTHER_STUDENT);
+
+        // Shown before anyone has commented, for users and admins alike.
+        assertThat(html("/posts/" + post.getId(), as(STUDENT))).contains("No comments yet").contains(notice);
+        assertThat(html("/posts/" + post.getId(), as(ADMIN))).contains(notice);
+
+        Item money = item("Money", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT);
+        money.setCategory(Category.MONEY);
+        money = save(money);
+        assertThat(html("/posts/" + money.getId(), as(STUDENT))).doesNotContain(notice);
     }
 
     @Test
