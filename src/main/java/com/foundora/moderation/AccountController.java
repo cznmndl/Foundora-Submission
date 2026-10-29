@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/** The admin's Accounts page: find a person, reset a forgotten PIN, or unlock an account locked by wrong PINs. */
 @Controller
 @RequestMapping("/admin/accounts")
 public class AccountController {

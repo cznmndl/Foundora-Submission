@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 
+/** Writes each sign-in step (Google sign-in, PIN tries, locks, admin resets and unlocks) to the login history. */
 @Service
 public class LoginHistory {
 

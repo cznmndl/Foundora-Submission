@@ -36,11 +36,32 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+/**
+ * In-memory read model of the feed: every Approved report and every Claimed report that isn't archived yet,
+ * without photos. The database stays the source of truth; this index only makes the feed's filtering and
+ * search fast.
+ *
+ * <p>Locations are secret (only admins see them), so the search index holds item names and descriptions
+ * only: nobody can find a post, or guess its location, by searching for a place. Money posts are indexed as
+ * just "Money" ({@link FeedPost}), so amounts and money details can't be searched for either. Lost money is
+ * never on the feed at all. The location of each post is
+ * kept in a separate map used only by the admin's location filter.
+ *
+ * <ul>
+ *   <li>Built from the database at startup, sorted with {@link DateMergeSort}.</li>
+ *   <li>Updated right after an admin's change commits ({@link ItemChangedEvent}), using {@link SortedInsert}.</li>
+ *   <li>Rebuilt every few minutes, so edits made directly in Supabase still show up.</li>
+ * </ul>
+ *
+ * Readers share a read lock; writers (rebuilds and single updates) take turns on {@code writeMutex}, and hold
+ * the write lock only for the moment they change the structures.
+ */
 @Service
 public class FeedIndex {
 
     private static final Logger log = LoggerFactory.getLogger(FeedIndex.class);
 
+    /** Feed order: newest post first. */
     public static final Comparator<FeedPost> NEWEST_FIRST =
             Comparator.comparing(FeedPost::createdAt).reversed();
 
@@ -52,12 +73,14 @@ public class FeedIndex {
     private final Object writeMutex = new Object();
     private Snapshot snapshot;
 
+    /** All the index structures, swapped as one unit on a rebuild. */
     private final class Snapshot {
         final List<FeedPost> newestFirst = new ArrayList<>();
         final Map<UUID, FeedPost> byId = new HashMap<>();
         final CategoryIndex<Category, FeedPost> byCategory =
                 new CategoryIndex<>(Category.class, FeedPost::category, NEWEST_FIRST);
         final InvertedIndex<UUID> search = new InvertedIndex<>();
+        /** Admin location filter only; never returned to a page. */
         final Map<UUID, String> locationById = new HashMap<>();
 
         void add(FeedPost post, String location) {
@@ -102,6 +125,7 @@ public class FeedIndex {
         rebuild();
     }
 
+    /** Reloads everything from the database. On a database error the old index stays in place. */
     public void rebuild() {
         synchronized (writeMutex) {
             Snapshot next = new Snapshot();
@@ -116,6 +140,7 @@ public class FeedIndex {
                     posts.add(FeedPost.from(item, stage));
                     locations.put(item.getId(), item.getLocation());
                 }
+                // O(n log n) merge sort once; every category bucket then fills in O(n) because input is sorted.
                 List<FeedPost> sorted = DateMergeSort.sort(posts, NEWEST_FIRST);
                 next.newestFirst.addAll(sorted);
                 next.byCategory.addAllSorted(sorted);
@@ -133,6 +158,7 @@ public class FeedIndex {
         }
     }
 
+    /** Applies one report's change after its transaction commits. */
     @TransactionalEventListener(fallbackExecution = true)
     public void onItemChanged(ItemChangedEvent event) {
         synchronized (writeMutex) {
@@ -155,9 +181,11 @@ public class FeedIndex {
     public FeedPage query(FeedQuery query) {
         lock.readLock().lock();
         try {
+            // Category filter: O(1) lookup in the category index instead of scanning every post.
             List<FeedPost> candidates = query.category() != null
                     ? snapshot.byCategory.get(query.category())
                     : snapshot.newestFirst;
+            // Text search: posting-list intersection in the inverted index.
             Set<UUID> textMatches = query.hasText() ? snapshot.search.search(query.text()) : null;
 
             List<FeedPost> matches = new ArrayList<>();
@@ -183,7 +211,7 @@ public class FeedIndex {
                 matches.add(post);
             }
             if (query.oldestFirst()) {
-                Collections.reverse(matches);
+                Collections.reverse(matches); // already newest first, so reversing is O(n), no re-sort
             }
 
             int start = Math.min(query.page() * FeedQuery.PAGE_SIZE, matches.size());
@@ -201,6 +229,7 @@ public class FeedIndex {
         try {
             int found = 0;
             int lost = 0;
+            // The list is newest first, so we can stop at the first post older than a week: O(k), not O(n).
             for (FeedPost post : snapshot.newestFirst) {
                 if (post.createdAt().isBefore(weekAgo)) {
                     break;
@@ -226,10 +255,12 @@ public class FeedIndex {
         }
     }
 
+    /** The date the from/to filter compares: for money, the day it was surrendered (its date found is secret). */
     private LocalDate filterDate(FeedPost post) {
         return post.money() ? LocalDate.ofInstant(post.surrenderedAt(), clock.getZone()) : post.dateLostFound();
     }
 
+    /** Statuses of the open claim requests on the approved items among these, by item ID. */
     private Map<UUID, List<ClaimRequestStatus>> openRequests(List<Item> items) {
         List<UUID> approved = items.stream().filter(i -> i.getStatus() == ReportStatus.APPROVED)
                 .map(Item::getId).toList();

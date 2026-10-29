@@ -23,6 +23,10 @@ public class ErrorAdvice {
 
     private static final Pattern COMMENT_POST = Pattern.compile("/posts/[0-9a-fA-F-]{36}/comments");
 
+    /**
+     * An oversized upload is rejected before the controller runs; send the user back to the form they used
+     * (a post's comment box, or the report form) with a message.
+     */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public String uploadTooLarge(HttpServletRequest request, RedirectAttributes redirect) {
         redirect.addFlashAttribute("flashError", "The photo must be 5 MB or smaller. Please choose a smaller photo.");
@@ -33,6 +37,10 @@ public class ErrorAdvice {
         return "redirect:/report";
     }
 
+    /**
+     * The database (Supabase) can't be reached: no connection, a connection that dropped, or a query that timed
+     * out. People get a page saying it's temporary rather than a generic error; nothing they did was wrong.
+     */
     @ExceptionHandler({DataAccessResourceFailureException.class, CannotCreateTransactionException.class,
             QueryTimeoutException.class, TransientDataAccessResourceException.class})
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)

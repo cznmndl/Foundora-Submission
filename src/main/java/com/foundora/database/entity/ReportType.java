@@ -14,6 +14,7 @@ public enum ReportType {
         return label;
     }
 
+    /** Lower-case name used in URLs, e.g. {@code ?type=found}. */
     public String slug() {
         return Slugs.of(this);
     }

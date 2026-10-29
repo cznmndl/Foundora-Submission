@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
+/**
+ * A lost or found report. The table is created by V1__create_items.sql and reshaped by V3__report_model.sql.
+ * The reporter fields always come from the signed-in account, never from the form.
+ */
 @Entity
 @Table(name = "items")
 public class Item {
@@ -27,6 +31,7 @@ public class Item {
     public static final int MAX_REASON = 500;
     public static final int MAX_PRIVATE_DETAILS = 500;
     public static final int MAX_DENOMINATIONS = 200;
+    /** The item name and (empty) description every money report gets: the form doesn't ask for either. */
     public static final String MONEY_NAME = "Money";
 
     @Id
@@ -47,28 +52,35 @@ public class Item {
     @Column(nullable = false)
     private Category category;
 
+    /** A campus place from foundora.campus-locations; older reports have free text here. Admins only. */
     @Column(nullable = false)
     private String location;
 
+    /** Exactly where on that place, e.g. "3rd floor hallway near room 305". Null on older reports. Admins only. */
     private String locationSpot;
 
+    /** Identifying marks, names or contents, kept out of the public description so claimants can be asked. Admins only. */
     private String privateDetails;
 
     @Column(nullable = false)
     private LocalDate dateLostFound;
 
+    /** Approximate time of day it was lost or found; money reports only, optional. Admins and the reporter only. */
     private LocalTime timeLostFound;
 
+    // Money reports only (V14). Admins and the reporter only; never on the feed, in search or on public pages.
     @Column(precision = 12, scale = 2)
     private BigDecimal moneyAmount;
     private String moneyDenominations;
     @Enumerated(EnumType.STRING)
     private MoneyContainer moneyContainer;
 
+    /** Why SDFO handled unclaimed money under its policy (status HANDLED), and who did it, when. */
     private String handledNote;
     private String handledByName;
     private Instant handledAt;
 
+    /** Object path inside the private item-images bucket, e.g. {@code items/<uuid>.jpg}; null when there is no photo. */
     private String imagePath;
 
     @Enumerated(EnumType.STRING)
@@ -89,6 +101,7 @@ public class Item {
     private String reviewReason;
     private Instant claimedAt;
 
+    /** Set when a claimed report is archived: off the feed for students, kept forever for disputes. */
     private Instant archivedAt;
 
     @Column(nullable = false)
@@ -97,6 +110,7 @@ public class Item {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    /** Optimistic lock: two admins acting on the same report at once can't silently overwrite each other. */
     @Version
     @Column(nullable = false)
     private long version;
@@ -109,6 +123,7 @@ public class Item {
         return archivedAt != null;
     }
 
+    /** On the feed: Approved, or Claimed and not yet archived. Lost money never is: only its reporter and admins see it. */
     public boolean isOnFeed() {
         return ReportStatus.ON_FEED.contains(status) && !isArchived() && !isLostMoney();
     }
@@ -241,6 +256,7 @@ public class Item {
         return handledAt;
     }
 
+    /** SDFO dealt with unclaimed money under its policy: the note is required and kept for the record. */
     public void markHandled(String note, String adminName, Instant now) {
         this.handledNote = note;
         this.handledByName = adminName;

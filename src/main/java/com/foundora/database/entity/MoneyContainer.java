@@ -1,5 +1,6 @@
 package com.foundora.database.entity;
 
+/** What found or lost money was in. Stored by name; only the reporter, the claimant and SDFO see it. */
 public enum MoneyContainer {
     ENVELOPE("Envelope"),
     COIN_PURSE("Coin purse"),

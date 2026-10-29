@@ -6,11 +6,16 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Choices on the profile form: communities, grade levels, college year levels, and DLSL's college programs
+ * grouped by college (shown with optgroup).
+ */
 @Component("profileOptions")
 public class ProfileOptions {
 
     public static final int MAX_YEAR = 5;
 
+    /** One college and its programs. */
     public record CourseGroup(String college, List<String> courses) {
     }
 
@@ -30,6 +35,7 @@ public class ProfileOptions {
                     "BS Entertainment and Multimedia Computing", "BS Industrial Engineering",
                     "BS Information Technology", "Associate in Computer Technology")),
             new CourseGroup("College of Criminal Justice Education", List.of("Bachelor of Forensic Science")),
+            // These colleges are a single choice each: their programs aren't listed separately.
             new CourseGroup("College of Law", List.of("College of Law")),
             new CourseGroup("College of Nursing", List.of("College of Nursing")));
 
@@ -52,6 +58,7 @@ public class ProfileOptions {
         return List.of(Community.values());
     }
 
+    /** Basic education communities, for the grade dropdown's optgroups. */
     public List<Community> basicEducation() {
         return List.of(Community.ELEMENTARY, Community.JUNIOR_HIGH, Community.SENIOR_HIGH);
     }

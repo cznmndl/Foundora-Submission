@@ -32,8 +32,8 @@ class PostAccessTest extends WebTestBase {
         mvc.perform(get(url).with(as(STUDENT))).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Status: Pending")));
         mvc.perform(get(url).with(as(ADMIN))).andExpect(status().isOk())
-                .andExpect(content().string(containsString(STUDENT.email())));
-        mvc.perform(get(url).with(as(OTHER_STUDENT))).andExpect(status().isNotFound());
+                .andExpect(content().string(containsString(STUDENT.email())));      // admins see the reporter
+        mvc.perform(get(url).with(as(OTHER_STUDENT))).andExpect(status().isNotFound()); // not 403
         mvc.perform(get(url).with(as(STAFF))).andExpect(status().isNotFound());
     }
 
@@ -71,6 +71,7 @@ class PostAccessTest extends WebTestBase {
                 .andExpect(status().isNotFound());
     }
 
+    /** MockMvc doesn't do the servlet error dispatch, so render the error pages the way the container would. */
     @Test
     void errorPagesAreFriendly() throws Exception {
         String[][] pages = {{"404", "find that"}, {"403", "for admins only"}, {"500", "went wrong on our side"}};

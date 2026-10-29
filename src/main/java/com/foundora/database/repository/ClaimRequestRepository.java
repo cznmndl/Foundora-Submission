@@ -21,6 +21,7 @@ public interface ClaimRequestRepository extends JpaRepository<ClaimRequest, UUID
 
     List<ClaimRequest> findByItemIdAndRequesterEmailIgnoreCaseOrderByCreatedAtDesc(UUID itemId, String email);
 
+    /** The admin queue: every open request, oldest first. */
     List<ClaimRequest> findByStatusInOrderByCreatedAtAsc(Collection<ClaimRequestStatus> statuses);
 
     long countByStatus(ClaimRequestStatus status);

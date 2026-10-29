@@ -36,7 +36,7 @@ class InvertedIndexTest {
         assertThat(index.search("wooden")).isEmpty();
         assertThat(index.search("umbrella")).containsExactly(2);
 
-        index.add(2, "Red umbrella");
+        index.add(2, "Red umbrella");                     // re-adding replaces the old words
         assertThat(index.search("golf")).isEmpty();
         assertThat(index.search("red")).containsExactly(2);
         assertThat(index.postCount()).isEqualTo(2);

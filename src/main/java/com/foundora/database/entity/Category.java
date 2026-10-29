@@ -1,5 +1,9 @@
 package com.foundora.database.entity;
 
+/**
+ * The fixed list of report categories. Stored in the database by name (e.g. IDS_DOCUMENTS).
+ * {@link #MONEY} has its own privacy rules: see {@link Item#isMoney()}.
+ */
 public enum Category {
     ELECTRONICS("Electronics"),
     IDS_DOCUMENTS("IDs & Documents"),
@@ -9,6 +13,7 @@ public enum Category {
     BAGS_WALLETS("Bags & Wallets"),
     CLOTHING_ACCESSORIES("Clothing & Accessories"),
     KEYS("Keys"),
+    /** Loose cash, envelopes and coin purses. Wallets stay under {@link #BAGS_WALLETS}. */
     MONEY("Money"),
     OTHERS("Others");
 
@@ -22,6 +27,7 @@ public enum Category {
         return label;
     }
 
+    /** URL form, e.g. {@code ids-documents}. */
     public String slug() {
         return Slugs.of(this);
     }

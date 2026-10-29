@@ -10,11 +10,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 
+/** A claimant's checked description of the money they lost. */
 record MoneyClaim(BigDecimal amount, String denominations, String where, LocalDate lostOn, LocalTime lostTime,
                   MoneyContainer container) {
 
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("9999999999.99");
 
+    /** Throws {@link ClaimRequestException} with a message for the person if something is missing or wrong. */
     static MoneyClaim parse(MoneyClaimInput in, Clock clock) {
         BigDecimal amount = amount(in.amount());
         String denominations = blankToNull(in.denominations());

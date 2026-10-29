@@ -1,5 +1,9 @@
 package com.foundora.reporting;
 
+/**
+ * Reads the EXIF orientation tag from JPEG bytes. Phones often save photos sideways and set this tag to say
+ * how to rotate them; since we strip all metadata when re-encoding, we must apply the rotation ourselves.
+ */
 final class ExifOrientation {
 
     private static final int TAG_ORIENTATION = 0x0112;
@@ -7,11 +11,12 @@ final class ExifOrientation {
     private ExifOrientation() {
     }
 
+    /** The orientation (1-8), or 1 ("upright") if the bytes have no readable tag. */
     static int read(byte[] jpeg) {
         try {
             return find(jpeg);
         } catch (RuntimeException e) {
-            return 1;
+            return 1; // malformed metadata: treat the photo as upright
         }
     }
 
@@ -23,7 +28,7 @@ final class ExifOrientation {
         while (pos + 4 <= b.length && (b[pos] & 0xFF) == 0xFF) {
             int marker = b[pos + 1] & 0xFF;
             if (marker == 0xDA || marker == 0xD9) {
-                return 1;
+                return 1; // start of image data / end of image: no EXIF segment before it
             }
             int length = u16(b, pos + 2, false);
             int body = pos + 4;
@@ -37,6 +42,7 @@ final class ExifOrientation {
         return 1;
     }
 
+    /** Parses the TIFF header and first directory (IFD0) of an EXIF block spanning tiff..end. */
     private static int fromTiff(byte[] b, int tiff, int end) {
         boolean little = b[tiff] == 'I' && b[tiff + 1] == 'I';
         if (!little && !(b[tiff] == 'M' && b[tiff + 1] == 'M')) {

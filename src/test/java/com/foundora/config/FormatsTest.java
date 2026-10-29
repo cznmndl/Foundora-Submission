@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class FormatsTest {
 
-    private static final Instant NOW = Instant.parse("2026-10-04T16:30:00Z");
+    private static final Instant NOW = Instant.parse("2026-10-04T16:30:00Z"); // 12:30 AM Oct 5 in Manila
     private final Formats fmt = new Formats(Clock.fixed(NOW, ZoneId.of("Asia/Manila")));
 
     @Test

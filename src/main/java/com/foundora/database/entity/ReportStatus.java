@@ -3,6 +3,12 @@ package com.foundora.database.entity;
 import java.util.EnumSet;
 import java.util.Set;
 
+/**
+ * Where a report is in its lifecycle. Only admins move a report between statuses:
+ * PENDING -> APPROVED or REJECTED; APPROVED -> CLAIMED or REMOVED; CLAIMED -> REMOVED, or back to
+ * APPROVED when an admin reopens the claim (e.g. it went to the wrong person). Found money that nobody claims
+ * goes APPROVED -> HANDLED when SDFO deals with it under its own policy; like REMOVED, that's final.
+ */
 public enum ReportStatus {
     PENDING("Pending"),
     APPROVED("Approved"),
@@ -11,6 +17,7 @@ public enum ReportStatus {
     REMOVED("Removed"),
     HANDLED("Handled by SDFO");
 
+    /** Statuses that appear on the public feed (claimed ones only until they're archived). */
     public static final Set<ReportStatus> ON_FEED = EnumSet.of(APPROVED, CLAIMED);
 
     private final String label;

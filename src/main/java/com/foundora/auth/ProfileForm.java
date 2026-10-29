@@ -7,6 +7,13 @@ import org.springframework.validation.Errors;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+/**
+ * What the profile form submits. Which fields are required depends on the signed-in role and, for students, on
+ * their community: College needs course, year level and section; Elementary, Junior High and Senior High need
+ * grade level and section. Staff and admins give a department or office. The form shows only the fields the
+ * community needs when JavaScript runs, but sends everything without it, so the server checks every rule and
+ * ignores the fields the community doesn't use. Name and email always come from the Google account.
+ */
 public class ProfileForm {
 
     private static final Pattern SECTION = Pattern.compile("[A-Za-z0-9 -]+");
@@ -18,6 +25,7 @@ public class ProfileForm {
     private String section;
     private String department;
 
+    /** Set when the saved course isn't in today's list, so the form can say so instead of silently dropping it. */
     private String unlistedCourse;
 
     public static ProfileForm from(UserProfile profile, ProfileOptions options) {
@@ -80,6 +88,7 @@ public class ProfileForm {
         return Community.fromName(community);
     }
 
+    /** College sections are codes (O1A), so they're upper-cased; basic education sections are names (Rizal). */
     public String resolvedSection() {
         if (section == null) {
             return null;

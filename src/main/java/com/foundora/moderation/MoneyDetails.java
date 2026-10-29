@@ -8,9 +8,17 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * The private description of some money: the finder's or loser's report, or what a claimant says. Shown only to
+ * admins (and to the person who wrote it), so SDFO can compare the two side by side.
+ *
+ * @param denominations null if not given
+ * @param time          null if not given
+ */
 public record MoneyDetails(BigDecimal amount, String denominations, String where, LocalDate date, LocalTime time,
                            MoneyContainer container) {
 
+    /** The report's details, or null if it isn't a money report. */
     public static MoneyDetails of(Item item) {
         if (!item.isMoney() || item.getMoneyAmount() == null) {
             return null;
@@ -21,6 +29,7 @@ public record MoneyDetails(BigDecimal amount, String denominations, String where
                 item.getDateLostFound(), item.getTimeLostFound(), item.getMoneyContainer());
     }
 
+    /** The claimant's description, or null if the request isn't about money. */
     public static MoneyDetails of(ClaimRequest request) {
         if (!request.isMoney()) {
             return null;

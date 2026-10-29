@@ -8,6 +8,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * SDFO office details shown beside the feed (foundora.sdfo.room and foundora.sdfo.hours; blank values show a
+ * clearly marked placeholder), and the accounts whose comments carry the "SDFO" badge (foundora.sdfo.emails).
+ */
 @Component("sdfo")
 public class SdfoOffice {
 
@@ -31,6 +35,7 @@ public class SdfoOffice {
         return hours;
     }
 
+    /** An SDFO office account: its comments show the "SDFO" badge instead of "Admin". */
     public boolean isSdfoAccount(String email) {
         return email != null && emails.contains(email.trim().toLowerCase(Locale.ROOT));
     }

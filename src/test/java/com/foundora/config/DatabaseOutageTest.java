@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** What people see while Supabase's database can't be reached. */
 class DatabaseOutageTest extends WebTestBase {
 
     @MockitoSpyBean
@@ -54,6 +55,7 @@ class DatabaseOutageTest extends WebTestBase {
         mvc.perform(get("/admin").with(as(ADMIN)))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(content().string(containsString("Foundora can't reach its database right now")));
+        // Any error page with the admin sidebar shows its counts as 0 rather than failing to render.
         assertThat(navCounts.pending()).isZero();
     }
 
@@ -63,7 +65,7 @@ class DatabaseOutageTest extends WebTestBase {
         doThrow(new DataAccessResourceFailureException("Connection refused"))
                 .when(itemRepository).findByStatusIn(any());
 
-        feedIndex.rebuild();
+        feedIndex.rebuild(); // fails, so the index keeps what it had
 
         assertThat(html("/", as(STUDENT))).contains("Navy umbrella").contains("/posts/" + post.getId());
     }

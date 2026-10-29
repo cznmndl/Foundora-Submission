@@ -13,6 +13,7 @@ public interface ClaimRecordRepository extends JpaRepository<ClaimRecord, UUID> 
 
     List<ClaimRecord> findByItemIdOrderByCreatedAtAsc(UUID itemId);
 
+    /** The item's current claim: the one that hasn't been reopened (at most one, enforced by V9's unique index). */
     Optional<ClaimRecord> findFirstByItemIdAndStatusNot(UUID itemId, ClaimStatus status);
 
     List<ClaimRecord> findByItemIdInAndStatusNot(Collection<UUID> itemIds, ClaimStatus status);

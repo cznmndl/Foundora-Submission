@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** Profiles: created at sign-in, completed once on the setup page, editable on My Profile. */
 @Service
 public class ProfileService {
 
@@ -28,11 +29,16 @@ public class ProfileService {
         this.clock = clock;
     }
 
+    /**
+     * Creates the profile on first sign-in, or refreshes its name, email and role from the Google account.
+     * The details (course, department, ...) are left as they are.
+     */
     @Transactional
     public UserProfile recordSignIn(FoundoraUser user) {
         Instant now = clock.instant();
         UserProfile profile = profiles.findById(user.uid()).orElse(null);
         if (profile == null) {
+            // Same email under a new Firebase UID (e.g. the account was re-created): carry the details and PIN over.
             UserProfile previous = profiles.findByEmailIgnoreCase(user.email()).orElse(null);
             profile = new UserProfile(user.uid(), user.email(), user.name(), user.role(), now);
             if (previous != null) {
@@ -64,6 +70,10 @@ public class ProfileService {
         return profiles.findById(user.uid()).map(p -> p.isCompleteFor(user.role())).orElse(false);
     }
 
+    /**
+     * Saves the details for this role and community. Details another role or community would use are cleared,
+     * so the profile stays consistent (and V13's check constraint holds). Call only with a validated form.
+     */
     @Transactional
     public UserProfile save(FoundoraUser user, ProfileForm form) {
         UserProfile profile = profiles.findById(user.uid()).orElseGet(() -> recordSignIn(user));
@@ -94,6 +104,7 @@ public class ProfileService {
         return profiles.save(profile);
     }
 
+    /** Profiles by (lower-case) email, for showing admins who posted or commented. */
     @Transactional(readOnly = true)
     public Map<String, UserProfile> byEmails(Collection<String> emails) {
         List<String> lower = emails.stream().filter(e -> e != null).map(e -> e.toLowerCase(Locale.ROOT))
@@ -111,6 +122,7 @@ public class ProfileService {
         return email == null || email.isBlank() ? Optional.empty() : profiles.findByEmailIgnoreCase(email.trim());
     }
 
+    /** Up to 8 registered people whose name or email contains the text. */
     @Transactional(readOnly = true)
     public List<UserProfile> search(String text) {
         if (text == null || text.isBlank()) {

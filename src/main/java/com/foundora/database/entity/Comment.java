@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
+/** A comment on a post (db/migration/V8__comments.sql). Text, one photo, or both. */
 @Entity
 @Table(name = "comments")
 public class Comment {
@@ -34,12 +35,14 @@ public class Comment {
     @Column(nullable = false)
     private String authorName;
 
+    /** The author's role when they commented, for the badge. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole authorRole;
 
     private String body;
 
+    /** Object path in the private bucket, e.g. {@code comments/<uuid>.jpg}; null when there is no photo. */
     private String imagePath;
 
     @Column(nullable = false)

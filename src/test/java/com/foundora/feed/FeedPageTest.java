@@ -78,8 +78,8 @@ class FeedPageTest extends WebTestBase {
 
         assertFeed("/?type=lost", "Black phone", "Navy umbrella");
         assertFeed("/?category=electronics", "Black phone", "Navy umbrella");
-        assertFeed("/?q=umb", "Navy umbrella", "Black phone");
-        assertFeed("/?q=cracked+samsung", "Black phone", "Navy umbrella");
+        assertFeed("/?q=umb", "Navy umbrella", "Black phone");          // prefix of a word
+        assertFeed("/?q=cracked+samsung", "Black phone", "Navy umbrella"); // every word must match
         assertFeed("/?q=umbrella&hideClaimed=on", "Navy umbrella", "Green umbrella");
     }
 
@@ -167,11 +167,14 @@ class FeedPageTest extends WebTestBase {
     void searchCopesWithEmptyTextSpecialCharactersAndNoResults() throws Exception {
         save(item("100% cotton shirt", ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
 
+        // An empty search shows everything.
         assertThat(search("")).contains("100% cotton shirt");
+        // Odd characters are just text: no error, and nothing typed is echoed back as markup.
         for (String q : new String[]{"%", "_", "'", "\"", "\\", "(((", "<script>alert(1)</script>"}) {
             assertThat(search(q)).as(q).doesNotContain("<script>alert(1)</script>");
         }
         assertThat(search("100%")).contains("100% cotton shirt");
+        // No results: the empty board says so and offers to clear the filters.
         assertThat(search("zzzzzz")).doesNotContain("100% cotton shirt").contains("Clear filters");
     }
 

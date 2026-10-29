@@ -16,8 +16,14 @@ import static com.foundora.support.TestData.item;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Locations are secret: when someone claims an item, SDFO asks where they lost it. These tests check the HTML
+ * actually sent to students and staff, not just what's visible.
+ */
 class LocationPrivacyTest extends WebTestBase {
 
+    // A location that isn't in the dropdown list (like reports filed before the list existed), so it can't
+    // appear on a page just because the report form's dropdown is there.
     private static final String PLACE = "Old Annex Building";
     private static final String SPOT = "Taped under the court 2 scoreboard";
 
@@ -52,10 +58,12 @@ class LocationPrivacyTest extends WebTestBase {
         atOval.setLocation("Oval");
         save(atOval);
 
+        // A student guessing ?location=Gazebo sees every post: the filter would otherwise reveal the place.
         assertThat(html("/?location=Gazebo", as(STUDENT))).contains("Gazebo tumbler").contains("Oval umbrella")
                 .doesNotContain("id=\"location-filter\"");
         assertThat(html("/feed/posts?location=Gazebo", as(STUDENT))).contains("Oval umbrella");
 
+        // Admins can filter by location.
         assertThat(html("/?location=Gazebo", as(ADMIN))).contains("Gazebo tumbler").doesNotContain("Oval umbrella")
                 .contains("id=\"location-filter\"");
     }

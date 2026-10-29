@@ -31,17 +31,19 @@ class ProfileCommunityTest extends WebTestBase {
 
     @Test
     void basicEducationAsksForAGradeInItsRangeAndClearsCollegeDetails() throws Exception {
+        // Grade 11 isn't Junior High.
         mvc.perform(save().param("community", "JUNIOR_HIGH").param("gradeLevel", "11").param("section", "Rizal"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Junior High School is Grades 7–10")));
 
+        // College fields sent along (no JavaScript) are ignored and cleared.
         mvc.perform(save().param("community", "JUNIOR_HIGH").param("gradeLevel", "8").param("section", "Rizal")
                         .param("course", "BS Psychology").param("yearLevel", "2"))
                 .andExpect(redirectedUrl("/profile"));
         UserProfile p = profile();
         assertThat(p.getCommunity()).isEqualTo(Community.JUNIOR_HIGH);
         assertThat(p.getGradeLevel()).isEqualTo(8);
-        assertThat(p.getSection()).isEqualTo("Rizal");
+        assertThat(p.getSection()).isEqualTo("Rizal");          // names keep their case
         assertThat(p.getCourse()).isNull();
         assertThat(p.getYearLevel()).isNull();
         assertThat(p.summary()).isEqualTo("JHS · Grade 8 · Section Rizal");
@@ -87,11 +89,11 @@ class ProfileCommunityTest extends WebTestBase {
 
     @Test
     void existingProfilesWithACourseCountAsCollegeAndStayComplete() throws Exception {
-        UserProfile old = profile();
+        UserProfile old = profile();           // saved by the test setup with a course and no community
         assertThat(old.getCommunity()).isNull();
         assertThat(old.effectiveCommunity()).isEqualTo(Community.COLLEGE);
         assertThat(old.isCompleteFor(UserRole.STUDENT)).isTrue();
-        mvc.perform(get("/").with(as(STUDENT))).andExpect(status().isOk());
+        mvc.perform(get("/").with(as(STUDENT))).andExpect(status().isOk());   // no redirect to setup
         assertThat(mvc.perform(get("/profile").with(as(STUDENT))).andReturn().getResponse().getContentAsString())
                 .containsPattern("value=\"COLLEGE\"\\s+required checked=\"checked\"");
     }
