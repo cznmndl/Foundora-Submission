@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
+/**
+ * Someone saying "this is mine" about a found item (db/migration/V11__claim_requests.sql). The proof is seen
+ * only by the requester and admins. Never deleted: closed requests stay for disputes.
+ */
 @Entity
 @Table(name = "claim_requests")
 public class ClaimRequest {
@@ -42,13 +46,16 @@ public class ClaimRequest {
     @Column(nullable = false)
     private String requesterName;
 
+    /** Course, year and section, or department, copied from the profile when the request was made. */
     private String requesterAffiliation;
 
     @Column(nullable = false)
     private String proof;
 
+    /** Optional photo in the private bucket, under {@code claims/}. */
     private String imagePath;
 
+    // Money claims only (V14): the claimant's description, compared with the finder's private details.
     @Column(precision = 12, scale = 2)
     private BigDecimal moneyAmount;
     private String moneyDenominations;
@@ -62,8 +69,10 @@ public class ClaimRequest {
     @Column(nullable = false)
     private ClaimRequestStatus status = ClaimRequestStatus.PENDING;
 
+    /** The admin's question (NEEDS_INFO) or reason (DENIED). */
     private String adminNote;
 
+    /** The requester's answer to the admin's question. */
     private String infoReply;
 
     private String reviewedByEmail;
@@ -71,6 +80,7 @@ public class ClaimRequest {
     private Instant reviewedAt;
     private Instant verifiedAt;
 
+    /** When the pickup pass ends, while VERIFIED. */
     private Instant expiresAt;
 
     @Column(nullable = false)
@@ -99,6 +109,7 @@ public class ClaimRequest {
         this.updatedAt = now;
     }
 
+    /** Records what the claimant says about the money they lost (money items only). */
     public void describeMoney(BigDecimal amount, String denominations, String where, LocalDate lostOn,
                               LocalTime lostTime, MoneyContainer container) {
         this.moneyAmount = amount;
@@ -125,6 +136,7 @@ public class ClaimRequest {
         return requesterEmail.equalsIgnoreCase(email);
     }
 
+    /** An admin's decision: verify, deny or ask for more information. */
     public void review(ClaimRequestStatus next, String note, String adminEmail, String adminName, Instant now) {
         this.status = next;
         this.adminNote = note;
@@ -154,6 +166,7 @@ public class ClaimRequest {
         this.updatedAt = now;
     }
 
+    /** Ends the request without an admin decision on it: withdrawn, expired, released or closed. */
     public void end(ClaimRequestStatus next, Instant now) {
         this.status = next;
         this.updatedAt = now;

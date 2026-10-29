@@ -20,6 +20,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Admin account actions. Search with no text lists the locked accounts; resetting a PIN and unlocking are
+ * written to both the login history and the activity log.
+ */
 @Service
 public class AccountService {
 

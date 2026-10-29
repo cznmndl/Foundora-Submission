@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+/** The signed-in user's own reports, in every status, and their claim requests. Replaces notifications, which are out of scope. */
 @Controller
 public class MyReportsController {
 

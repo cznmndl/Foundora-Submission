@@ -47,6 +47,7 @@ class ModerationTest extends WebTestBase {
         assertThat(after.getReviewedAt()).isNotNull();
         assertThat(lastLog().getAction()).isEqualTo(ActivityAction.APPROVED);
         assertThat(lastLog().getActorEmail()).isEqualTo(ADMIN.email());
+        // The feed index updated after the commit, without waiting for a rebuild.
         mvc.perform(get("/").with(as(OTHER_STUDENT))).andExpect(content().string(containsString("Navy umbrella")));
     }
 
@@ -113,7 +114,7 @@ class ModerationTest extends WebTestBase {
         Item rejected = save(item("Old keys", ReportType.LOST, ReportStatus.REJECTED, STUDENT));
 
         mvc.perform(claim(pending).with(as(ADMIN)).with(csrf()))
-                .andExpect(status().isOk())
+                .andExpect(status().isOk())   // the claim form is shown again with the message
                 .andExpect(content().string(containsString("can&#39;t be marked as claimed")));
         mvc.perform(post(action(rejected, "approve")).with(as(ADMIN)).with(csrf()))
                 .andExpect(flash().attribute("flashError", containsString("Rejected")));
@@ -128,7 +129,7 @@ class ModerationTest extends WebTestBase {
 
         mvc.perform(post(action(item, "approve")).with(as(STUDENT)).with(csrf())).andExpect(status().isForbidden());
         mvc.perform(post(action(item, "approve")).with(as(STAFF)).with(csrf())).andExpect(status().isForbidden());
-        mvc.perform(post(action(item, "approve")).with(as(ADMIN))).andExpect(status().isForbidden());
+        mvc.perform(post(action(item, "approve")).with(as(ADMIN))).andExpect(status().isForbidden()); // no CSRF
         for (String page : new String[]{"/admin", "/admin/pending", "/admin/reports", "/admin/activity"}) {
             mvc.perform(get(page).with(as(STUDENT))).andExpect(status().isForbidden());
             mvc.perform(get(page).with(as(STAFF))).andExpect(status().isForbidden());
@@ -172,12 +173,12 @@ class ModerationTest extends WebTestBase {
 
         mvc.perform(get("/admin").with(as(ADMIN))).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Pending review")))
-                .andExpect(content().string(containsString("sbadge-done")))
+                .andExpect(content().string(containsString("sbadge-done")))     // the "Claimed" status badge
                 .andExpect(content().string(containsString("Claimed</span>")));
         mvc.perform(get("/admin/reports?status=claimed").with(as(ADMIN)))
                 .andExpect(content().string(containsString("Found one")))
                 .andExpect(content().string(not(containsString("Lost one"))));
-        mvc.perform(get("/admin/reports?q=maria_santos").with(as(ADMIN)))
+        mvc.perform(get("/admin/reports?q=maria_santos").with(as(ADMIN)))   // search by reporter email
                 .andExpect(content().string(containsString("Found one")))
                 .andExpect(content().string(not(containsString("Pending one"))));
         mvc.perform(get("/admin/activity?action=claimed").with(as(ADMIN)))
@@ -213,6 +214,7 @@ class ModerationTest extends WebTestBase {
 
         assertThat(adminSearch("")).contains("100% cotton shirt").contains("Blue umbrella");
         assertThat(adminSearch("100%")).contains("100% cotton shirt").doesNotContain("Blue umbrella");
+        // In SQL LIKE, _ matches any one character; here it's only an underscore, so "b_ue" finds nothing.
         assertThat(adminSearch("b_ue")).doesNotContain("Blue umbrella").contains("No reports match");
     }
 

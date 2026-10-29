@@ -157,6 +157,7 @@ class ClaimTest extends WebTestBase {
         assertThat(lastAction()).isEqualTo(ActivityAction.CLAIM_REOPENED);
         assertThat(html("/", as(STUDENT))).contains("Blue tumbler").doesNotContain("Returned to owner");
 
+        // It can be claimed again; both records are kept.
         claim(after);
         assertThat(claimRepository.findByItemIdOrderByCreatedAtAsc(item.getId())).hasSize(2);
     }
@@ -192,11 +193,14 @@ class ClaimTest extends WebTestBase {
         assertThat(items.findById(recent.getId()).orElseThrow().getArchivedAt()).isNull();
         assertThat(lastAction()).isEqualTo(ActivityAction.ARCHIVED);
 
+        // Students: gone from the feed, the Claimed tab and its link.
         assertThat(html("/", as(STUDENT))).doesNotContain("Old blue tumbler").contains("Recent umbrella");
         assertThat(html("/?show=claimed", as(STUDENT))).doesNotContain("Old blue tumbler");
         mvc.perform(get("/posts/" + old.getId()).with(as(STUDENT))).andExpect(status().isNotFound());
+        // The reporter can still open their own report.
         mvc.perform(get("/posts/" + old.getId()).with(as(OTHER_STUDENT))).andExpect(status().isOk());
 
+        // Admins: the archive keeps the report, its claim record and its comments.
         assertThat(html("/admin/archive", as(ADMIN))).contains("Old blue tumbler").contains("Pedro Reyes")
                 .doesNotContain("Recent umbrella");
         assertThat(html("/admin/archive?q=tumbler", as(ADMIN))).contains("Old blue tumbler");
@@ -204,6 +208,7 @@ class ClaimTest extends WebTestBase {
                 .contains("Claim record");
         assertThat(html("/admin", as(ADMIN))).contains("Archived");
 
+        // Running again doesn't archive anything twice.
         assertThat(archiveService.archiveDue()).isZero();
     }
 

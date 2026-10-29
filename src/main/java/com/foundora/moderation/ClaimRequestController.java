@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.Duration;
 import java.util.UUID;
 
+/** "This is mine": the requester's side of a claim request. Admin decisions are in {@link AdminController}. */
 @Controller
 public class ClaimRequestController {
 
@@ -37,6 +38,7 @@ public class ClaimRequestController {
         this.storage = storage;
     }
 
+    /** The money fields are sent only by the form on a money post; anywhere else they're ignored. */
     @PostMapping("/posts/{id}/claim-requests")
     public String request(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser user,
                           @RequestParam(required = false) String proof,
@@ -79,6 +81,7 @@ public class ClaimRequestController {
         return act(() -> claimRequests.withdraw(id, user), "Request withdrawn.", redirect);
     }
 
+    /** The request's photo: the requester and admins only. */
     @GetMapping("/claim-requests/{id}/photo")
     @ResponseBody
     public ResponseEntity<byte[]> photo(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser user) {

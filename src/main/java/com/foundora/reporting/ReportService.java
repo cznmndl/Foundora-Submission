@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Submitting reports and reading them back for their reporter. */
 @Service
 public class ReportService {
 
@@ -41,10 +42,16 @@ public class ReportService {
         this.clock = clock;
     }
 
+    /** Today in the school's time zone (Asia/Manila), so a report filed just after midnight isn't "in the future". */
     public LocalDate today() {
         return LocalDate.now(clock);
     }
 
+    /**
+     * Saves a new Pending report from {@code reporter}. The photo, if any, is checked and re-encoded first
+     * ({@link InvalidImageException} if it's refused); if saving then fails, the uploaded photo is deleted.
+     * Money reports keep no photo, name or description: only the private money details.
+     */
     public Item submit(FoundoraUser reporter, ReportForm form, MultipartFile photo) {
         boolean money = form.isMoney();
         String photoPath = null;
@@ -94,6 +101,7 @@ public class ReportService {
         return items.findByReporterEmailOrderByCreatedAtDesc(reporter.email());
     }
 
+    /** The report if this user may see it; empty both when it doesn't exist and when it's not theirs to see. */
     public Optional<Item> findViewable(UUID id, FoundoraUser user) {
         return items.findById(id).filter(item -> access.canView(item, user));
     }

@@ -6,6 +6,10 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The campus places offered in the report form's location dropdown, from foundora.campus-locations.
+ * "Other" is always offered last; the specific-spot box then says where.
+ */
 @Component("campusLocations")
 public class CampusLocations {
 
@@ -25,6 +29,7 @@ public class CampusLocations {
         this.places = List.copyOf(list);
     }
 
+    /** Every choice, in the configured order, with "Other" last. */
     public List<String> all() {
         return places;
     }

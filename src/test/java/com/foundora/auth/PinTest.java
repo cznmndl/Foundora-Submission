@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
+/** The PIN step after Google sign-in: setup, entry, the 24-hour lock, and what the login history records. */
 class PinTest extends WebTestBase {
 
     private static final FoundoraUser USER = TestData.STUDENT;

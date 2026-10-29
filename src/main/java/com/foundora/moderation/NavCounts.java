@@ -12,6 +12,10 @@ import org.springframework.transaction.TransactionException;
 
 import java.util.function.LongSupplier;
 
+/**
+ * Numbers shown in the navigation, read by templates as {@code ${@navCounts.pending()}} only where displayed.
+ * If the database can't be reached they show as 0, so the page explaining the outage still renders.
+ */
 @Component("navCounts")
 public class NavCounts {
 
@@ -29,6 +33,7 @@ public class NavCounts {
         return countOrZero(() -> items.countByStatus(ReportStatus.PENDING));
     }
 
+    /** Claim requests waiting for an admin's decision. */
     public long claims() {
         return countOrZero(() -> claimRequests.countByStatus(ClaimRequestStatus.PENDING));
     }

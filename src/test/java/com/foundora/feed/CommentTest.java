@@ -143,7 +143,7 @@ class CommentTest extends WebTestBase {
         mvc.perform(post("/comments/" + mine.getId() + "/delete").with(as(STUDENT)).with(csrf()))
                 .andExpect(redirectedUrl("/posts/" + post.getId() + "#comments"));
         assertThat(commentRepository.count()).isZero();
-        assertThat(activityLog.findAll()).isEmpty();
+        assertThat(activityLog.findAll()).isEmpty(); // a user deleting their own comment isn't logged
 
         comment(post, "Spam spam", as(STAFF));
         Comment spam = commentRepository.findAll().get(0);
@@ -173,7 +173,7 @@ class CommentTest extends WebTestBase {
 
         ArgumentCaptor<byte[]> stored = ArgumentCaptor.forClass(byte[].class);
         verify(storage).storePhoto(eq(StorageService.COMMENTS), stored.capture());
-        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8);
+        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8); // JPEG: metadata stripped
         Comment withPhoto = commentRepository.findAll().get(0);
         assertThat(withPhoto.getImagePath()).isEqualTo("comments/abc.jpg");
         assertThat(withPhoto.getBody()).isNull();

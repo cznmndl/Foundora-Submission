@@ -42,17 +42,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Money: found money shows only as "Money" and when it was surrendered; lost money never shows publicly; the
+ * amount and other money details never reach search results or public pages. Like LocationPrivacyTest, these
+ * check the HTML actually sent, not just what's visible.
+ */
 class MoneyTest extends WebTestBase {
 
+    // Details that must never leak. The place isn't in the dropdown list, so the report form can't put it on a page.
     private static final String PLACE = "Old Annex Building";
     private static final String SPOT = "Taped under the court 2 scoreboard";
     private static final String DENOMINATIONS = "two orange thousands, seven blue fifties";
     private static final String[] SECRETS = {"1,250.50", "1250.5", "seven blue fifties", PLACE, "scoreboard",
             "1:47 PM", "1:47\u00a0PM", OTHER_STUDENT.name()};
 
+    // ---------- Found money on the board ----------
+
     @Test
     void foundMoneyCardShowsOnlyMoneyAndWhenItWasSurrendered() throws Exception {
-        Instant surrendered = Instant.parse("2026-10-05T02:30:00Z");
+        Instant surrendered = Instant.parse("2026-10-05T02:30:00Z"); // 10:30 AM in Manila
         Item money = money(ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT);
         money.setReviewedAt(surrendered);
         money = save(money);
@@ -70,6 +78,7 @@ class MoneyTest extends WebTestBase {
                 }
             }
         }
+        // No photo endpoint, no comments: a public "I lost ₱500" would give the answers away.
         assertThat(html("/posts/" + money.getId(), as(STUDENT))).doesNotContain("Write a comment");
         mvc.perform(multipart("/posts/" + money.getId() + "/comments").param("body", "Mine! ₱1,250 in an envelope")
                 .with(as(STUDENT)).with(csrf()));
@@ -89,6 +98,7 @@ class MoneyTest extends WebTestBase {
             assertThat(html("/api/suggest/search?q=" + prefix, as(STUDENT))).as(prefix).isEqualTo("[]");
         }
 
+        // The admin's All reports search doesn't match or list amounts either.
         assertThat(html("/admin/reports?q=1250", as(ADMIN))).doesNotContain("/posts/" + money.getId());
         assertThat(html("/admin/reports?q=orange", as(ADMIN))).doesNotContain("/posts/" + money.getId());
         assertThat(html("/admin/reports", as(ADMIN))).contains("/posts/" + money.getId())
@@ -105,6 +115,8 @@ class MoneyTest extends WebTestBase {
         }
     }
 
+    // ---------- Lost money ----------
+
     @Test
     void lostMoneyIsSeenOnlyByItsReporterAndAdmins() throws Exception {
         Item lost = save(money(ReportType.LOST, ReportStatus.APPROVED, OTHER_STUDENT));
@@ -120,6 +132,8 @@ class MoneyTest extends WebTestBase {
         assertThat(html("/my-reports", as(OTHER_STUDENT))).contains("₱1,250.50").contains("Cash is hard to identify");
         assertThat(html("/posts/" + lost.getId(), as(ADMIN))).contains("₱1,250.50").contains(DENOMINATIONS);
     }
+
+    // ---------- Reporting ----------
 
     @Test
     void foundMoneyIsSavedWithoutPhotoNameOrDescription() throws Exception {
@@ -177,6 +191,8 @@ class MoneyTest extends WebTestBase {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("It goes on the board"))));
     }
 
+    // ---------- Claims ----------
+
     @Test
     void moneyClaimsMustDescribeTheMoneyAndAdminsSeeItBesideTheFindersDetails() throws Exception {
         Item money = save(money(ReportType.FOUND, ReportStatus.APPROVED, OTHER_STUDENT));
@@ -201,12 +217,16 @@ class MoneyTest extends WebTestBase {
         assertThat(request.getMoneyWhere()).isEqualTo("Annex hallway");
         assertThat(request.getProof()).isEmpty();
 
+        // Admins compare: the claimant's answers and the finder's private details, side by side.
         String claims = html("/admin/claims", as(ADMIN));
         assertThat(claims).contains("Claimant says").contains("Finder reported").contains("Annex hallway")
                 .contains(PLACE + " · " + SPOT).contains("Same").contains("₱1,250.50");
+        // Nobody else sees the claimant's answers.
         assertThat(html("/posts/" + money.getId(), as(STAFF))).doesNotContain("Annex hallway");
         assertThat(html("/posts/" + money.getId(), as(STUDENT))).contains("Annex hallway");
     }
+
+    // ---------- Handled by SDFO ----------
 
     @Test
     void unclaimedFoundMoneyCanBeMarkedHandledWithARequiredNote() throws Exception {
@@ -238,6 +258,7 @@ class MoneyTest extends WebTestBase {
         assertThat(html("/", as(STUDENT))).doesNotContain("/posts/" + money.getId());
         assertThat(html("/admin/activity?action=handled-by-sdfo", as(ADMIN))).contains("Handled").contains("OR 12345");
 
+        // Final: it can't be handled again, and other items can't be handled at all.
         mvc.perform(post("/admin/reports/" + money.getId() + "/handle").param("note", "Again")
                         .with(as(ADMIN)).with(csrf()))
                 .andExpect(flash().attribute("flashError", containsString("can't be marked as handled")));
@@ -248,6 +269,8 @@ class MoneyTest extends WebTestBase {
         mvc.perform(post("/admin/reports/" + umbrella.getId() + "/handle").param("note", "Donated")
                 .with(as(STUDENT)).with(csrf())).andExpect(status().isForbidden());
     }
+
+    // ---------- The admin's Lost money view ----------
 
     @Test
     void lostMoneyViewComparesLostAndFoundByAmountAndDate() throws Exception {
@@ -277,7 +300,10 @@ class MoneyTest extends WebTestBase {
         assertThat(html("/admin/money", as(ADMIN))).contains("/posts/" + lost.getId());
     }
 
+    // ---------- Helpers ----------
+
     private Item money(ReportType type, ReportStatus status, com.foundora.auth.FoundoraUser reporter) {
+        // Sent at 9:00 AM Manila time, so no time on the page can be mistaken for the private 1:47 PM.
         Item item = item("Money", type, status, reporter, Instant.parse("2026-10-05T01:00:00Z"));
         item.setCategory(Category.MONEY);
         item.setDescription("");
@@ -291,6 +317,7 @@ class MoneyTest extends WebTestBase {
         return item;
     }
 
+    /** A complete money report; {@code overrides} are name/value pairs that replace a field. */
     private static MockMultipartHttpServletRequestBuilder moneyReport(String type, String... overrides) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("type", type);
@@ -307,6 +334,7 @@ class MoneyTest extends WebTestBase {
         return request;
     }
 
+    /** A complete money claim; {@code overrides} are name/value pairs that replace a field. */
     private static MockHttpServletRequestBuilder moneyClaim(String url, String... overrides) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("moneyAmount", "1,250.50");

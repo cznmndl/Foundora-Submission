@@ -34,6 +34,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Comments on posts. They appear at once (no approval). Their photos follow the report-photo rules:
+ * re-encoded as JPEG (dropping GPS and other metadata), stored in the private bucket, served only through
+ * the app, and deleted with the comment.
+ */
 @Service
 public class CommentService {
 
@@ -69,10 +74,13 @@ public class CommentService {
         this.cooldown = cooldown;
     }
 
+    /** Comments are open on posts that are on the feed (Approved, or Claimed and not yet archived), except money. */
     public boolean isOpen(Item item) {
+        // Money has no comments: a public "I lost ₱500 in an envelope" would hand the answers to anyone claiming it.
         return item.isOnFeed() && !item.isMoney();
     }
 
+    /** All comments on the post, oldest first, as this viewer may see them. */
     @Transactional(readOnly = true)
     public List<CommentView> viewsFor(Item item, FoundoraUser viewer) {
         List<Comment> list = comments.findByItemIdOrderByCreatedAtAscIdAsc(item.getId());
@@ -89,6 +97,7 @@ public class CommentService {
         }).toList();
     }
 
+    /** Comment counts for a page of posts (0 for posts without comments). */
     @Transactional(readOnly = true)
     public Map<UUID, Long> counts(Collection<UUID> itemIds) {
         Map<UUID, Long> counts = new HashMap<>();
@@ -100,6 +109,10 @@ public class CommentService {
         return counts;
     }
 
+    /**
+     * Posts a comment. Throws {@link CommentException} (closed post, empty, too long, too soon after the last
+     * one) or {@link InvalidImageException} (unreadable or oversized photo) with a message for the user.
+     */
     public Comment add(UUID itemId, FoundoraUser author, String text, MultipartFile photo) {
         Item item = items.findById(itemId).filter(i -> access.canView(i, author))
                 .orElseThrow(() -> new CommentException("That post isn't available."));
@@ -133,6 +146,10 @@ public class CommentService {
         }
     }
 
+    /**
+     * Deletes a comment: its author may delete it, and admins may delete any comment. A deletion by an admin
+     * is written to the activity log. The photo is deleted from storage after the deletion commits.
+     */
     @Transactional
     public Item delete(UUID commentId, FoundoraUser user, String reason) {
         Comment comment = comments.findById(commentId)
@@ -155,6 +172,7 @@ public class CommentService {
         return item;
     }
 
+    /** The comment if it has a photo and this user may see its post. */
     @Transactional(readOnly = true)
     public Optional<Comment> findPhotoViewable(UUID commentId, FoundoraUser user) {
         return comments.findById(commentId).filter(Comment::hasPhoto)

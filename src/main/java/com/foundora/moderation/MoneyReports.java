@@ -15,12 +15,19 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * The admin's Lost money view. Lost money never goes on the feed, so this is where SDFO compares it with the
+ * found money it's holding, by amount and date. Admin pages only: every entry carries the private amount.
+ */
 @Service
 public class MoneyReports {
 
+    /** Reports still in play: waiting for review, or approved and not yet claimed or handled. */
     public static final Set<ReportStatus> OPEN = EnumSet.of(ReportStatus.PENDING, ReportStatus.APPROVED);
 
+    /** A possible match is found money within this many days of the lost date... */
     public static final int MATCH_DAYS = 7;
+    /** ...and within this share of the lost amount, either way (people miscount cash). */
     public static final int MATCH_PERCENT = 20;
 
     public enum Sort {
@@ -38,6 +45,7 @@ public class MoneyReports {
     public record Entry(Item item, MoneyDetails money) {
     }
 
+    /** A lost-money report and the found money that could be it. */
     public record LostEntry(Item item, MoneyDetails money, List<Entry> matches) {
     }
 
@@ -60,6 +68,7 @@ public class MoneyReports {
         return new Board(lost, found);
     }
 
+    /** Within {@link #MATCH_DAYS} days of each other and {@link #MATCH_PERCENT}% of the lost amount. */
     static boolean matches(MoneyDetails lost, MoneyDetails found) {
         long days = Math.abs(ChronoUnit.DAYS.between(lost.date(), found.date()));
         BigDecimal tolerance = lost.amount().multiply(BigDecimal.valueOf(MATCH_PERCENT)).movePointLeft(2);
@@ -77,6 +86,7 @@ public class MoneyReports {
                 .toList();
     }
 
+    /** Closest amount first, then closest date. */
     private static Comparator<Entry> closestTo(MoneyDetails lost) {
         return Comparator.comparing((Entry e) -> e.money().amount().subtract(lost.amount()).abs())
                 .thenComparing(e -> Math.abs(ChronoUnit.DAYS.between(lost.date(), e.money().date())));

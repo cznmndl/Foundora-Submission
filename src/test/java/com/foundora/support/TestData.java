@@ -83,6 +83,7 @@ public final class TestData {
         return Instant.now().minus(Duration.ofMinutes(minutes));
     }
 
+    /** A blank PNG of the given size, for upload tests. */
     public static byte[] png(int w, int h) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB), "png", out);

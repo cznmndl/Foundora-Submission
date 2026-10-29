@@ -12,6 +12,7 @@ import java.time.ZoneId;
 @EnableScheduling
 public class TimeConfig {
 
+    /** The school's clock. Render runs in UTC, so "today" and displayed times use this zone explicitly. */
     @Bean
     public Clock clock(@Value("${foundora.time-zone:Asia/Manila}") ZoneId zone) {
         return Clock.system(zone);

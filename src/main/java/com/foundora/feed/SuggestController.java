@@ -6,6 +6,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Search-as-you-type, answered from the prefix trie in the feed index. The trie holds words from item names
+ * and descriptions only, never locations, so suggestions can't reveal where an item was lost or found.
+ */
 @RestController
 public class SuggestController {
 

@@ -26,6 +26,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
 
+/** The report form (a full page on phones, a dialog on the desktop feed) and its confirmation. */
 @Controller
 public class ReportController {
 
@@ -82,6 +83,7 @@ public class ReportController {
         return "redirect:/report/sent";
     }
 
+    /** The confirmation: the reporter's own card as it will look on the board, waiting "Under review". */
     @GetMapping("/report/sent")
     public String sent(@AuthenticationPrincipal FoundoraUser user, Model model) {
         if (!model.containsAttribute("sentType")) {
@@ -96,6 +98,10 @@ public class ReportController {
         return "report-sent";
     }
 
+    /**
+     * Money asks for the amount and container instead of a name and public description (it has neither on the
+     * board); everything else needs both.
+     */
     private void checkItemFields(ReportForm form, BindingResult errors) {
         if (form.isMoney()) {
             if (form.getMoneyAmount() == null && !errors.hasFieldErrors("moneyAmount")) {
@@ -114,6 +120,7 @@ public class ReportController {
         }
     }
 
+    /** The place must come from the list; the specific spot is always required, and says where when it's "Other". */
     private void checkLocation(ReportForm form, BindingResult errors) {
         if (form.getLocation() != null && !form.getLocation().isBlank()
                 && !campusLocations.contains(form.getLocation())) {

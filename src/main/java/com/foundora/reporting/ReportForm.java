@@ -15,6 +15,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * What the report form submits. The reporter is never part of it; it comes from the signed-in account.
+ * The item name and description are required except for money, which instead requires the amount and container
+ * (checked in ReportController, which knows the category); fields that don't apply to the category are ignored.
+ */
 public class ReportForm {
 
     public static final String NAME_REQUIRED = "Enter the item’s name.";
@@ -33,12 +38,14 @@ public class ReportForm {
     @NotNull(message = "Choose a category.")
     private Category category;
 
+    /** One of foundora.campus-locations (checked in ReportController, which knows the list). */
     @NotBlank(message = "Choose where the item was lost or found.")
     private String location;
 
     @Size(max = Item.MAX_SPOT, message = "Keep the specific spot to " + Item.MAX_SPOT + " characters or fewer.")
     private String locationSpot;
 
+    /** Optional. Identifying marks only SDFO sees; blank means none. */
     @Size(max = Item.MAX_PRIVATE_DETAILS,
           message = "Keep the private details to " + Item.MAX_PRIVATE_DETAILS + " characters or fewer.")
     private String privateDetails;
@@ -47,6 +54,7 @@ public class ReportForm {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateLostFound;
 
+    // Money only: what SDFO compares claims against.
     @DecimalMin(value = "0.01", message = "Enter an amount more than zero.")
     @Digits(integer = 10, fraction = 2, message = "Enter the amount in pesos, e.g. 500 or 1250.50.")
     private BigDecimal moneyAmount;
@@ -57,6 +65,7 @@ public class ReportForm {
 
     private MoneyContainer moneyContainer;
 
+    /** Optional approximate time, e.g. 13:30. */
     @DateTimeFormat(pattern = "HH:mm")
     private LocalTime timeLostFound;
 

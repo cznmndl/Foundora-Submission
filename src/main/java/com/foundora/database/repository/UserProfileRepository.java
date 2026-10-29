@@ -27,6 +27,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, String
 
     List<UserProfile> findByPinLockedUntilAfterOrderByPinLockedUntilAsc(Instant now);
 
+    /** Registered people whose name or email contains the text, for the admin's claimant picker. */
     // Case-insensitive partial match on name or email; callers pass the text already in lower case.
     @Query("""
             select p from UserProfile p

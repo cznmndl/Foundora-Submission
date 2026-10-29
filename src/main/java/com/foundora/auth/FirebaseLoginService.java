@@ -13,11 +13,15 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Verifies a Firebase ID token on the server and turns it into a {@link FoundoraUser}.
+ */
 @Service
 public class FirebaseLoginService {
 
     private static final Logger log = LoggerFactory.getLogger(FirebaseLoginService.class);
 
+    /** The ID token must come from a sign-in that just happened, not a long-lived browser session. */
     private static final Duration MAX_SIGN_IN_AGE = Duration.ofMinutes(5);
 
     private final FirebaseAuth firebaseAuth;
@@ -35,6 +39,7 @@ public class FirebaseLoginService {
 
         FirebaseToken token;
         try {
+            // Checks signature, expiry, audience/issuer for this project, and that the user is not revoked or disabled.
             token = firebaseAuth.verifyIdToken(idToken, true);
         } catch (FirebaseAuthException e) {
             log.warn("Rejected Firebase ID token: {}", e.getAuthErrorCode());

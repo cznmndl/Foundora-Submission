@@ -3,6 +3,10 @@ package com.foundora.database.entity;
 import java.util.List;
 import java.util.stream.IntStream;
 
+/**
+ * The DLSL community a student belongs to. College students give course, year level and section;
+ * the basic education communities give grade level and section.
+ */
 public enum Community {
     ELEMENTARY("Elementary", "Elementary", 1, 6),
     JUNIOR_HIGH("Junior High School", "JHS", 7, 10),
@@ -25,6 +29,7 @@ public enum Community {
         return label;
     }
 
+    /** As shown to admins in a person's details, e.g. "JHS · Grade 8 · Section Rizal". */
     public String shortLabel() {
         return shortLabel;
     }
@@ -33,6 +38,7 @@ public enum Community {
         return this == COLLEGE;
     }
 
+    /** The grades this community has (empty for College). */
     public List<Integer> grades() {
         return isCollege() ? List.of() : IntStream.rangeClosed(firstGrade, lastGrade).boxed().toList();
     }

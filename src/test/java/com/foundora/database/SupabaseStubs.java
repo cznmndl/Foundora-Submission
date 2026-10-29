@@ -5,6 +5,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
 
+/** The bits of Supabase's own schema that our migrations touch (V2 and V5 update storage.buckets). */
 final class SupabaseStubs {
 
     private SupabaseStubs() {

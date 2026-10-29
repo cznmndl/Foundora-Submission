@@ -4,12 +4,17 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
+/**
+ * The admin's claim record form. The claimant is either a registered user, picked by email (their name and
+ * course/department then come from their profile), or typed in by hand.
+ */
 public class ClaimForm {
 
     private String claimantEmail;
     private String claimantName;
     private String claimantAffiliation;
 
+    /** When the item was handed over, in the school's time zone (from a datetime-local input). */
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime releasedAt;
 

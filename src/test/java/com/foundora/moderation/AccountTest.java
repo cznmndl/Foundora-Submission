@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** The admin's Accounts page: resetting PINs, unlocking accounts, and that only admins can. */
 class AccountTest extends WebTestBase {
 
     @Autowired

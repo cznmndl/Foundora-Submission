@@ -25,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.Duration;
 import java.util.UUID;
 
+/** Posting and deleting comments, and serving comment photos to people who may see the post. */
 @Controller
 public class CommentController {
 

@@ -22,6 +22,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 
+/** Two admins acting on the same report: the second is told what happened, and nothing is silently overwritten. */
 class ConcurrentModerationTest extends WebTestBase {
 
     @MockitoSpyBean
@@ -58,11 +59,12 @@ class ConcurrentModerationTest extends WebTestBase {
     @Test
     void anOutOfDateCopyOfAReportCannotOverwriteANewerChange() {
         Item saved = save(item("Navy umbrella", ReportType.FOUND, ReportStatus.PENDING, STUDENT));
+        // Two admins load the same report (version 0).
         Item first = items.findById(saved.getId()).orElseThrow();
         Item second = items.findById(saved.getId()).orElseThrow();
 
         first.setStatus(ReportStatus.APPROVED);
-        items.save(first);
+        items.save(first);                                   // the report is now version 1
         second.setStatus(ReportStatus.REJECTED);
         second.setReviewReason("Duplicate");
 

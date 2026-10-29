@@ -8,6 +8,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * A photo over the server's upload limit is refused before any controller runs (so MockMvc can't send one);
+ * this checks the handler sends people back to the form they used, with a message.
+ */
 class ErrorAdviceTest {
 
     private final ErrorAdvice advice = new ErrorAdvice();

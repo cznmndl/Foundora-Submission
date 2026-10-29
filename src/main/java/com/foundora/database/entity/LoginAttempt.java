@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 
+/** One sign-in step in the login history. Created by db/migration/V16__login_attempts.sql. */
 @Entity
 @Table(name = "login_attempts")
 public class LoginAttempt {

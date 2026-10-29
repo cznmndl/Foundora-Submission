@@ -2,6 +2,10 @@ package com.foundora.database.entity;
 
 import java.util.Collection;
 
+/**
+ * The status people see: Under review → Posted → Claim pending → Verified → Returned. Derived from the
+ * report's {@link ReportStatus} and its open claim requests, so the report lifecycle itself is unchanged.
+ */
 public enum ItemStage {
     UNDER_REVIEW("Under review"),
     POSTED("Posted"),
@@ -26,6 +30,7 @@ public enum ItemStage {
         return Slugs.of(this);
     }
 
+    /** The icon on its status sticker (fragments/icons.html). */
     public String icon() {
         return switch (this) {
             case UNDER_REVIEW -> "review";
@@ -38,6 +43,7 @@ public enum ItemStage {
         };
     }
 
+    /** Position on the five-step track (1-5), or 0 for reports that left it (not posted, removed, handled). */
     public int step() {
         return switch (this) {
             case UNDER_REVIEW -> 1;
@@ -49,6 +55,7 @@ public enum ItemStage {
         };
     }
 
+    /** The stage of a report whose open claim requests have these statuses. */
     public static ItemStage of(ReportStatus status, Collection<ClaimRequestStatus> openRequests) {
         return switch (status) {
             case PENDING -> UNDER_REVIEW;

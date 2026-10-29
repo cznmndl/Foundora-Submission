@@ -52,6 +52,7 @@ public class AuthController {
         return "login";
     }
 
+    /** Exchanges a freshly issued Firebase ID token for a server-side session. */
     @PostMapping("/auth/session")
     @ResponseBody
     public ResponseEntity<Map<String, String>> createSession(@RequestBody SessionRequest body,
@@ -65,6 +66,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         }
 
+        // Start a fresh session so a pre-login session id (and its CSRF token) can't be reused.
         HttpSession previous = request.getSession(false);
         if (previous != null) {
             previous.invalidate();
@@ -80,6 +82,7 @@ public class AuthController {
 
         UserProfile profile = profiles.recordSignIn(user);
         loginHistory.record(LoginOutcome.GOOGLE_OK, user, null);
+        // A profile missing details for this role is sent to setup by ProfileSetupInterceptor after the PIN step.
         if (profile.isCompleteFor(user.role())) {
             session.setAttribute(ProfileSetupInterceptor.COMPLETE_ATTRIBUTE, true);
         }

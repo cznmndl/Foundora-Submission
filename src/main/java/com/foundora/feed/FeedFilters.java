@@ -7,6 +7,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
 
+/**
+ * The feed's current filters, as read from the URL. Templates use it to highlight the active tab and to build
+ * links that change one filter while keeping the rest.
+ */
 public final class FeedFilters {
 
     private final ReportType type;
@@ -32,6 +36,10 @@ public final class FeedFilters {
         this.location = location;
     }
 
+    /**
+     * @param show     "claimed" for the Claimed tab
+     * @param location already checked by the caller: a campus place for admins, always null for everyone else
+     */
     static FeedFilters parse(String type, String category, String q, String from, String to,
                              String hideClaimed, String sort, String show, String location) {
         boolean claimedOnly = "claimed".equals(show);
@@ -85,22 +93,27 @@ public final class FeedFilters {
         return toQuery(0).isFiltered();
     }
 
+    /** Feed link with the tab changed: "all", "lost", "found" or "claimed". */
     public String typeUrl(String slug) {
         return url("/", ReportType.fromSlug(slug), category, "claimed".equals(slug), 0);
     }
 
+    /** Feed link with the category changed; null or "all" clears it. */
     public String categoryUrl(String slug) {
         return url("/", type, Category.fromSlug(slug), claimedOnly, 0);
     }
 
+    /** Link that loads the given page of posts as an HTML fragment (for "Load more"). */
     public String moreUrl(int page) {
         return url("/feed/posts", type, category, claimedOnly, page);
     }
 
+    /** The same page without JavaScript: a full feed page showing that page of posts. */
     public String pageUrl(int page) {
         return url("/", type, category, claimedOnly, page);
     }
 
+    /** Short description of the filters for the empty state, e.g. "found items in Umbrellas matching “blue”". */
     public String describe() {
         StringBuilder words = new StringBuilder(claimedOnly ? "returned items"
                 : type == null ? "items" : type.label().toLowerCase() + " items");

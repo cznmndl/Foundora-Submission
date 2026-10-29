@@ -8,6 +8,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * Until the PIN has been entered in this session, every page (except the PIN pages, sign-in and static files,
+ * see {@link WebConfig}) sends a signed-in user to /pin. It runs before {@link ProfileSetupInterceptor}.
+ */
 @Component
 public class PinInterceptor implements HandlerInterceptor {
 
