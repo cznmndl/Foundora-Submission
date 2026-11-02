@@ -4,7 +4,8 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 
-COPY src ./src
+COPY backend ./backend
+COPY frontend ./frontend
 RUN mvn -B -q package -DskipTests
 
 FROM eclipse-temurin:17-jre

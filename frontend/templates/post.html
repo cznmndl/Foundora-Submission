@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(~{::title}, ~{::#content}, ~{::#aside}, ~{})}">
+<head><title th:text="|${post.itemName()} · Foundora|">Item · Foundora</title></head>
+<body>
+<div id="content" class="content-narrow">
+    <p><a th:href="@{/}">← Back to the feed</a></p>
+
+    <div class="alert alert-info" role="status" th:if="${archived}">
+        <th:block th:replace="~{fragments/icons :: icon('archive')}"></th:block>
+        <div>
+            <strong>Archived</strong>
+            <p class="small">This claimed item is no longer on the feed. Its record is kept by SDFO. Comments are closed.</p>
+        </div>
+    </div>
+    <div class="alert alert-neutral" role="status" th:if="${post.money() and !post.found()}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <div>
+            <strong>Not posted on the board</strong>
+            <p class="small">Cash is hard to identify. SDFO will contact you if money matching your description is turned in. Only you and SDFO can see this report.</p>
+        </div>
+    </div>
+    <div class="alert alert-info" role="status"
+         th:if="${!archived and !post.status().name().equals('APPROVED') and !post.claimed()}">
+        <th:block th:replace="~{fragments/icons :: icon('info')}"></th:block>
+        <div>
+            <strong th:text="|Status: ${post.status().label()}|">Status: Pending</strong>
+            <p th:if="${post.status().name() == 'PENDING'}" class="small">Only you and the admins can see this report until it's approved.</p>
+            <p th:if="${post.status().name() == 'REJECTED' and reviewReason != null}" class="small"
+               th:text="|Reason: ${reviewReason}|">Reason</p>
+            <p th:if="${post.status().name() == 'REMOVED'}" class="small">Removed from the feed by an admin.</p>
+            <p th:if="${post.status().name() == 'HANDLED'}" class="small">Nobody claimed this money, so SDFO dealt with it under its policy for unclaimed cash.</p>
+        </div>
+    </div>
+
+    <div class="post-detail">
+        <article th:replace="~{fragments/posts :: card(${post}, ${currentUser.isAdmin()}, |/posts/${post.id()}|, false)}"></article>
+    </div>
+
+    <section th:replace="~{fragments/claims :: requester(${post}, ${myRequests}, ${canRequest}, ${passDays})}"></section>
+
+    <section class="card comments" id="comments" aria-labelledby="comments-heading" th:unless="${post.money()}">
+        <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
+
+        <div th:replace="~{fragments/notices :: sdfoHandover}"></div>
+
+        <p class="muted small" th:if="${comments.isEmpty() and commentsOpen}">No comments yet. Know something about this item? Say so here.</p>
+
+        <ol class="comment-list" th:unless="${comments.isEmpty()}">
+            <li class="comment" th:each="c : ${comments}" th:id="|comment-${c.id()}|">
+                <span class="avatar avatar-sm" aria-hidden="true" th:text="${c.authorInitial()}">J</span>
+                <div class="comment-main">
+                    <div class="comment-bubble">
+                        <div class="comment-head">
+                            <strong th:text="${c.authorName()}">Juan Dela Cruz</strong>
+                            <span class="role-badge" th:classappend="${c.badgeClass()}" th:text="${c.badge()}">Student</span>
+                            <span class="role-badge badge-role-op" th:if="${c.originalPoster()}">Original poster</span>
+                        </div>
+                        <p class="comment-admin small" th:if="${c.authorEmail() != null}">
+                            <span th:text="${c.authorEmail()}">email</span> · <span th:text="${c.authorDetails()}">BSIT · 2nd year · O1A</span>
+                        </p>
+                        <p class="comment-body" th:if="${c.body() != null}" th:text="${c.body()}">Comment</p>
+                    </div>
+                    <a th:if="${c.hasPhoto()}" class="comment-photo" th:href="@{/comments/{id}/photo(id=${c.id()})}" data-lightbox
+                       th:attr="data-caption=|Photo from ${c.authorName()}|">
+                        <img th:src="@{/comments/{id}/photo(id=${c.id()})}" th:alt="|Photo from ${c.authorName()}|" loading="lazy" decoding="async">
+                        <span class="visually-hidden">(opens full size)</span>
+                    </a>
+                    <div class="comment-foot">
+                        <time th:datetime="${@fmt.iso(c.createdAt())}" th:title="${@fmt.dateTime(c.createdAt())}"
+                              th:text="${@fmt.ago(c.createdAt())}">2 hours ago</time>
+                        <details class="confirm" th:if="${c.canDelete()}">
+                            <summary class="link-button">Delete</summary>
+                            <form class="confirm-panel" method="post" th:action="@{/comments/{id}/delete(id=${c.id()})}" data-loading>
+                                <p>Delete this comment<span th:if="${c.hasPhoto()}"> and its photo</span>?</p>
+                                <div class="field" th:if="${currentUser.isAdmin() and c.authorEmail() != null and !c.authorEmail().equalsIgnoreCase(currentUser.email())}">
+                                    <label th:for="|reason-comment-${c.id()}|">Reason <span class="hint">Optional. Saved in the activity log.</span></label>
+                                    <input type="text" th:id="|reason-comment-${c.id()}|" name="reason" maxlength="500">
+                                </div>
+                                <input type="hidden" name="returnTo" th:value="|/posts/${post.id()}|">
+                                <button class="btn btn-danger btn-small" type="submit">Delete comment</button>
+                            </form>
+                        </details>
+                    </div>
+                </div>
+            </li>
+        </ol>
+
+        <form th:if="${commentsOpen}" class="comment-form" method="post" enctype="multipart/form-data"
+              th:action="@{/posts/{id}/comments(id=${post.id()})}" data-loading data-comment-form>
+            <div class="field">
+                <label for="comment-body">Write a comment <span class="hint">Everyone signed in can see comments. Don't post where you lost the item: SDFO will ask you that when you claim it. Don't post photos of IDs or other personal details.</span></label>
+                <textarea id="comment-body" name="body" maxlength="1000" rows="3" th:text="${commentDraft}"
+                          data-count-chars></textarea>
+                <p class="hint" aria-live="polite" data-char-count>Up to 1000 characters.</p>
+            </div>
+            <div class="photo-picker">
+                <div class="photo-preview" data-photo-preview><img alt="Preview of the chosen photo"></div>
+                <div class="action-row">
+                    <label class="btn btn-secondary btn-small" for="comment-photo">
+                        <th:block th:replace="~{fragments/icons :: icon('camera')}"></th:block>
+                        <span data-photo-button>Add a photo</span>
+                    </label>
+                    <button type="button" class="btn btn-ghost btn-small" data-photo-clear hidden>Remove photo</button>
+                    <button class="btn btn-primary btn-small" type="submit" style="margin-left:auto">Post comment</button>
+                </div>
+                <input type="file" id="comment-photo" name="photo" class="visually-hidden" accept="image/jpeg,image/png,image/webp"
+                       aria-label="Photo for your comment (optional)" data-photo-input>
+                <p class="field-error" id="comment-photo-error" data-photo-error hidden></p>
+            </div>
+        </form>
+        <p class="muted small" th:unless="${commentsOpen}">Comments are closed on this post.</p>
+    </section>
+
+    <section class="card stack" th:if="${currentUser.isAdmin()}">
+        <h2>Admin details</h2>
+        <div class="reporter-box">
+            <dl>
+                <dt>Reporter</dt><dd th:text="${item.reporterName}">Name</dd>
+                <dt>Email</dt><dd th:text="${item.reporterEmail}">email</dd>
+                <dt>Profile</dt>
+                <dd th:text="${admin.reporterProfile() != null ? admin.reporterProfile().summary() : 'No profile yet'}">BSIT · 2nd year</dd>
+                <dt>Location</dt><dd th:text="${item.location}">Sentrum</dd>
+                <dt>Specific spot</dt><dd th:text="${item.locationSpot != null ? item.locationSpot : '—'}">spot</dd>
+                <th:block th:if="${admin.money() != null}" th:with="m=${admin.money()}">
+                    <dt>Amount</dt><dd th:text="${@fmt.money(m.amount())}">₱500.00</dd>
+                    <dt>Denominations</dt><dd th:text="${m.denominations() ?: '—'}">5 × ₱100</dd>
+                    <dt>Container</dt><dd th:text="${m.container().label()}">Envelope</dd>
+                    <dt th:text="${item.reportType.name() == 'FOUND'} ? 'Found' : 'Lost'">Found</dt>
+                    <dd th:text="${@fmt.dateAndTime(m.date(), m.time())}">Oct 3, 2026, 1:30 PM</dd>
+                </th:block>
+                <dt>Private details</dt><dd th:text="${item.privateDetails != null ? item.privateDetails : '—'}">marks</dd>
+                <dt th:if="${item.handledAt != null}">Handled by SDFO</dt>
+                <dd th:if="${item.handledAt != null}" th:text="|${item.handledByName}, ${@fmt.dateTime(item.handledAt)}: ${item.handledNote}|">note</dd>
+                <dt>Submitted</dt><dd th:text="${@fmt.dateTime(item.createdAt)}">date</dd>
+                <dt th:if="${item.reviewedByName != null}">Reviewed by</dt>
+                <dd th:if="${item.reviewedByName != null}" th:text="|${item.reviewedByName}, ${@fmt.dateTime(item.reviewedAt)}|">admin</dd>
+                <dt th:if="${item.archivedAt != null}">Archived</dt>
+                <dd th:if="${item.archivedAt != null}" th:text="${@fmt.dateTime(item.archivedAt)}">date</dd>
+            </dl>
+        </div>
+        <div th:if="${post.status().name() == 'PENDING'}">
+            <div th:replace="~{fragments/posts :: adminActions(${post.id()}, ${post.itemName()}, 'PENDING', |/posts/${post.id()}|, false)}"></div>
+        </div>
+
+        <th:block th:unless="${claimRequests.isEmpty()}">
+            <h3 class="section-title">Claim requests</h3>
+            <div class="stack">
+                <th:block th:each="r : ${claimRequests}">
+                    <div th:replace="~{fragments/claims :: adminRequest(${r}, ${item}, |/posts/${post.id()}|)}"></div>
+                </th:block>
+            </div>
+        </th:block>
+
+        <th:block th:unless="${claimHistory.isEmpty()}">
+            <h3 class="section-title">Claim records</h3>
+            <div class="stack">
+                <th:block th:each="cr : ${claimHistory}">
+                    <div th:replace="~{admin/archive :: claimRecord(${cr}, |/posts/${post.id()}|)}"></div>
+                </th:block>
+            </div>
+        </th:block>
+        <p class="muted small" th:if="${claimHistory.isEmpty() and post.claimed()}">
+            No claim record: this item was marked as claimed before claim records were kept.</p>
+
+        <h3 class="section-title">History</h3>
+        <ol class="timeline">
+            <li th:each="e : ${history}">
+                <div>
+                    <strong th:text="${e.action.label()}">Approved</strong>
+                    <span th:text="|by ${e.actorName}|">by Admin</span>
+                    <div class="when" th:text="${@fmt.dateTime(e.createdAt)}">time</div>
+                    <div class="small" th:if="${e.reason != null}" th:text="|Note: ${e.reason}|">reason</div>
+                </div>
+            </li>
+        </ol>
+    </section>
+</div>
+<aside id="aside" class="rightpanel" aria-label="SDFO office">
+    <section th:replace="~{fragments/office :: card}"></section>
+</aside>
+</body>
+</html>
