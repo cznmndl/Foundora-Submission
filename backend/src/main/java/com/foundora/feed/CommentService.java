@@ -14,7 +14,6 @@ import com.foundora.database.repository.ItemRepository;
 import com.foundora.database.storage.PhotoDeletionEvent;
 import com.foundora.database.storage.StorageService;
 import com.foundora.reporting.ImageProcessor;
-import com.foundora.reporting.InvalidImageException;
 import com.foundora.reporting.ReportAccess;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;

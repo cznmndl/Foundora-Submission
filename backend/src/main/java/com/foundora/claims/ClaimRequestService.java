@@ -18,7 +18,6 @@ import com.foundora.database.storage.StorageService;
 import com.foundora.feed.ItemChangedEvent;
 import com.foundora.moderation.ArchiveService;
 import com.foundora.reporting.ImageProcessor;
-import com.foundora.reporting.InvalidImageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
