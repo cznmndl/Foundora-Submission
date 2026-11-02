@@ -5,7 +5,7 @@ Foundora is the lost and found board for the De La Salle Lipa community (Group 6
 
 ## Tech Stack
 - **Backend**: Java 17 with Spring Boot 4
-- **Frontend**: Thymeleaf templates, one hand-written stylesheet (`assets/css/app.css`) and a small script (`assets/js/app.js`). Every page works without JavaScript.
+- **Frontend**: Thymeleaf templates, one hand-written stylesheet (`frontend/static/css/app.css`) and a small script (`frontend/static/js/app.js`). Every page works without JavaScript.
 - **Database**: Supabase Postgres via Spring Data JPA (Session pooler), schema managed by Flyway
 - **Authentication**: Firebase Authentication (Google sign-in), verified on the server
 - **Storage**: private Supabase Storage bucket `item-images`; the app serves each photo after checking who is asking
@@ -13,7 +13,7 @@ Foundora is the lost and found board for the De La Salle Lipa community (Group 6
 ## Roles
 Only `@dlsl.edu.ph` Google accounts can sign in; the server checks this after verifying the Firebase ID token.
 
-After every Google sign-in, users enter a 4-digit PIN before any other page opens. First-time users create one (not all-same digits like 1111 and not a straight run like 1234), then set up their profile. Only a BCrypt hash of the PIN is stored. Three wrong PINs lock PIN entry for 24 hours. **Forgot PIN?** signs the user out, and their next Google sign-in clears the old PIN so they can create a new one.
+After every Google sign-in, users enter a 4-digit PIN before any other page opens. First-time users create one (not all-same digits like 1111 and not a straight run like 1234), then set up their profile. Only a BCrypt hash of the PIN is stored. Three wrong PINs lock PIN entry for 24 hours. If someone forgets their PIN, they go to the SDFO with their school ID, and an admin resets the PIN or unlocks the account on the **Accounts** page.
 
 | Email | Role | Can do |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ Profiles are stored in `user_profiles`, keyed by Firebase UID and email. Name an
 `PENDING` → `APPROVED` or `REJECTED` (reason required); `APPROVED` → `CLAIMED` (with a claim record), `REMOVED`, or, for found money only, `HANDLED` (handled by SDFO, note required, final); `CLAIMED` → `REMOVED`, or back to `APPROVED` when an admin reopens the claim. Claimed reports are archived (`archived_at`) after `foundora.claims.archive-after`; they keep the `CLAIMED` status. Only Approved reports and Claimed reports that aren't archived appear on the feed. Remove hides a report rather than deleting it, so the activity log stays complete.
 
 ## Data structures and algorithms
-The classes in `com.foundora.dsa` do real work in the app; each one's comments explain its structure and running time.
+The classes in `backend/src/main/java/com/foundora/dsa` do real work in the app; each one starts with a short note on its structure and running time.
 
 | Class | Structure / algorithm | Used for | Complexity |
 | --- | --- | --- | --- |
@@ -77,7 +77,7 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
    cd Foundora
    ```
 
-2. Download a service account key (Firebase Console → Project settings → Service accounts → Generate new private key) and save it as `src/main/resources/firebase-service-account.json`, or set `FIREBASE_CREDENTIALS_PATH` to the key's file path (e.g. `/path/to/key.json`). Never commit this file; it is git-ignored.
+2. Download a service account key (Firebase Console → Project settings → Service accounts → Generate new private key) and save it as `backend/src/main/resources/firebase-service-account.json`, or set `FIREBASE_CREDENTIALS_PATH` to the key's file path (e.g. `/path/to/key.json`). Never commit this file; it is git-ignored.
 
    Admin emails come from the `FOUNDORA_ADMIN_EMAILS` environment variable (comma-separated). If it is unset, the default in `application.properties` is used.
 
@@ -93,7 +93,7 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
 
    **Use a separate Supabase project for development** (the team uses `foundora-dev`), never the live one: running a branch locally applies its migrations to whatever database `.env` points at.
 
-   On start, Flyway runs `src/main/resources/db/migration`:
+   On start, Flyway runs the files in `backend/database/migrations`:
 
    | Migration | What it does |
    | --- | --- |
@@ -112,6 +112,8 @@ The classes in `com.foundora.dsa` do real work in the app; each one's comments e
    | V13 | Profile communities (Elementary, JHS, SHS, College) and grade levels |
    | V14 | Money category: private amount, denominations, container and time; `HANDLED` status; money claims |
    | V15 | Sign-in PIN: BCrypt hash, failed attempts, 24-hour lock and reset request on `user_profiles` |
+   | V16 | `login_attempts` table (RLS on, no policies): every sign-in step, with the PIN attempt number |
+   | V17 | New activity log actions for the admin Reset PIN and Unlock account |
 
    Flyway's own history table lives in a separate `flyway` schema, outside the API-exposed `public` schema. Never edit a migration that has already run; add a new one.
 
@@ -171,45 +173,61 @@ docker run -p 8080:8080 -e PORT=8080 --env-file .env \
 The `prod` profile requires HTTPS for the session cookie, so sign-in over plain `http://localhost` will not keep you logged in; add `-e SPRING_PROFILES_ACTIVE=default` for local HTTP testing.
 
 ## Project Structure
-The Java code is grouped by feature: each folder holds the pages (controllers), logic (services) and forms for one part of the app.
-```
-src/main/java/com/foundora
-├── FoundoraApplication.java   Starts the app
-├── auth/          Sign-in with Google (@dlsl.edu.ph only), roles, the 4-digit PIN step and lockout,
-│                  login history, profile setup and My Profile
-├── reporting/     Report a lost or found item: the form, photo upload and re-encoding, My Reports,
-│                  and who may see a report
-├── feed/          The home feed and its search, filters and categories, the post page, comments
-├── moderation/    Admin dashboard: approve, reject and remove reports, claim requests and claim
-│                  records, archive, lost money, activity log, and the Accounts page (reset PIN, unlock)
-├── dsa/           The data structures and algorithms listed above (trie, merge sort, queue, indexes)
-├── database/
-│   ├── entity/       One class per database table (Item, UserProfile, LoginAttempt, ActivityLogEntry…)
-│   ├── repository/   The database queries for each table
-│   └── storage/      Photo upload and delete (Supabase Storage) and photo clean-up
-└── config/        Security rules, Firebase and Supabase settings, time zone, date formats, campus
-                   locations, SDFO office details, error pages, health check
+The code is split into two parts: **frontend** (UI/UX) and **backend** (Java logic and the database).
 
-src/main/resources
-├── application.properties   App settings (database, Firebase, admins, folder locations below)
-├── db/migration/  Database changes in order, V1–V17 (Flyway runs them on startup)
-├── ui/            Every HTML page (Thymeleaf): login, pin, feed, post, report, my-reports, profile,
-│                  admin/ pages, error/ pages, and fragments/ shared by many pages (layout, item card,
-│                  report form, status badges, icons, office card)
-└── assets/        Files sent to the browser as-is: css/app.css, js/app.js, fonts/, favicon.svg
-
-src/test/java      Tests for the same features: page tests on an in-memory database (Firebase and
-                   Storage mocked), unit tests for dsa/, and tests that run every migration on Postgres
 ```
-`ui/` and `assets/` are the renamed `templates/` and `static/` folders. Spring finds them through two lines in `application.properties` (`spring.thymeleaf.prefix=classpath:/ui/` and `spring.web.resources.static-locations=classpath:/assets/`). Web addresses are unchanged: the browser still loads `/css/app.css`, `/js/app.js`, `/fonts/…` and `/favicon.svg`.
+Foundora
+├── frontend/                      UI/UX
+│   ├── templates/                 Every HTML page (Thymeleaf)
+│   │   ├── login, pin, pin-setup, feed, post, report, report-sent, my-reports, profile
+│   │   ├── admin/                 Admin pages: overview, pending, reports, claims, money, archive,
+│   │   │                          activity, accounts
+│   │   ├── error/                 403, 404, 500 and 503 pages
+│   │   └── fragments/             Parts shared by many pages: layout, item card, report form,
+│   │                              status badges, icons, office card, notices
+│   └── static/                    Files sent to the browser as-is
+│       ├── css/app.css
+│       ├── js/app.js
+│       ├── fonts/
+│       └── favicon.svg
+│
+├── backend/                       Backend and database
+│   ├── src/main/java/com/foundora
+│   │   ├── FoundoraApplication.java   Starts the app
+│   │   ├── auth/          Google sign-in (@dlsl.edu.ph only), roles, 4-digit PIN and lockout,
+│   │   │                  login history, profile setup and My Profile
+│   │   ├── reporting/     Report a lost or found item: form, photo upload and re-encoding,
+│   │   │                  My Reports, and who may see a report
+│   │   ├── feed/          Home feed: search, filters, categories, post page, comments
+│   │   ├── claims/        "This is mine" claim requests, including money claims
+│   │   ├── moderation/    Admin dashboard: approve, reject, remove, claim records, archive,
+│   │   │                  lost money, activity log
+│   │   ├── accounts/      Admin Accounts page: reset PIN and unlock locked accounts
+│   │   ├── dsa/           Data structures and algorithms (trie, merge sort, queue, indexes)
+│   │   ├── database/
+│   │   │   ├── entity/       One class per table (Item, UserProfile, LoginAttempt, ...)
+│   │   │   ├── repository/   Database queries for each table
+│   │   │   └── storage/      Photo upload and delete (Supabase Storage)
+│   │   └── config/        Security rules, Firebase and Supabase settings, time zone, formats,
+│   │                      campus locations, SDFO office, error pages, health check
+│   ├── src/main/resources     application.properties, application-prod.properties, messages
+│   ├── src/test/java          Tests, grouped by the same features
+│   └── database/
+│       └── migrations/        Database schema changes V1–V17 (Flyway runs them on startup)
+│
+├── pom.xml                        Maven build (points at the folders above)
+└── Dockerfile                     Container build used by Render
+```
+
+`pom.xml` tells Maven where each folder is, so the built app is the same as a standard Spring Boot layout: `frontend/templates` is packaged as `ui/`, `frontend/static` as `assets/` and `backend/database/migrations` as `db/migration`. Web addresses are unchanged: the browser still loads `/css/app.css`, `/js/app.js`, `/fonts/…` and `/favicon.svg`.
+
+Dependencies are not stored in the repository. Maven downloads them from `pom.xml` when the project is built.
 
 ### Where to start reading
 | To understand | Open first |
 |---|---|
 | Login | `auth/AuthController.java` (the `/auth/session` sign-in), `auth/FirebaseLoginService.java` (checks the Google token), `auth/EmailRoleResolver.java` (decides student, staff or admin), `config/SecurityConfig.java` (who may open which pages) |
-| PIN and lockout | `auth/PinService.java` (3 tries, then a 24-hour lock), `auth/PinController.java` and `ui/pin.html` (the Enter PIN page), `auth/PinInterceptor.java` (holds every page until the PIN is entered), `moderation/AccountService.java` (admin Reset PIN and Unlock account), `auth/LoginHistory.java` (the login_attempts log) |
-| Posting an item | `reporting/ReportController.java` and `ui/report.html` (the form), `reporting/ReportService.java` (saves it as pending), `moderation/ModerationService.java` (an admin approves it before it appears), `feed/FeedController.java` (shows it on the feed) |
-| Database access | `database/entity/` (tables), `database/repository/` (queries), `db/migration/` (how the tables were created), `database/storage/StorageService.java` (photos) |
-
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+| PIN and lockout | `auth/PinService.java` (3 tries, then a 24-hour lock), `auth/PinController.java` and `frontend/templates/pin.html` (the Enter PIN page), `auth/PinInterceptor.java` (holds every page until the PIN is entered), `accounts/AccountService.java` (admin Reset PIN and Unlock account), `auth/LoginHistory.java` (the login_attempts log) |
+| Posting an item | `reporting/ReportController.java` and `frontend/templates/report.html` (the form), `reporting/ReportService.java` (saves it as pending), `moderation/ModerationService.java` (an admin approves it before it appears), `feed/FeedController.java` (shows it on the feed) |
+| Claiming an item | `claims/ClaimRequestController.java` and `claims/ClaimRequestService.java` (requests, verify, deny, pickup pass), `moderation/ModerationService.java` (the claim record at release) |
+| Database access | `database/entity/` (tables), `database/repository/` (queries), `backend/database/migrations/` (how the tables were created), `database/storage/StorageService.java` (photos) |
