@@ -42,7 +42,6 @@
     <section class="card comments" id="comments" aria-labelledby="comments-heading" th:unless="${post.money()}">
         <h2 id="comments-heading" th:text="${comments.size() == 1} ? '1 comment' : |${comments.size()} comments|">Comments</h2>
 
-        <!-- SDFO handover reminder, always shown above the comments and the form (fragments/notices.html). -->
         <div th:replace="~{fragments/notices :: sdfoHandover}"></div>
 
         <p class="muted small" th:if="${comments.isEmpty() and commentsOpen}">No comments yet. Know something about this item? Say so here.</p>

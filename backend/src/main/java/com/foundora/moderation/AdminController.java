@@ -1,9 +1,9 @@
 package com.foundora.moderation;
 
-import com.foundora.claims.ClaimRequestException;
-import com.foundora.claims.ClaimRequestService;
 import com.foundora.auth.FoundoraUser;
 import com.foundora.auth.ProfileService;
+import com.foundora.claims.ClaimRequestException;
+import com.foundora.claims.ClaimRequestService;
 import com.foundora.config.CampusLocations;
 import com.foundora.config.Params;
 import com.foundora.database.entity.ActivityAction;
@@ -45,18 +45,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-/** Admin pages. SecurityConfig restricts everything under /admin to the ADMIN role. */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
     private static final int ACTIVITY_PAGE_SIZE = 25;
 
-    /** A pending report: its feed-post preview (which, like the feed, carries no email) plus admin-only details. */
     public record PendingReview(Item item, FeedPost post, AdminPostDetails admin) {
     }
 
-    /** One registered user for the claimant picker. */
     public record PersonOption(String email, String label) {
     }
 
@@ -102,9 +99,9 @@ public class AdminController {
     @GetMapping("/pending")
     public String pending(Model model) {
         PendingQueue<Item> queue = moderation.pendingQueue();
-        int queueSize = queue.size();              // before next(), which takes the front item off
-        Item next = queue.next();                  // front of the queue: the oldest submission
-        List<Item> waiting = queue.inOrder();      // the rest, in order
+        int queueSize = queue.size();
+        Item next = queue.next();
+        List<Item> waiting = queue.inOrder();
         Map<UUID, AdminPostDetails> details = adminDetails.forItems(
                 next == null ? waiting : java.util.stream.Stream.concat(java.util.stream.Stream.of(next),
                         waiting.stream()).toList());
@@ -135,7 +132,6 @@ public class AdminController {
         return "admin/reports";
     }
 
-    /** Archived claimed reports with their claim records, kept forever for disputes. */
     @GetMapping("/archive")
     public String archived(@RequestParam(required = false) String q,
                            @RequestParam(required = false) String type,
@@ -155,7 +151,6 @@ public class AdminController {
         return "admin/archive";
     }
 
-    /** Claim requests: every item with open requests, the one waiting longest first, all its requests side by side. */
     @GetMapping("/claims")
     public String claims(Model model) {
         var queue = claimRequests.queue();
@@ -167,10 +162,6 @@ public class AdminController {
         return "admin/claims";
     }
 
-    /**
-     * Lost money reports, which never go on the feed, beside the found money SDFO is holding, with possible
-     * matches by amount and date. Sorted by date (newest first) or by amount (?sort=amount).
-     */
     @GetMapping("/money")
     public String money(@RequestParam(required = false) String sort, Model model) {
         MoneyReports.Sort order = MoneyReports.Sort.fromSlug(sort);
@@ -211,10 +202,6 @@ public class AdminController {
                 redirect);
     }
 
-    /**
-     * The activity log, filtered by category (?group=reports|claims|claim-requests) and/or one action
-     * (?action=…). An action outside the chosen category is ignored; an action alone selects its category.
-     */
     @GetMapping("/activity")
     public String activity(@RequestParam(required = false) String group,
                            @RequestParam(required = false) String action,
@@ -257,7 +244,6 @@ public class AdminController {
                 "/admin/pending", redirect);
     }
 
-    /** The claim record form: who the item was released to, when, and any notes. */
     @GetMapping("/reports/{id}/claim")
     public String claimForm(@PathVariable UUID id, @RequestParam(required = false) String returnTo,
                             @RequestParam(value = "request", required = false) UUID requestId, Model model) {
@@ -265,7 +251,6 @@ public class AdminController {
         if (!model.containsAttribute("claimForm")) {
             ClaimForm form = new ClaimForm();
             form.setReleasedAt(LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES));
-            // Releasing to a verified requester: fill in who they are.
             claimRequests.forItem(item.getId()).stream()
                     .filter(r -> r.getId().equals(requestId) && r.isOpen()).findFirst()
                     .ifPresent(r -> {
@@ -331,7 +316,6 @@ public class AdminController {
                 "/admin/reports", redirect);
     }
 
-    /** Found money nobody claimed, dealt with under SDFO policy. The note is required and goes in the activity log. */
     @PostMapping("/reports/{id}/handle")
     public String handle(@PathVariable UUID id, @AuthenticationPrincipal FoundoraUser admin,
                          @RequestParam(required = false) String note,
@@ -340,7 +324,6 @@ public class AdminController {
                 returnTo, "/admin/money", redirect);
     }
 
-    /** Registered people matching the text, for the claimant picker's suggestions. */
     @GetMapping("/api/people")
     @ResponseBody
     public List<PersonOption> people(@RequestParam(defaultValue = "") String q) {

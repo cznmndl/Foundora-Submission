@@ -1,8 +1,8 @@
 package com.foundora.accounts;
 
-import com.foundora.moderation.ModerationException;
 import com.foundora.auth.FoundoraUser;
 import com.foundora.config.Params;
+import com.foundora.moderation.ModerationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -17,7 +17,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-/** The admin's Accounts page: find a person, reset a forgotten PIN, or unlock an account locked by wrong PINs. */
 @Controller
 @RequestMapping("/admin/accounts")
 public class AccountController {

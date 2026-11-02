@@ -17,10 +17,6 @@ import org.springframework.web.client.RestClientException;
 import java.time.Duration;
 import java.util.UUID;
 
-/**
- * Serves a report's photo from the private bucket, only to people allowed to see the report.
- * Photos the user may not see get the same 404 as photos that don't exist.
- */
 @RestController
 public class PhotoController {
 
@@ -44,7 +40,6 @@ public class PhotoController {
             StorageService.StoredPhoto photo = storage.downloadPhoto(item.getImagePath());
             return ResponseEntity.ok()
                     .contentType(photo.contentType())
-                    // "private": browsers may cache it, shared proxies may not.
                     .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePrivate())
                     .eTag(item.getImagePath())
                     .body(photo.bytes());

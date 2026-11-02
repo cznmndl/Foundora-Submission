@@ -17,10 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The main feed of approved reports, for every signed-in role. Locations are secret: only admins get the
- * location filter and the per-post {@code adminDetails}; for everyone else the location parameter is ignored.
- */
 @Controller
 public class FeedController {
 
@@ -63,7 +59,6 @@ public class FeedController {
         return "feed";
     }
 
-    /** The next page of posts as an HTML fragment, appended by "Load more" without reloading the page. */
     @GetMapping("/feed/posts")
     public String morePosts(@RequestParam(required = false) String type,
                             @RequestParam(required = false) String category,
@@ -82,7 +77,6 @@ public class FeedController {
         return "fragments/posts :: page";
     }
 
-    /** The location filter is for admins only, and only with a place from the list. */
     private String adminLocation(FoundoraUser user, String location) {
         return user.isAdmin() && campusLocations.contains(location) ? location : null;
     }

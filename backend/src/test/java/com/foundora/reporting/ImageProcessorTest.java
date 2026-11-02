@@ -38,7 +38,6 @@ class ImageProcessorTest {
 
     @Test
     void appliesTheExifRotationThenDropsAllMetadata() throws Exception {
-        // 40x20, left half red: rotated 90° clockwise (orientation 6) the red half must end up on top.
         BufferedImage source = new BufferedImage(40, 20, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = source.createGraphics();
         g.setColor(Color.RED);
@@ -67,7 +66,6 @@ class ImageProcessorTest {
     void refusesFilesThatAreNotSupportedImages() throws Exception {
         assertThatThrownBy(() -> processor.toJpeg(new MockMultipartFile("photo", "a.png", "image/png", "hello".getBytes())))
                 .isInstanceOf(InvalidImageException.class).hasMessageContaining("isn't a photo");
-        // A GIF renamed to .png is caught by decoding, not by trusting the declared type.
         assertThatThrownBy(() -> processor.toJpeg(new MockMultipartFile("photo", "a.png", "image/png", encode(image(10, 10), "gif"))))
                 .isInstanceOf(InvalidImageException.class).hasMessageContaining("JPEG, PNG or WebP");
         assertThatThrownBy(() -> processor.toJpeg(new MockMultipartFile("photo", "a.gif", "image/gif", encode(image(10, 10), "gif"))))
@@ -80,7 +78,7 @@ class ImageProcessorTest {
         assertThatThrownBy(() -> processor.toJpeg(new MockMultipartFile("photo", "a.jpg", "image/jpeg", tooBig)))
                 .isInstanceOf(InvalidImageException.class).hasMessageContaining("5 MB");
 
-        byte[] bomb = pngHeader(10_000, 10_000); // a few bytes claiming 100 megapixels
+        byte[] bomb = pngHeader(10_000, 10_000);
         assertThatThrownBy(() -> processor.toJpeg(new MockMultipartFile("photo", "a.png", "image/png", bomb)))
                 .isInstanceOf(InvalidImageException.class).hasMessageContaining("too large");
     }
@@ -109,13 +107,12 @@ class ImageProcessorTest {
         return ImageIO.read(new ByteArrayInputStream(bytes));
     }
 
-    /** Inserts an EXIF APP1 segment holding only an orientation tag right after the JPEG's start marker. */
     private static byte[] withOrientation(byte[] jpeg, int orientation) {
         byte[] tiff = {
-                'M', 'M', 0, 42, 0, 0, 0, 8,              // big-endian TIFF header, first directory at offset 8
-                0, 1,                                     // one entry
-                0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, (byte) orientation, 0, 0, // orientation, SHORT, count 1
-                0, 0, 0, 0};                              // no next directory
+                'M', 'M', 0, 42, 0, 0, 0, 8,
+                0, 1,
+                0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, (byte) orientation, 0, 0,
+                0, 0, 0, 0};
         byte[] exif = new byte[6 + tiff.length];
         System.arraycopy(new byte[]{'E', 'x', 'i', 'f', 0, 0}, 0, exif, 0, 6);
         System.arraycopy(tiff, 0, exif, 6, tiff.length);

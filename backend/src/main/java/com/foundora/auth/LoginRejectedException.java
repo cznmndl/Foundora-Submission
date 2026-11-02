@@ -2,9 +2,6 @@ package com.foundora.auth;
 
 import com.foundora.database.entity.LoginOutcome;
 
-/**
- * Sign-in was refused. The message is safe to show to the user.
- */
 public class LoginRejectedException extends RuntimeException {
 
     private final LoginOutcome outcome;

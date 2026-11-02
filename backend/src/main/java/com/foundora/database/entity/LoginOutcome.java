@@ -1,6 +1,5 @@
 package com.foundora.database.entity;
 
-/** What happened at one sign-in step, stored with each {@link LoginAttempt}. */
 public enum LoginOutcome {
     GOOGLE_OK,
     REJECTED_DOMAIN,

@@ -9,15 +9,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Maps a school email to a role. Only @dlsl.edu.ph addresses get in.
- * <ul>
- *   <li>Any address on the admin allowlist is an admin, including office accounts such as sdfo@dlsl.edu.ph.</li>
- *   <li>first_last (underscore, no dot) is a student.</li>
- *   <li>first.last (dot, no underscore) or an office account (neither) is staff.</li>
- *   <li>A local part with both a dot and an underscore matches no known account format and is rejected.</li>
- * </ul>
- */
 @Component
 public class EmailRoleResolver {
 
@@ -60,7 +51,6 @@ public class EmailRoleResolver {
         return hasUnderscore ? UserRole.STUDENT : UserRole.STAFF;
     }
 
-    /** Returns the part before {@code @dlsl.edu.ph}, or null if the address is not exactly on that domain. */
     private static String schoolLocalPart(String email) {
         int at = email.indexOf('@');
         if (at <= 0 || at != email.lastIndexOf('@')) {

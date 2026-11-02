@@ -17,8 +17,6 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, String
 
     Optional<UserProfile> findByEmailIgnoreCase(String email);
 
-    // SELECT ... FOR UPDATE: locks the profile row until the transaction ends, so concurrent PIN tries or
-    // admin actions (reset, unlock) can't overwrite each other's changes.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from UserProfile p where p.uid = :uid")
     Optional<UserProfile> findForUpdate(@Param("uid") String uid);
@@ -27,8 +25,6 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, String
 
     List<UserProfile> findByPinLockedUntilAfterOrderByPinLockedUntilAsc(Instant now);
 
-    /** Registered people whose name or email contains the text, for the admin's claimant picker. */
-    // Case-insensitive partial match on name or email; callers pass the text already in lower case.
     @Query("""
             select p from UserProfile p
             where lower(p.fullName) like concat('%', :text, '%') or lower(p.email) like concat('%', :text, '%')

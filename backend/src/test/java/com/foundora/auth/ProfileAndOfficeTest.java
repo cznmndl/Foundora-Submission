@@ -41,7 +41,6 @@ class ProfileAndOfficeTest extends WebTestBase {
         assertThat(saved.getCourse()).isEqualTo("BS Computer Science");
         assertThat(saved.getYearLevel()).isEqualTo(3);
         assertThat(saved.getSection()).isEqualTo("O3A");
-        // The edit form shows the saved course selected, inside its college's group.
         mvc.perform(get("/profile").with(as(STUDENT)))
                 .andExpect(content().string(containsString("<optgroup label=\"College of Information Technology and Engineering\"")))
                 .andExpect(content().string(containsString("value=\"BS Computer Science\" selected=\"selected\"")));

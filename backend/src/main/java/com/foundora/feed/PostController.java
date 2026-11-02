@@ -1,12 +1,12 @@
 package com.foundora.feed;
 
 import com.foundora.auth.FoundoraUser;
+import com.foundora.claims.ClaimRequestService;
 import com.foundora.database.entity.Item;
 import com.foundora.database.entity.MoneyContainer;
 import com.foundora.database.repository.ActivityLogRepository;
 import com.foundora.database.repository.ClaimRecordRepository;
 import com.foundora.moderation.AdminDetailsService;
-import com.foundora.claims.ClaimRequestService;
 import com.foundora.reporting.ReportAccess;
 import com.foundora.reporting.ReportService;
 import org.springframework.http.HttpStatus;
@@ -19,11 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
-/**
- * One report on its own page, with its comments. Someone else's Pending, Rejected or archived report is a 404,
- * not a 403. Non-admins get only the public {@link FeedPost} (no location, no email); the full report, its
- * location and claim records go to admins only.
- */
 @Controller
 public class PostController {
 
@@ -53,7 +48,6 @@ public class PostController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         boolean isReporter = access.isReporter(item, user);
         model.addAttribute("post", FeedPost.from(item, claimRequests.stage(item)));
-        // Claim requests: your own (the proof is only ever shown to you and admins), and whether you can ask.
         model.addAttribute("myRequests", claimRequests.mine(item, user));
         model.addAttribute("canRequest", claimRequests.canRequest(item, user));
         model.addAttribute("passDays", claimRequests.passValidFor().toDays());

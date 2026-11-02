@@ -81,7 +81,6 @@ class CommentTest extends WebTestBase {
         String notice = "Items must be turned over to and claimed through the SDFO. Private handovers are not officially recognized.";
         Item post = approvedPostBy(OTHER_STUDENT);
 
-        // Shown before anyone has commented, for users and admins alike.
         assertThat(html("/posts/" + post.getId(), as(STUDENT))).contains("No comments yet").contains(notice);
         assertThat(html("/posts/" + post.getId(), as(ADMIN))).contains(notice);
 
@@ -143,7 +142,7 @@ class CommentTest extends WebTestBase {
         mvc.perform(post("/comments/" + mine.getId() + "/delete").with(as(STUDENT)).with(csrf()))
                 .andExpect(redirectedUrl("/posts/" + post.getId() + "#comments"));
         assertThat(commentRepository.count()).isZero();
-        assertThat(activityLog.findAll()).isEmpty(); // a user deleting their own comment isn't logged
+        assertThat(activityLog.findAll()).isEmpty();
 
         comment(post, "Spam spam", as(STAFF));
         Comment spam = commentRepository.findAll().get(0);
@@ -173,7 +172,7 @@ class CommentTest extends WebTestBase {
 
         ArgumentCaptor<byte[]> stored = ArgumentCaptor.forClass(byte[].class);
         verify(storage).storePhoto(eq(StorageService.COMMENTS), stored.capture());
-        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8); // JPEG: metadata stripped
+        assertThat(stored.getValue()).startsWith((byte) 0xFF, (byte) 0xD8);
         Comment withPhoto = commentRepository.findAll().get(0);
         assertThat(withPhoto.getImagePath()).isEqualTo("comments/abc.jpg");
         assertThat(withPhoto.getBody()).isNull();

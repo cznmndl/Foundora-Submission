@@ -19,7 +19,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Loads {@link AdminPostDetails} for a page of posts in three queries (items, profiles, claims). Admin pages only. */
 @Service
 public class AdminDetailsService {
 

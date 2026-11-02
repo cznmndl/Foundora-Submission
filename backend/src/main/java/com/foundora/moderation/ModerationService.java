@@ -1,8 +1,8 @@
 package com.foundora.moderation;
 
-import com.foundora.claims.ClaimRequestService;
 import com.foundora.auth.FoundoraUser;
 import com.foundora.auth.ProfileService;
+import com.foundora.claims.ClaimRequestService;
 import com.foundora.database.entity.ActivityAction;
 import com.foundora.database.entity.ActivityLogEntry;
 import com.foundora.database.entity.ClaimRecord;
@@ -29,14 +29,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Admin actions on reports. Each action checks the status transition is allowed, updates the report and
- * writes the activity log in one transaction. Feed updates and photo deletion run after it commits.
- */
 @Service
 public class ModerationService {
 
-    /** How far ahead of the server clock a release time may be (an admin's watch running a little fast). */
     private static final Duration CLOCK_SKEW = Duration.ofMinutes(5);
 
     private final ItemRepository items;
@@ -63,7 +58,6 @@ public class ModerationService {
         this.clock = clock;
     }
 
-    /** Pending reports as a FIFO queue: the oldest submission is reviewed first. */
     @Transactional(readOnly = true)
     public PendingQueue<Item> pendingQueue() {
         return PendingQueue.ofOldestFirst(items.findByStatusOrderByCreatedAtAsc(ReportStatus.PENDING));
@@ -84,7 +78,6 @@ public class ModerationService {
     public Item approve(UUID id, FoundoraUser admin) {
         Item item = find(id);
         if (item.getStatus() != ReportStatus.PENDING) {
-            // CLAIMED -> APPROVED is allowed only by reopening the claim, which records why.
             throw new ModerationException("\"" + item.getItemName() + "\" is " + item.getStatus().label()
                     + ", so it can't be approved.");
         }
@@ -103,11 +96,6 @@ public class ModerationService {
         return move(id, ReportStatus.REJECTED, admin, trimmed);
     }
 
-    /**
-     * Marks an approved report as claimed and saves the claim record: who it was released to, when, and by
-     * which admin. The claimant is a registered user (picked by email) or typed in by hand. Open claim
-     * requests end: the claimant's own becomes Released, everyone else's Closed.
-     */
     @Transactional
     public Item markClaimed(UUID id, FoundoraUser admin, ClaimForm form) {
         Item item = find(id);
@@ -152,7 +140,6 @@ public class ModerationService {
         return move(item, ReportStatus.CLAIMED, admin, "Released to " + name + " (" + affiliation + ")");
     }
 
-    /** Flags the current claim as disputed (e.g. someone else says it's theirs). The item stays claimed. */
     @Transactional
     public ClaimRecord disputeClaim(UUID claimId, FoundoraUser admin, String note) {
         ClaimRecord claim = findClaim(claimId);
@@ -167,7 +154,6 @@ public class ModerationService {
         return claim;
     }
 
-    /** Ends a dispute and keeps the claim as it was. */
     @Transactional
     public ClaimRecord resolveDispute(UUID claimId, FoundoraUser admin, String note) {
         ClaimRecord claim = findClaim(claimId);
@@ -181,10 +167,6 @@ public class ModerationService {
         return claim;
     }
 
-    /**
-     * Reopens a claim (e.g. the item went to the wrong person): the claim record is kept, marked Reopened,
-     * and the report goes back to Approved, on the feed and claimable again, even if it was archived.
-     */
     @Transactional
     public Item reopenClaim(UUID claimId, FoundoraUser admin, String reason) {
         ClaimRecord claim = findClaim(claimId);
@@ -220,10 +202,6 @@ public class ModerationService {
         return move(id, ReportStatus.REMOVED, admin, trimmed);
     }
 
-    /**
-     * The final action for found money nobody claimed: SDFO dealt with it under its own policy. A note saying
-     * what was done is required; it goes on the report and in the activity log. Open claim requests are closed.
-     */
     @Transactional
     public Item markHandled(UUID id, FoundoraUser admin, String note) {
         Item item = find(id);
@@ -309,7 +287,6 @@ public class ModerationService {
             claimRequests.closeOpen(item, now);
         }
         if ((next == ReportStatus.REJECTED || next == ReportStatus.REMOVED) && item.hasPhoto()) {
-            // Detach now so the photo stops being served at once; the file is deleted after commit.
             events.publishEvent(new PhotoDeletionEvent(item.getImagePath()));
             item.setImagePath(null);
         }

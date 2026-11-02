@@ -14,11 +14,6 @@ import org.springframework.web.client.RestClient;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/**
- * Stores report and comment photos in the private Supabase Storage bucket, using the server-only secret key.
- * Report photos live under items/, comment photos under comments/. Photos are never linked directly;
- * {@code PhotoController} serves them after checking who is asking.
- */
 @Service
 @EnableConfigurationProperties(SupabaseProperties.class)
 public class StorageService {
@@ -29,7 +24,6 @@ public class StorageService {
     public static final String COMMENTS = "comments";
     public static final String CLAIMS = "claims";
 
-    /** Photo paths look like items/&lt;file&gt;, comments/&lt;file&gt; or claims/&lt;file&gt;; anything else is refused before it reaches Supabase. */
     private static final Pattern PATH =
             Pattern.compile("(items|comments|claims)/([A-Za-z0-9-]+\\.(jpg|jpeg|png|webp|gif))");
 
@@ -48,13 +42,10 @@ public class StorageService {
                 .build();
     }
 
-    /** Uploads a report photo (JPEG bytes) under a new random name and returns the object path to save. */
     public String storePhoto(byte[] jpeg) {
         return storePhoto(ITEMS, jpeg);
     }
 
-    /** Uploads JPEG bytes into {@code folder} (items, comments or claims) under a new random name; returns the object path. */
-    /** Shown when Supabase Storage doesn't accept an upload; the form is kept so the person can try again. */
     public static final String UPLOAD_FAILED = "We couldn't save the photo just now. Please try again in a moment.";
 
     public String storePhoto(String folder, byte[] jpeg) {
@@ -82,7 +73,6 @@ public class StorageService {
         return new StoredPhoto(response.getBody(), type != null ? type : MediaType.IMAGE_JPEG);
     }
 
-    /** Deletes a photo. A photo that is already gone counts as deleted. */
     public void deletePhoto(String path) {
         String[] parts = split(path);
         try {
@@ -97,7 +87,6 @@ public class StorageService {
         }
     }
 
-    /** Best-effort delete for cleanup paths; failures are logged with the path so it can be removed by hand. */
     public void deletePhotoQuietly(String path) {
         try {
             deletePhoto(path);
@@ -106,7 +95,6 @@ public class StorageService {
         }
     }
 
-    /** [folder, file name] of a valid photo path. */
     private static String[] split(String path) {
         var matcher = PATH.matcher(path == null ? "" : path);
         if (!matcher.matches()) {
@@ -115,7 +103,6 @@ public class StorageService {
         return new String[]{matcher.group(1), matcher.group(2)};
     }
 
-    // Supabase Storage has answered a missing object with 404, and with 400 + "not_found" in the body.
     private static boolean isNotFound(HttpStatusCode status, String body) {
         return status.value() == 404 || (status.value() == 400 && body != null && body.contains("not_found"));
     }

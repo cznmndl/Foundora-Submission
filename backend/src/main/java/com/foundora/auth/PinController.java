@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** The PIN step after Google sign-in: /pin/setup creates the PIN once, /pin asks for it at every sign-in. */
 @Controller
 public class PinController {
 
